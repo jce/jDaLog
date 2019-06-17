@@ -1,0 +1,4 @@
+#!/bin/bash
+mkdir /tmp/graphs
+rm http/graphs -rf
+ln -s /tmp/graphs http

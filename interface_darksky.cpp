@@ -1,0 +1,234 @@
+#include "stdio.h"
+#include <string>
+#include "string.h"
+#include "floatLog.h"
+#include "interface.h"
+#include "interface_darksky.h"
+#include "main.h"
+#include "sys/stat.h" // mkdir
+#include "sys/time.h" // gettimeofday(()
+#include "stringStore.h"
+#include "math.h" // pow()
+#include "out.h"
+#include <jansson.h> // JCE, 6-9-2018, https://jansson.readthedocs.io/en/2.11/gettingstarted.html#compiling-and-installing-jansson
+#include <curl/curl.h>
+
+//#define debug
+
+// debug dereference of json
+//#define debug2
+
+using namespace std;
+
+
+static size_t writeCallback(void* buf, size_t size, size_t nmemb, void* userp)
+{
+	if(userp)
+	{
+		string* s = static_cast<string*>(userp);
+		size_t len = size * nmemb;
+		s->append(static_cast<char*>(buf), len);
+		return nmemb;
+	}
+
+	return 0;
+}
+
+string get_https_page(const string& url, long timeout) // Make sure https is in the url. JCE, 19-9-2018
+{
+	CURL* curl = curl_easy_init();
+
+	string s;
+
+	curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, &writeCallback);
+	curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 1L);
+	curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
+	curl_easy_setopt(curl, CURLOPT_FILE, &s);
+	curl_easy_setopt(curl, CURLOPT_TIMEOUT, timeout);
+	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+	// curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L); // Do not verify the host
+	// curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L); // Do not verify hostname on certificate
+	curl_easy_perform(curl);
+	curl_easy_cleanup(curl);
+
+	return s;
+}
+
+interface_darksky::interface_darksky(const string d, const string n, const string key, const float latitude, const float longitude):interface(d, n), _key(key), _lat(latitude), _lon(longitude){
+	
+	responseTime = new in(getDescriptor() + "_rt", getName() + " response time", "ms", 3);
+	
+	precipIntensity = new in(getDescriptor() + "_pi", getName() + " precip intensity", "mm/h", 1);
+	precipProbability = new in(getDescriptor() + "_pp", getName() + " precip probability", "%", 1);
+	temperature = new in(getDescriptor() + "_temp", getName() + " temperature", "°C", 2);
+	apparentTemperature = new in(getDescriptor() + "_at", getName() + " apparent temperature", "°C", 2);
+	dewPoint = new in(getDescriptor() + "_dewp", getName() + " dewpoint", "°C", 2);
+	humidity = new in(getDescriptor() + "_hum", getName() + " humidity", "%", 0);
+	pressure = new in(getDescriptor() + "_pr", getName() + " pressure", "hPa", 2);
+	windSpeed = new in(getDescriptor() + "_ws", getName() + " wind speed", "m/s", 2);
+	windGust = new in(getDescriptor() + "_wgs", getName() + " wind gust speed", "m/s", 2);
+	windBearing = new in(getDescriptor() + "_wb", getName() + " wind bearing", "°", 0);
+	cloudCover = new in(getDescriptor() + "_cc", getName() + " cloud cover", "%", 0);
+	uvIndex = new in(getDescriptor() + "_uv", getName() + " uv index", "", 0);
+	visibility = new in(getDescriptor() + "_v", getName() + " visibility", "km", 2);
+	ozone = new in(getDescriptor() + "_oz", getName() + " ozone", "DU", 2);
+	}
+
+interface_darksky::~interface_darksky(){
+	
+	delete responseTime;
+	
+	delete precipIntensity;
+	delete precipProbability;
+	delete temperature;
+	delete apparentTemperature;
+	delete dewPoint;
+	delete humidity;
+	delete pressure;
+	delete windSpeed;
+	delete windGust;
+	delete windBearing;
+	delete cloudCover;
+	delete uvIndex;
+	delete visibility;
+	delete ozone;
+	}
+
+// Translate a json value from the json "j", identified by string "tag"
+// multiplied by scale to an input value for in at time t.
+void interface_darksky::json_to_in(json_t* j, in* i, const char* tag, float scale, double t){
+	bool succes = false;
+	if (j){
+		json_t *valueObject = json_object_get(j, tag);
+		if (valueObject){
+			if (json_is_number(valueObject)){
+				float number;
+	#ifdef debug2
+		printf("Extracting number from element %s\n", tag);
+		fflush(stdout);
+	#endif // debug2
+				number = json_number_value(valueObject);
+	#ifdef debug2
+		printf("Number is %f\nNow scaling...\n", number);
+		fflush(stdout);
+	#endif // debug2
+				number = number * scale;
+	#ifdef debug2
+		printf("Writing to in %s\n", i->getName().c_str());
+		fflush(stdout);
+	#endif // debug2
+				i->setValue(number, t);
+	#ifdef debug2
+		printf("Json decoded\n");
+		fflush(stdout);
+	#endif // debug2
+				//i->setValue(json_number_value(valueObject) * scale, t);
+				succes = true;
+				}
+			}
+		}
+	i->setValid(succes);
+	};
+
+// Set all ins collected from the json to invalid.
+void interface_darksky::setAllInsInvalid(){	
+	precipIntensity->setValid(false);
+	precipProbability->setValid(false);
+	temperature->setValid(false);
+	apparentTemperature->setValid(false);
+	dewPoint->setValid(false);
+	humidity->setValid(false);
+	pressure->setValid(false);
+	windSpeed->setValid(false);
+	windGust->setValid(false);
+	windBearing->setValid(false);
+	cloudCover->setValid(false);
+	uvIndex->setValid(false);
+	visibility->setValid(false);
+	ozone->setValid(false);
+	}
+
+void interface_darksky::getIns(){
+	#ifdef debug2
+		printf("Call of interface_darksky::getIns()\n");
+		fflush(stdout);
+	#endif // debug2
+	double start = now();
+	string url = "https://api.darksky.net/forecast/" + _key + "/" + to_string(_lat) + "," + to_string(_lon) + "?units=si&exclude=minutely,hourly,daily,alerts,flags";
+	#ifdef debug
+		printf(url.c_str());printf("\n");
+		fflush(stdout);
+	#endif // debug
+	string content = get_https_page(url, 20);
+	#ifdef debug
+		printf(content.c_str());printf("\n");
+		fflush(stdout);
+	#endif // debug
+	double end = now();
+	double t = (start + end) / 2;
+	responseTime->setValue((end-start)*1000, t);
+	#ifdef debug2
+		printf("Start json decoding\n");
+		fflush(stdout);
+	#endif // debug2
+	json_t *json = json_loads(content.c_str(), 0, NULL);
+	#ifdef debug2
+		printf("Json decoded\n");
+		fflush(stdout);
+	#endif // debug2
+	if (json){
+		const char key[] = "currently"; // Key of the current weather information in the root JSON object.
+		json_t *cur = json_object_get(json, key);
+			if (cur){
+				long int time = json_integer_value(json_object_get(cur, "time"));
+				double t = time;
+				json_to_in(cur, precipIntensity, "precipIntensity", 1.0, t);	
+				json_to_in(cur, precipProbability, "precipProbability", 100.0, t);	
+				json_to_in(cur, temperature, "temperature", 1.0, t);	
+				json_to_in(cur, apparentTemperature, "apparentTemperature", 1.0, t);	
+				json_to_in(cur, dewPoint, "dewPoint", 1.0, t);	
+				json_to_in(cur, humidity, "humidity", 100.0, t);	
+				json_to_in(cur, pressure, "pressure", 1.0, t);	
+				json_to_in(cur,windSpeed, "windSpeed", 1.0, t);	
+				json_to_in(cur, windGust, "windGust", 1.0, t);	
+				json_to_in(cur, windBearing, "windBearing", 1.0, t);	
+				json_to_in(cur, cloudCover, "cloudCover", 100.0, t);	
+				json_to_in(cur, uvIndex, "uvIndex", 1.0, t);	
+				json_to_in(cur, visibility, "visibility", 1.0, t);	
+				json_to_in(cur, ozone, "ozone", 1.0, t);	
+			}
+			else setAllInsInvalid(); 
+	#ifdef debug2
+		printf("json_decref(%i)\n", (int) json);
+		fflush(stdout);
+	#endif // debug2
+		json_decref(json);
+	#ifdef debug2
+		printf("done\n");
+		fflush(stdout);
+	#endif // debug2
+		}
+	else 
+		{
+		setAllInsInvalid();
+	#ifdef debug2
+		printf("There was no json to be decref'ed\n");
+	#endif // debug2
+		}
+
+	#ifdef debug2
+		printf("end of interface_darksky.getIns()\n");
+	#endif // debug2 
+	}
+
+void interface_darksky::setOut(out*, float){
+	}
+
+// Write callback. Include with request with:
+//  CURLcode curl_easy_setopt(CURL *handle, CURLOPT_WRITEFUNCTION, write_callback);
+size_t write_callback(char *ptr, size_t size, size_t nmemb, void *userdata);
+
+//https://curl.haxx.se/libcurl/c/getinmemory.html
+//https://curl.haxx.se/libcurl/c/https.html
+//https://jansson.readthedocs.io/en/2.11/apiref.html#decoding
+

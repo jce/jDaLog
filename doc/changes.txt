@@ -1,0 +1,15 @@
+List with changes.
+
+- thread with 10 second loop created.
+- main thread waits for both children threads to quit before stopping itself.
+JCE, 17-6-13
+
+Build 144: Jeu, een ingang heeft als parameter _decimals, waarmee je het aantal decimals in een eventuele visualisatie kunt setten. JCE, 20-6-13
+
+Build 156: in heeft ook een tijd parameter. Zo kunnen alle ingangen dezelfde meettijd krijgen op 1 interface. Misschien handig verderop in verwerking.
+Interface class geschreven voor regenwater level interface, en tempSensor3 interface. JCE, 21-6-13
+
+Cumulus interface... mjah gare zoot? JCE, 24-6-13
+wind dingen zijn allemaal hetzelfde... net zoals rainfall. misschien eens naar kijken? - jah, ook java arrays beginnen bij nul. Todo: in->getValue() moet in de file snuffelen na eerste startup. Anders start ie alsnog altijd bij nul. Verder lijkt cumulus interface het nu goed te doen. Nog niet getest met cumulus dc/progsel gecrasht.... JCE, 24-6-13, build 206
+
+Cumulus date readout %f van 09 doet niet goed? 2 x %1f gelezen en gereconstrueert werkt. Fan interface gemaakt. JCE, 25-6-13, build 221

@@ -1,0 +1,25 @@
+#ifndef HAVE_WEBIN_H
+#define HAVE_WEBIN_H
+
+#include "stdio.h"
+#include <string>
+#include "floatLog.h"
+#include "stringStore.h"
+#include <map>
+#include "in.h"
+
+using namespace std;
+
+// the special webin. Just like a normal in, but then originates from the http gui pages. More like a configuration... Will probobly result in crappy graphs?...
+class webin: public in{
+	public:
+		webin(const string, const string name = "", const string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
+		~webin();
+	};
+
+extern map<string, webin*> webinmap;
+
+// JCE, 16-9-13
+void touchAllWebins(); // Touch all webins. Please run every minute.
+
+#endif // HAVE_WEBIN_H
