@@ -33,4 +33,4 @@ class interface_maria : public interface{
 
 	};
 
-#endif // HAVE_INTERFACE_DARKSKY_H
+#endif // HAVE_INTERFACE_MARIA_H
