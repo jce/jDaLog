@@ -29,8 +29,10 @@ class interface_maria : public interface{
 		void connect();
 		void reconnect();
 		static void* thread_fnc_cc(void*);
+		void thread_fnc();
 		pthread_t thread;
-
+		double get_last_logged_day_from_db();
+		void write_one_day_record(double);
 	};
 
 #endif // HAVE_INTERFACE_MARIA_H

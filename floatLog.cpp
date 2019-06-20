@@ -73,7 +73,7 @@ void floatLog::readBinary(map<double, float> &data){
 	pthread_mutex_unlock(&_memMutex);}	
 
 void floatLog::readFromTo(map<double, float> &data, double from, double to){
-	printf("Please dont use floatlog::readFromTo(blah, blah) for plotting");
+	//printf("Please dont use floatlog::readFromTo(blah, blah) for plotting");
 	FILE *fp;
 	record r;
 	pthread_mutex_lock(&_fileMutex);
@@ -91,6 +91,48 @@ void floatLog::readFromTo(map<double, float> &data, double from, double to){
 			if (r.t >= from and r.t <= to)
 				data[r.t] = r.v;}
 	pthread_mutex_unlock(&_memMutex);}	
+
+// Read one value at a specific time. Take the last previous for this value. JCE, 19-6-2019
+bool floatLog::get_value_at(double time, float &value, double &valtime)
+{
+	bool found = false;
+	FILE *fp;
+	record r;
+	pthread_mutex_lock(&_fileMutex);
+	fp = fopen(_pathAndName.c_str(), "r");
+		if (fp)
+		{
+			while (fread(&r, sizeof(record), 1, fp))
+			{
+				if (r.t <= time)
+				{
+					found = true;
+					valtime = r.t;
+					value = r.v;
+				}
+				else
+					break;
+			}
+			fclose(fp);
+		}
+	pthread_mutex_unlock(&_fileMutex);
+	list<record>::iterator i;
+	pthread_mutex_lock(&_memMutex);
+		for (i = _recordsToFile.begin(); i != _recordsToFile.end(); i++)
+		{
+			r = *i;
+			if (r.t <= time)
+			{
+				found = true;
+				valtime = i->t;
+				value = i->v;
+			}
+			else
+				break;
+		}
+	pthread_mutex_unlock(&_memMutex);	
+	return found;
+}
 
 // function to make a summary of the measurement data without using overhead memory and time to create a list or map with all measurement values.
 // parameter 1: stats array. Should be of length (paramer 2)

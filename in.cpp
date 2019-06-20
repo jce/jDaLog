@@ -104,6 +104,12 @@ float in::getValue(){
 		_isKnown = true;}
 	return _value;}
 
+bool in::get_value_at(double time, float &value, double &value_time)	// When, returned value, returned time. JCE, 19-6-2019
+{
+	return _logger->get_value_at(time, value, value_time);
+}
+
+
 double in::getTime(){
 	if (not _isKnown){
 		_value = _logger->getLastValue();
@@ -158,3 +164,15 @@ void in::importData(){
 	}
 
 void in::touch(){setValue(getValue());}
+
+
+
+in* get_in(string name)
+{
+	in* rv = 0;
+	inmap_mutex.lock();
+	if(inmap.count(name) == 1)
+		rv = inmap[name];
+	inmap_mutex.unlock();
+	return rv;
+}

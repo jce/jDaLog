@@ -21,6 +21,7 @@ class in{
 		void setValue(float, double = 0);
 		void setVal(float, double = 0);
 		float getValue();
+		bool get_value_at(double, float&, double&);	// When, returned value, returned time. JCE, 19-6-2019
 		float getVal();
 		double getTime();		// JCE, 4-7-13
 		double getAge();		// JCE, 4-7-13
@@ -50,5 +51,5 @@ class in{
 
 extern mutex inmap_mutex; // JCE, 9-10-2018
 extern map<string, in*> inmap;
-
+in* get_in(string); // JCE, 19-6-2019
 #endif // HAVE_IN_H

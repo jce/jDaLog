@@ -35,6 +35,7 @@ class floatLog{
 		void importFromBinFile(string); // JCE, 19-7-13
 		float getLastValue();
 		double getLastTime(); 	// JCE, 4-7-13
+		bool get_value_at(double, float&, double&);	// When, returned value, returned time. JCE, 19-6-2019
 		void readFromTo(map<double, float> &, double, double);	// JCE, 5-7-13
 		void summaryFromTo(vector<flStat> &, unsigned, double, double);	// JCE, 30-12-13
 	private:
