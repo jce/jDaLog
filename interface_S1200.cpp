@@ -72,6 +72,10 @@ interface_S1200::interface_S1200(const string d, const string n, const string ip
 
 	uptime_in = new in(getDescriptor() + "_upt", getName() + " Uptime", "s", 0);
 
+
+	rain_bucket_tips = new in(getDescriptor() + "_rbt", getName() + " Rain bucket tips", "", 0);
+	rain_count = new in(getDescriptor() + "_rac", getName() + " Rain total count", "mm", 1);
+
 //	Q0_0 = new out(getDescriptor() + "_Q0_0", getName() + " Q0.0", "", 0, (void*)this);
 
 	writecounter = 0;
@@ -81,6 +85,9 @@ interface_S1200::~interface_S1200(){
 	Cli_Disconnect(PLC);
 
 //	delete Q0_0;
+
+	delete rain_count; 
+	delete rain_bucket_tips;
 
 	delete uptime_in;
 
@@ -152,7 +159,7 @@ void interface_S1200::getIns(){
 	char data[65535];
 	double d = 0;
 	float f = 0;
-	uint32_t rv, u = 0, scanCA = 0, scanCB = 0, magicNr = 0, uptime = 0;
+	uint32_t rv, u = 0, scanCA = 0, scanCB = 0, magicNr = 0, uptime = 0, rain_ticks = 0;
 	uint16_t version = 0;
 	
 	// Open connection every scan... JCE, 15-10-2016
@@ -195,14 +202,17 @@ void interface_S1200::getIns(){
 		uptime_in->setValue(uptime, t);		
 
 
-		if (rv == 0 and scanCA == scanCB and magicNr == MAGICNR and version == 1 and scancounter != scanCA and uptime > 10){
+		if (rv == 0 and scanCA == scanCB and magicNr == MAGICNR and version == 1 and scancounter != scanCA and uptime > 10)
+		{
 			b_PLCOnline = true;
-			if (lastReadTime > 1 and (scanCA - scancounter) != 0){
+			if (lastReadTime > 1 and (scanCA - scancounter) != 0)
+			{
 				f = 1000.0 * (t-lastReadTime) / (scanCA - scancounter);
 				if ((f - lastScanTime) < (0.2 * lastScanTime) and
 					(f-lastScanTime) > (-0.2 * lastScanTime)) 
 					scantime->setValue(f, t);
-				lastScanTime = f;}
+				lastScanTime = f;
+			}
 			scancounter = scanCA;
 			lastReadTime = t;
 		
@@ -238,7 +248,8 @@ void interface_S1200::getIns(){
 			b_fishTankPump = data[49] & (1 << 7);
 			fishTankPump->setValue(b_fishTankPump, t);
 
-			if (b_roomIOOnline){
+			if (b_roomIOOnline)
+			{
 				b_roomMotionTop = data[34] & (1 << 1);
 				b_roomMotionDesk = data[34] & (1 << 2);
 				b_roomMotionCorridor = data[34] & (1 << 3);
@@ -249,44 +260,83 @@ void interface_S1200::getIns(){
 				
 				memcpy(&f, data + 44, 4);
 				f = beftoh(f);
-				roomLight->setValue(f, t);}
+				roomLight->setValue(f, t);
+			}
 
-				roomMotionTop->setValue(b_roomMotionTop, t);
-				roomMotionDesk->setValue(b_roomMotionDesk, t);
-				roomMotionCorridor->setValue(b_roomMotionCorridor, t);
-				roomDoorOpen->setValue(b_roomDoorOpen, t);
-				roomPresence->setValue(b_roomPresence, t);
-				roomComp->setValue(b_roomComp, t);
-				roomSleepSw->setValue(b_roomSleepSw, t);
+			roomMotionTop->setValue(b_roomMotionTop, t);
+			roomMotionDesk->setValue(b_roomMotionDesk, t);
+			roomMotionCorridor->setValue(b_roomMotionCorridor, t);
+			roomDoorOpen->setValue(b_roomDoorOpen, t);
+			roomPresence->setValue(b_roomPresence, t);
+			roomComp->setValue(b_roomComp, t);
+			roomSleepSw->setValue(b_roomSleepSw, t);
 
+			memcpy(&f, data + 50, 4);
+			f = beftoh(f);
+			roomWindowFB->setValue(f, t);	
 
-				memcpy(&f, data + 50, 4);
-				f = beftoh(f);
-				roomWindowFB->setValue(f, t);	
+			memcpy(&f, data + 54, 4);
+			f = beftoh(f);
+			roomLearnedPresence->setValue(f, t);	
 
-				memcpy(&f, data + 54, 4);
-				f = beftoh(f);
-				roomLearnedPresence->setValue(f, t);	
-
-				memcpy(&f, data + 58, 4);
-				f = beftoh(f);
-				roomLearnedSleep->setValue(f, t);	
+			memcpy(&f, data + 58, 4);
+			f = beftoh(f);
+			roomLearnedSleep->setValue(f, t);	
 
 			roomTemperatureReadoutOK = data[49] & (1 << 0); 
-			if (roomTemperatureReadoutOK){
+			if (roomTemperatureReadoutOK)
+			{
 				memcpy(&f, data + 36, 4);
 				f = beftoh(f);
 				roomTemp->setValue(f, t);
 
 				memcpy(&f, data + 40, 4);
 				f = beftoh(f);
-				roomRH->setValue(f, t);	}
+				roomRH->setValue(f, t);	
+			}
 
 			rainSensorOK = data[49] & (1 << 2);
 			if (rainSensorOK)
 				rainDetector->setValue((data[49] & (1 << 1))?1:0, t); // This is called an inline if-statement. JCE, 16-7-2016
+		
+			memcpy(&f, data + 62, 4);
+			f = beftoh(f);
+			if (f > 0) // Hack to eliminate zeroes from the data. JCE, 30-4-2019
+			{
+				sheepWater->setValue(f, t);
+				sheepWater->setValid(b_PLCOnline);
+			}
+			else
+				sheepWater->setValid(false);
 
-		}}
+			memcpy(&f, data +66, 4);
+			f = beftoh(f);
+			if (f > 0) // Hack to eliminate zeroes from the data. JCE, 30-4-2019
+			{	
+				sheepFoodTime->setValue(f, t);
+				sheepFoodTime->setValid(b_PLCOnline);
+			}
+			else
+				sheepFoodTime->setValid(false);
+
+			// Added, JCE, 22-9-2018
+			//	in *sheepWaterPulse, *sheepFoodPresence; // Abstracted pulses from water, actual sheep-is-eating detection. JCE, 22-9-2018	
+			sheepWaterPulse->setValue( (uint8_t) data[70], t-15); // Pulses are 30 seconds extended. Substracting 15 seconds of measurement time makes the pulses symmetric. JCE, 2-9-2018
+			sheepWaterPulse->setValid(b_PLCOnline);
+			sheepFoodPresence->setValue(data[71] & (1 << 0), t); 
+			sheepFoodPresence->setValid(b_PLCOnline);
+
+	
+			// Added, jce, 22-6-2019		
+			memcpy(&rain_ticks, data + 76, 4);
+			rain_ticks = be32toh(rain_ticks);
+			rain_bucket_tips->setValue(rain_ticks, t);		
+
+			memcpy(&f, data + 80, 4);
+			f = beftoh(f);
+			rain_count->setValue(f, t);	
+		}
+	}
 
 	roomMotionTop->setValid(b_PLCOnline and b_roomIOOnline);
 	roomMotionDesk->setValid(b_PLCOnline and b_roomIOOnline);
@@ -316,32 +366,6 @@ void interface_S1200::getIns(){
 //	hyfstarts->setValue(be16toh( &((uint16_t*) data + 12)) );
 	fishTankPump->setValid(b_PLCOnline);	
 	
-	memcpy(&f, data + 62, 4);
-	f = beftoh(f);
-	if (f > 0) // Hack to eliminate zeroes from the data. JCE, 30-4-2019
-	{
-		sheepWater->setValue(f, t);
-		sheepWater->setValid(b_PLCOnline);
-	}
-	else
-		sheepWater->setValid(false);
-
-	memcpy(&f, data +66, 4);
-	f = beftoh(f);
-	if (f > 0) // Hack to eliminate zeroes from the data. JCE, 30-4-2019
-	{	
-		sheepFoodTime->setValue(f, t);
-		sheepFoodTime->setValid(b_PLCOnline);
-	}
-	else
-		sheepFoodTime->setValid(false);
-
-	// Added, JCE, 22-9-2018
-	//	in *sheepWaterPulse, *sheepFoodPresence; // Abstracted pulses from water, actual sheep-is-eating detection. JCE, 22-9-2018	
-	sheepWaterPulse->setValue( (uint8_t) data[70], t-15); // Pulses are 30 seconds extended. Substracting 15 seconds of measurement time makes the pulses symmetric. JCE, 2-9-2018
-	sheepWaterPulse->setValid(b_PLCOnline);
-	sheepFoodPresence->setValue(data[71] & (1 << 0), t); 
-	sheepFoodPresence->setValid(b_PLCOnline);
 
 	//uint16_t header_scancounter = be16toh(&((uint16_t*)ptr));
 	//uint16_t header_scancounter = be16toh(&((uint16_t*)ptr));

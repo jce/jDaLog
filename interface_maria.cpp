@@ -54,6 +54,11 @@ void* interface_maria::thread_fnc_cc(void* imvp)
 	return imvp;
 }
 
+void print_tm(tm &tmr)
+{
+	printf("%i-%i-%i %i:%i:%i wday = %i, yday = %i, is_dst = %i\n", tmr.tm_year + 1900, tmr.tm_mon + 1, tmr.tm_mday, tmr.tm_hour, tmr.tm_min, tmr.tm_sec, tmr.tm_yday, tmr.tm_wday, tmr.tm_isdst);
+}
+
 double interface_maria::get_last_logged_day_from_db()
 {
 	// The query is 
@@ -86,7 +91,9 @@ double interface_maria::get_last_logged_day_from_db()
 			sscanf(row[0], "%i-%i-%i", &date_tm.tm_year, &date_tm.tm_mon, &date_tm.tm_mday);
 			date_tm.tm_year -= 1900;	// http://www.cplusplus.com/reference/ctime/tm/
 			date_tm.tm_mon -= 1;
+			print_tm(date_tm);
 			time_t ts = mktime(&date_tm);
+			print_tm(date_tm);
 			//printf("The timestamp with this is %li\n", ts);
 			tm local_tm;
 			localtime_r(&ts, &local_tm);
@@ -177,7 +184,7 @@ void interface_maria::write_one_day_record(double from)
 	char query[1024];
 	char date[64];
 	float val;
-	double tmp;	
+	double ts;	
 	in *inp;
 	double to = from + (24*60*60);
 
@@ -216,7 +223,7 @@ void interface_maria::write_one_day_record(double from)
 
 	inp = get_in("rwl_wv");
 	if (inp)
-		if (inp->get_value_at(from+12*60*60, val, tmp))
+		if (inp->get_value_at(from+12*60*60, val, ts) and (from - ts < 300))
 			{
 			sprintf(query, "UPDATE `Farm`.`tcFarmControl days` SET `water level`='%f' WHERE `date`='%s';", val, date);
 			mysql_query(mysql, query);

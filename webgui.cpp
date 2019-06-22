@@ -650,7 +650,7 @@ int make_out_page(struct mg_connection *conn, string outName){
 		if (mg_get_var(post_data, post_data_len, "note", newNote, sizeof(newNote)) > -1)
 			myOut->setNote(newNote);
 		}
-	double start = make_header(conn, 60);
+	double start = make_header(conn, 3600);
 	mg_printf(conn, "<h2>Out page: %s</h2>\n", myOut->getName().c_str());
 	mg_printf(conn, "short name: %s<br>\n", myOut->getDescriptor().c_str()); // also could have been inName, hm...
 	mg_printf(conn, "last measurement: %.*f %s<br>\n", myOut->getDecimals(), myOut->getValue(), myOut->getUnits().c_str());

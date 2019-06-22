@@ -97,6 +97,8 @@ bool floatLog::get_value_at(double time, float &value, double &valtime)
 {
 	bool found = false;
 	FILE *fp;
+	double _valtime;
+	//double dist = -1; // Time distance of last measurement time with the required time.
 	record r;
 	pthread_mutex_lock(&_fileMutex);
 	fp = fopen(_pathAndName.c_str(), "r");
@@ -104,14 +106,14 @@ bool floatLog::get_value_at(double time, float &value, double &valtime)
 		{
 			while (fread(&r, sizeof(record), 1, fp))
 			{
-				if (r.t <= time)
+				if (r.t <= time and r.t > _valtime)
 				{
 					found = true;
-					valtime = r.t;
+					_valtime = r.t;
 					value = r.v;
 				}
-				else
-					break;
+				//else		// It might be that the values are not always chronologically ordened. JCE, 20-6-2019
+				//	break;
 			}
 			fclose(fp);
 		}
@@ -124,13 +126,15 @@ bool floatLog::get_value_at(double time, float &value, double &valtime)
 			if (r.t <= time)
 			{
 				found = true;
-				valtime = i->t;
+				_valtime = i->t;
 				value = i->v;
 			}
 			else
 				break;
 		}
-	pthread_mutex_unlock(&_memMutex);	
+	pthread_mutex_unlock(&_memMutex);
+	
+	valtime = _valtime;
 	return found;
 }
 
