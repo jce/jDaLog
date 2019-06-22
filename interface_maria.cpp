@@ -253,6 +253,16 @@ void interface_maria::write_one_day_record(double from)
 			printf("%s\n", query);
 		}
 	}
+
+	inp = get_in("S1200_rac");
+	if (inp)
+		if (inp->get_value_at(from+12*60*60, val, ts) and (from - ts < 300))
+			{
+			sprintf(query, "UPDATE `Farm`.`tcFarmControl days` SET `rain`='%f' WHERE `date`='%s';", val, date);
+			mysql_query(mysql, query);
+			printf("%s\n", query);
+			}
+
 }
 
 void interface_maria::getIns()
