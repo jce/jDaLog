@@ -64,7 +64,7 @@ double interface_maria::get_last_logged_day_from_db()
 	// The query is 
 	// SELECT max(DATE) FROM `tcFarmControl days`;
 	//printf("Trying query\n");
-	char query[2014] = "SELECT max(DATE) FROM `tcFarmControl days`";
+	char query[2048] = "SELECT max(DATE) FROM `tcFarmControl days`";
 	int rv = mysql_query(mysql, query);
 	if (rv)
 	{
@@ -181,7 +181,8 @@ bool in_to_day_diff(string name, double from, float &diff)
 
 void interface_maria::write_one_day_record(double from)
 {
-	char query[1024];
+	#define QSIZE 2048
+	char query[QSIZE];
 	char date[64];
 	float val;
 	double ts;	
@@ -191,17 +192,17 @@ void interface_maria::write_one_day_record(double from)
 	time_t from_tt = from;
 	tm local_tm;
 	localtime_r(&from_tt, &local_tm);
-	sprintf(date, "%i-%02i-%02i", local_tm.tm_year + 1900, local_tm.tm_mon + 1, local_tm.tm_mday);
+	snprintf(date, QSIZE, "%i-%02i-%02i", local_tm.tm_year + 1900, local_tm.tm_mon + 1, local_tm.tm_mday);
 
 	// Create query for the record
 	// INSERT INTO `Farm`.`tcFarmControl days` (`date`) VALUES ('2019-06-15');
-	sprintf(query, "INSERT INTO `Farm`.`tcFarmControl days` (`date`) VALUES ('%s');", date);
+	snprintf(query, QSIZE, "INSERT INTO `Farm`.`tcFarmControl days` (`date`) VALUES ('%s');", date);
 	mysql_query(mysql, query);
 	printf("%s\n", query);
 
 	if (in_to_day_diff("S1200_shw", from, val))
 	{
-		sprintf(query, "UPDATE `Farm`.`tcFarmControl days` SET `sheep water`='%f' WHERE `date`='%s';", val, date);
+		snprintf(query, QSIZE, "UPDATE `Farm`.`tcFarmControl days` SET `sheep water`='%f' WHERE `date`='%s';", val, date);
 		mysql_query(mysql, query);
 		printf("%s\n", query);
 	}
@@ -209,14 +210,14 @@ void interface_maria::write_one_day_record(double from)
 	if (in_to_day_diff("S1200_shf", from, val))
 	{
 		val = val / 3600.0; // Seconds to hours
-		sprintf(query, "UPDATE `Farm`.`tcFarmControl days` SET `sheep food time`='%f' WHERE `date`='%s';", val, date);
+		snprintf(query, QSIZE, "UPDATE `Farm`.`tcFarmControl days` SET `sheep food time`='%f' WHERE `date`='%s';", val, date);
 		mysql_query(mysql, query);
 		printf("%s\n", query);
 	}
 
 	if (in_to_day_diff("solarlog_tep", from, val))
 	{
-		sprintf(query, "UPDATE `Farm`.`tcFarmControl days` SET `solar production`='%f' WHERE `date`='%s';", val, date);
+		snprintf(query, QSIZE, "UPDATE `Farm`.`tcFarmControl days` SET `solar production`='%f' WHERE `date`='%s';", val, date);
 		mysql_query(mysql, query);
 		printf("%s\n", query);
 	}
@@ -225,7 +226,7 @@ void interface_maria::write_one_day_record(double from)
 	if (inp)
 		if (inp->get_value_at(from+12*60*60, val, ts) and (from - ts < 300))
 			{
-			sprintf(query, "UPDATE `Farm`.`tcFarmControl days` SET `water level`='%f' WHERE `date`='%s';", val, date);
+			snprintf(query, QSIZE, "UPDATE `Farm`.`tcFarmControl days` SET `water level`='%f' WHERE `date`='%s';", val, date);
 			mysql_query(mysql, query);
 			printf("%s\n", query);
 			}
@@ -248,20 +249,26 @@ void interface_maria::write_one_day_record(double from)
 				count += 1;
 				sum += i->second;
 			}
-			sprintf(query, "UPDATE `Farm`.`tcFarmControl days` SET `min temp`='%f', `avg temp`='%f', `max temp`='%f' WHERE `date`='%s';", min, sum/count, max, date);
+			snprintf(query, QSIZE, "UPDATE `Farm`.`tcFarmControl days` SET `min temp`='%f', `avg temp`='%f', `max temp`='%f' WHERE `date`='%s';", min, sum/count, max, date);
 			mysql_query(mysql, query);
 			printf("%s\n", query);
 		}
 	}
 
-	inp = get_in("S1200_rac");
+	/*inp = get_in("S1200_rac");
 	if (inp)
 		if (inp->get_value_at(from+12*60*60, val, ts) and (from - ts < 300))
 			{
-			sprintf(query, "UPDATE `Farm`.`tcFarmControl days` SET `rain`='%f' WHERE `date`='%s';", val, date);
+			snprintf(query, QSIZE, "UPDATE `Farm`.`tcFarmControl days` SET `rain`='%f' WHERE `date`='%s';", val, date);
 			mysql_query(mysql, query);
 			printf("%s\n", query);
-			}
+			}*/
+	if (in_to_day_diff("S1200_rac", from, val))
+	{
+		snprintf(query, QSIZE, "UPDATE `Farm`.`tcFarmControl days` SET `rain`='%f' WHERE `date`='%s';", val, date);
+		mysql_query(mysql, query);
+		printf("%s\n", query);
+	}
 
 }
 

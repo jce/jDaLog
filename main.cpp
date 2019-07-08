@@ -139,7 +139,7 @@ void loop60s(){
 	version->setValue(tcProgramVersion);
 	haveControl->setValue(globalControl);
 	touchAllWebins();
-	scan_xiaomi->getIns();
+	// scan_xiaomi->getIns();
 	xmrstak_main->getIns();}
 
 void loopstoreio(){
