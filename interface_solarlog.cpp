@@ -53,10 +53,10 @@ void interface_solarlog::makeModbusContext(){
 		//printf("creating modbus context\n");
 		_ctx = modbus_new_tcp(_ipstr.c_str(), MODBUS_TCP_DEFAULT_PORT);
 		//printf("modbus connect to %s:%i\n", _ipstr.c_str(), MODBUS_TCP_DEFAULT_PORT);
-		struct timeval response_timeout;
-		response_timeout.tv_sec = 1;
-		response_timeout.tv_usec = 0;
-		modbus_set_response_timeout(_ctx, &response_timeout);
+		//struct timeval response_timeout;
+		//response_timeout.tv_sec = 1;
+		//response_timeout.tv_usec = 0;
+		modbus_set_response_timeout(_ctx, 1, 0);
 		}
 	}
 

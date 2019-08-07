@@ -28,7 +28,10 @@ using namespace std;
 interface_host::interface_host(const string d, const string n):interface(d, n), _prevT(0){
 	diskfree    = new in("host_disk_free", "Host disk free", "byte");
 	diskused   = new in("host_disk_used", "Host disk used", "byte");
-	diskusedp  = new in("host_disk_usedp", "Host disk used", "%", 7);
+	diskusedp  = new in("host_disk_usedp", "Host disk used p", "%", 7);
+	wddiskfree    = new in("wd_disk_free", "wd disk free", "byte");
+	wddiskused   = new in("wd_disk_used", "wd disk used", "byte");
+	wddiskusedp  = new in("wd_disk_usedp", "wd disk used p", "%", 7);
 	cpuus = new in("prog_utime", "Program cpu time user code", "s", 6);
 	cpuss = new in("prog_stime", "Program cpu time system functions", "s", 6);
 	cpcus = new in("prog_cutime", "Programs children cpu time user code", "s", 6);
@@ -93,6 +96,9 @@ interface_host::~interface_host(){
 	delete cpuFrequency;
 	delete cpuTemperature; // JCE, 3-9-2018
 
+	delete wddiskfree;
+	delete wddiskused;
+	delete wddiskusedp;
 	delete diskfree;
 	delete diskused;
 	delete diskusedp;
@@ -351,6 +357,15 @@ void interface_host::getIns(){
 	//bavail->setValue(availBytes, thisT);
 	//nbavail->setValue(totalBytes - availBytes, thisT);
 	//nbavailp->setValue( ((float) s.f_blocks - s.f_bavail) / s.f_blocks * 100, thisT);
+
+	// File system status, harddisk "wd" mounted in home
+	statvfs("/home/jeindhoven/wd", &s);
+
+	totalBytes = s.f_frsize * s.f_blocks;
+	freeBytes = s.f_frsize * s.f_bfree;
+	wddiskfree->setValue(freeBytes, thisT);
+	wddiskused->setValue(totalBytes - freeBytes, thisT);
+	wddiskusedp->setValue( ((float) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
 	
 	/*
 	struct rusage r;

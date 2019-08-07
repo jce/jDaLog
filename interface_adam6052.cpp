@@ -39,10 +39,11 @@ void interface_adam6052::makeModbusContext(){
 		#ifdef debug
 			printf("modbus connect to %s:%i\n", _ipstr.c_str(), MODBUS_TCP_DEFAULT_PORT);
 		#endif
-		struct timeval response_timeout;
-		response_timeout.tv_sec = 1;
-		response_timeout.tv_usec = 0;
-		modbus_set_response_timeout(_ctx, &response_timeout);
+		//struct timeval response_timeout;
+		//response_timeout.tv_sec = 1;
+		//response_timeout.tv_usec = 0;
+		//modbus_set_response_timeout(_ctx, &response_timeout);
+		modbus_set_response_timeout(_ctx, 1, 0);
 		}
 	}
 

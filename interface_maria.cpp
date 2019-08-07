@@ -56,7 +56,7 @@ void* interface_maria::thread_fnc_cc(void* imvp)
 
 void print_tm(tm &tmr)
 {
-	printf("%i-%i-%i %i:%i:%i wday = %i, yday = %i, is_dst = %i\n", tmr.tm_year + 1900, tmr.tm_mon + 1, tmr.tm_mday, tmr.tm_hour, tmr.tm_min, tmr.tm_sec, tmr.tm_yday, tmr.tm_wday, tmr.tm_isdst);
+	printf("%i-%i-%i %i:%i:%i wday = %i, yday = %i, is_dst = %i\n", tmr.tm_year + 1900, tmr.tm_mon + 1, tmr.tm_mday, tmr.tm_hour, tmr.tm_min, tmr.tm_sec, tmr.tm_wday, tmr.tm_yday, tmr.tm_isdst);
 }
 
 double interface_maria::get_last_logged_day_from_db()
@@ -88,7 +88,7 @@ double interface_maria::get_last_logged_day_from_db()
 			//printf("row[0] is %s\n", row[0]);
 			tm date_tm = {};
 			date_tm.tm_isdst = -1;
-			sscanf(row[0], "%i-%i-%i", &date_tm.tm_year, &date_tm.tm_mon, &date_tm.tm_mday);
+			sscanf(row[0], "%d-%d-%d", &date_tm.tm_year, &date_tm.tm_mon, &date_tm.tm_mday);
 			date_tm.tm_year -= 1900;	// http://www.cplusplus.com/reference/ctime/tm/
 			date_tm.tm_mon -= 1;
 			print_tm(date_tm);
