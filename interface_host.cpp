@@ -348,12 +348,12 @@ void interface_host::getIns(){
 	statvfs("./", &s);
 
 	//printf("statvfs:\nf_bsize = %lu\nf_frsize = %lu\nf_blocks = %lu\nf_bfree = %lu\nf_bavail = %lu\n", s.f_bsize, s.f_frsize, s.f_blocks, s.f_bfree, s.f_bavail);
-	double totalBytes = s.f_frsize * s.f_blocks;
-	double freeBytes = s.f_frsize * s.f_bfree;
+	double totalBytes = (double) s.f_frsize * s.f_blocks;
+	double freeBytes = (double) s.f_frsize * s.f_bfree;
 	//double availBytes = s.f_frsize * s.f_bavail;
 	diskfree->setValue(freeBytes, thisT);
 	diskused->setValue(totalBytes - freeBytes, thisT);
-	diskusedp->setValue( ((float) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+	diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
 	//bavail->setValue(availBytes, thisT);
 	//nbavail->setValue(totalBytes - availBytes, thisT);
 	//nbavailp->setValue( ((float) s.f_blocks - s.f_bavail) / s.f_blocks * 100, thisT);
@@ -361,11 +361,11 @@ void interface_host::getIns(){
 	// File system status, harddisk "wd" mounted in home
 	statvfs("/home/jeindhoven/wd", &s);
 
-	totalBytes = s.f_frsize * s.f_blocks;
-	freeBytes = s.f_frsize * s.f_bfree;
+	totalBytes = (double) s.f_frsize * s.f_blocks;
+	freeBytes = (double) s.f_frsize * s.f_bfree;
 	wddiskfree->setValue(freeBytes, thisT);
 	wddiskused->setValue(totalBytes - freeBytes, thisT);
-	wddiskusedp->setValue( ((float) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+	wddiskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
 	
 	/*
 	struct rusage r;
