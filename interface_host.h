@@ -15,7 +15,8 @@ class interface_host : public interface{
 		~interface_host();
 		void getIns();
 		in *diskfree, *diskused, *diskusedp;
-		in *wddiskfree, *wddiskused, *wddiskusedp;
+		in *wd2diskfree, *wd2diskused, *wd2diskusedp;
+		in *wd4diskfree, *wd4diskused, *wd4diskusedp;
 		//in *fanspd, *requests, *resets, *scanrate, *uptime, *latency;
 		// program cpu ins
 		in *cpuus, *cpuss, *cpcus, *cpcss, *cputs, *cputp;

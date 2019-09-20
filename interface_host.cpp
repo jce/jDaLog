@@ -29,9 +29,12 @@ interface_host::interface_host(const string d, const string n):interface(d, n), 
 	diskfree    = new in("host_disk_free", "Host disk free", "byte");
 	diskused   = new in("host_disk_used", "Host disk used", "byte");
 	diskusedp  = new in("host_disk_usedp", "Host disk used p", "%", 7);
-	wddiskfree    = new in("wd_disk_free", "wd disk free", "byte");
-	wddiskused   = new in("wd_disk_used", "wd disk used", "byte");
-	wddiskusedp  = new in("wd_disk_usedp", "wd disk used p", "%", 7);
+	wd2diskfree    = new in("wd2_disk_free", "wd2 disk free", "byte");
+	wd2diskused   = new in("wd2_disk_used", "wd2 disk used", "byte");
+	wd2diskusedp  = new in("wd2_disk_usedp", "wd2 disk used p", "%", 7);
+	wd4diskfree    = new in("wd4_disk_free", "wd4 disk free", "byte");
+	wd4diskused   = new in("wd4_disk_used", "wd4 disk used", "byte");
+	wd4diskusedp  = new in("wd4_disk_usedp", "wd4 disk used p", "%", 7);
 	cpuus = new in("prog_utime", "Program cpu time user code", "s", 6);
 	cpuss = new in("prog_stime", "Program cpu time system functions", "s", 6);
 	cpcus = new in("prog_cutime", "Programs children cpu time user code", "s", 6);
@@ -96,9 +99,12 @@ interface_host::~interface_host(){
 	delete cpuFrequency;
 	delete cpuTemperature; // JCE, 3-9-2018
 
-	delete wddiskfree;
-	delete wddiskused;
-	delete wddiskusedp;
+	delete wd4diskfree;
+	delete wd4diskused;
+	delete wd4diskusedp;
+	delete wd2diskfree;
+	delete wd2diskused;
+	delete wd2diskusedp;
 	delete diskfree;
 	delete diskused;
 	delete diskusedp;
@@ -359,14 +365,19 @@ void interface_host::getIns(){
 	//nbavailp->setValue( ((float) s.f_blocks - s.f_bavail) / s.f_blocks * 100, thisT);
 
 	// File system status, harddisk "wd" mounted in home
-	statvfs("/home/jeindhoven/wd", &s);
-
+	statvfs("/home/jeindhoven/wd2", &s);
 	totalBytes = (double) s.f_frsize * s.f_blocks;
 	freeBytes = (double) s.f_frsize * s.f_bfree;
-	wddiskfree->setValue(freeBytes, thisT);
-	wddiskused->setValue(totalBytes - freeBytes, thisT);
-	wddiskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+	wd2diskfree->setValue(freeBytes, thisT);
+	wd2diskused->setValue(totalBytes - freeBytes, thisT);
+	wd2diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
 	
+	statvfs("/home/jeindhoven/wd4", &s);
+	totalBytes = (double) s.f_frsize * s.f_blocks;
+	freeBytes = (double) s.f_frsize * s.f_bfree;
+	wd4diskfree->setValue(freeBytes, thisT);
+	wd4diskused->setValue(totalBytes - freeBytes, thisT);
+	wd4diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
 	/*
 	struct rusage r;
 	//rv = 
