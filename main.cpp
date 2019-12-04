@@ -126,6 +126,7 @@ void loop10s(){
 	rwl->getIns();
 	host->getIns();
 	//scan_xiaomi->getIns();
+	fijnstof->getIns();
 	}
 
 void loopDarksky(){
@@ -144,7 +145,6 @@ void loop60s(){
 	touchAllWebins();
 	// scan_xiaomi->getIns();
 	//xmrstak_main->getIns();
-	fijnstof->getIns();
 }
 
 void loopstoreio(){

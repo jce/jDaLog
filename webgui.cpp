@@ -189,7 +189,7 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 		else		fprintf(fp, "set key off\n");
 		fprintf(fp, "set grid\n");
 		fprintf(fp, "set style fill transparent solid 0.25 noborder\n");
-		string linecolor[] = {"blue", "red", "green", "black", "cyan"};
+		string linecolor[] = {"blue", "red", "black", "green", "cyan"};
 		unsigned int colornr(0);
 		string plotline;
 		bool first = true;

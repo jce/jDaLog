@@ -56,7 +56,7 @@ void interface_fijnstof::getIns()
 	
 	int new_nr_samples;
 	if (findIntAfter(page, "Aantal metingen</td><td class='r'>", new_nr_samples))
-		if (new_nr_samples > nr_samples)
+		if (new_nr_samples != nr_samples)
 		{
 			nr_samples = new_nr_samples;
 			int time_since_last_measurement;
