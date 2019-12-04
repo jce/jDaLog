@@ -22,11 +22,13 @@
 #include "interface_S1200.h"
 #include "interface_macp.h"
 #include "webin.h"
-#include "interface_xmrstak.h"
+//#include "interface_xmrstak.h"
 #include <signal.h>
 #include "interface_darksky.h"
 #include <curl/curl.h>
 #include "interface_maria.h"
+#include "interface_fijnstof.h"
+#include "logic_fijnstof.h"
 
 using namespace std;
 //#define debug
@@ -41,7 +43,8 @@ interface *host, *solarlog, *S1200, *darksky, *dsAalsmeer, *dsOosterend;
 in *buildNr, *version, *haveControl;
 interface *scan_xiaomi;
 interface *xmrstak_main;
-interface *maria;
+interface *maria, *fijnstof;
+logic *lfijnstof;
 
 // Signal handling.
 void handle_signal(int signal){
@@ -140,7 +143,9 @@ void loop60s(){
 	haveControl->setValue(globalControl);
 	touchAllWebins();
 	// scan_xiaomi->getIns();
-	xmrstak_main->getIns();}
+	//xmrstak_main->getIns();
+	fijnstof->getIns();
+}
 
 void loopstoreio(){
 	// for all esnsors, call store to file
@@ -181,8 +186,10 @@ int main(){
 	dsOosterend = new interface_darksky("dsoosterend", "DS Oosterend", "1bb2281b8e17ee1e94051a13d9edbe5b", 53.40416, 5.37819);
 	//scan_xiaomi = new interface_macp("xp", "Scan Xiaomi", "64:09:80:c7:3f:4e");
 	scan_xiaomi = new interface_macp("xp", "Scan Xiaomi", "20:47:da:20:b6:fb");
-	xmrstak_main = new interface_xmrstak("main", "main", "10.0.0.40:16000");
+	//xmrstak_main = new interface_xmrstak("main", "main", "10.0.0.40:16000");
 	maria = new interface_maria("maria", "Maria");
+	fijnstof = new interface_fijnstof("fijnstof", "Fijnstof", "10.0.0.139");
+	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
 
 	if (not globalControl)
 		webGuiStart("8094");
@@ -211,9 +218,11 @@ int main(){
 		for (i = myThreadList.begin(); i != myThreadList.end(); i++)
 			pthread_join((*i)->thread, NULL);
 
+	delete lfijnstof;
+	delete fijnstof;
 	delete maria;
 
-	delete xmrstak_main;
+	//delete xmrstak_main;
 	delete scan_xiaomi;
 	delete darksky;
 	delete dsAalsmeer;

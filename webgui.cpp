@@ -244,7 +244,7 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 				for (unsigned i = 0; i <  iwdli->statLen; i++){
 					if (iwdli->stats[i].nr){			
 						t = tmin + i * interval;
-						if (prevt and t - prevt > 90 and t - prevt > (1.1 * interval))
+						if (prevt and t - prevt > 150 and t - prevt > (1.1 * interval))
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, t + (double)interval / 2);
@@ -258,7 +258,7 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 				for (unsigned i = 0; i <  iwdli->statLen; i++){
 					if (iwdli->stats[i].nr){	
 						t = tmin + i * interval;		
-						if (prevt and t - prevt > 90 and t - prevt > (1.1 * interval))
+						if (prevt and t - prevt > 150 and t - prevt > (1.1 * interval))
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, t + (double)interval / 2);
@@ -271,8 +271,8 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 		fclose(fp);
 			
 		// Klaar. start gnuplot.
-		char systemCommand[1025];
-		snprintf(systemCommand, 1024, "gnuplot \"%s\"", scriptName);
+		char systemCommand[1100];
+		snprintf(systemCommand, 1100, "gnuplot \"%s\"", scriptName);
 		system(systemCommand);
 		
 

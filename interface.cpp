@@ -65,6 +65,22 @@ int findFloatAfter(const char* str, const char* cue, float& f){
 int findFloatAfter(string str, const char* cue, float& f){
 	return findFloatAfter(str.c_str(), cue, f);}
 
+//int findDoubleAfter(const char* str, const char* cue, double& d){
+//	const char* loc = strstr(str, cue);
+//	if (loc and strlen(loc) > strlen(cue))
+//		return sscanf(loc + strlen(cue), "%lf", &d);
+//        return 0;}
+//int findDoubleAfter(string str, const char* cue, double& d){
+//	return findDoubleAfter(str.c_str(), cue, d);}
+
+int findIntAfter(const char* str, const char* cue, int& i){
+	const char* loc = strstr(str, cue);
+	if (loc and strlen(loc) > strlen(cue))
+		return sscanf(loc + strlen(cue), "%d", &i);
+        return 0;}
+int findIntAfter(string str, const char* cue, int& i){
+	return findIntAfter(str.c_str(), cue, i);}
+
 /*double now(){
 	timeval tv;
 	gettimeofday(&tv, NULL);
