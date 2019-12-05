@@ -200,7 +200,7 @@ int main(){
 	callFuncOnInterval(loop10s, 10);
 	callFuncOnInterval(loop15s, 15); // only this: keeps running
 	callFuncOnInterval(loop60s, 60); // only this: keeps running	
-	callFuncOnInterval(loopstoreio, 24*3600); // only this: keeps running
+	callFuncOnInterval(loopstoreio, 1*3600); // only this: keeps running
 	callFuncOnInterval(loopDarksky, (24.0*3600.0)/1000.0); // 1000 calls per day
 
 	usleep(100000);

@@ -52,8 +52,22 @@ void interface_fijnstof::getIns()
 	string page = get_html_page(_ipstr + "/values");
 	double end = now();
 	double t = (start + end) / 2;
+	float f;
+	
 	latency->setValue((end-start)*1000, t);
 	
+	if (findFloatAfter(page, "Tijdsduur opsturen metingen</td><td class='r'>", f))
+		time_sending->setValue(f, t);
+	
+	if (findFloatAfter(page, "enkel foutmeldingen</td><td class='r'>", f))
+		errors->setValue(f, t);
+
+	if (findFloatAfter(page, "<td>WiFi</td><td>Signaalsterkte</td><td class='r'>", f))
+		wifi_str->setValue(f, t);
+				
+	if (findFloatAfter(page, "<td>WiFi</td><td>Signaalkwaliteit</td><td class='r'>", f))
+		wifi_qua->setValue(f, t);
+
 	int new_nr_samples;
 	if (findIntAfter(page, "Aantal metingen</td><td class='r'>", new_nr_samples))
 		if (new_nr_samples != nr_samples)
@@ -63,7 +77,6 @@ void interface_fijnstof::getIns()
 			if (findIntAfter(page, "Huidige data</h4><b>", time_since_last_measurement))
 			{
 				t -= time_since_last_measurement;
-				float f;
 
 				// firmware volgt op "<br/>Firmware-versie: " en eindigt bij "<"
 				const char *start, *end;
@@ -102,19 +115,7 @@ void interface_fijnstof::getIns()
 				if (findFloatAfter(page, "<td>BMP/E280</td><td>Rel. luchtvochtigheid</td><td class='r'>", f))
 					rh->setValue(f, t);
 				
-				if (findFloatAfter(page, "<td>WiFi</td><td>Signaalsterkte</td><td class='r'>", f))
-					wifi_str->setValue(f, t);
-				
-				if (findFloatAfter(page, "<td>WiFi</td><td>Signaalkwaliteit</td><td class='r'>", f))
-					wifi_qua->setValue(f, t);
-				
 				samples->setValue(nr_samples, t);
-				
-				if (findFloatAfter(page, "Tijdsduur opsturen metingen</td><td class='r'>", f))
-					time_sending->setValue(f, t);
-				
-				if (findFloatAfter(page, "enkel foutmeldingen</td><td class='r'>", f))
-					errors->setValue(f, t);
 				
 			}	
 	}
