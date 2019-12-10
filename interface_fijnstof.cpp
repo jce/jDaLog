@@ -69,8 +69,11 @@ void interface_fijnstof::getIns()
 		wifi_qua->setValue(f, t);
 
 	int new_nr_samples;
-	if (findIntAfter(page, "Aantal metingen</td><td class='r'>", new_nr_samples))
-		if (new_nr_samples != nr_samples)
+	bool have_new_nr_samples = false;
+	have_new_nr_samples = findIntAfter(page, "Aantal metingen</td><td class='r'>", new_nr_samples);
+	if (not have_new_nr_samples)
+		have_new_nr_samples = findIntAfter(page, "Aantal metingen:</td><td class='r'>", new_nr_samples);
+	if (have_new_nr_samples and new_nr_samples != nr_samples)
 		{
 			nr_samples = new_nr_samples;
 			int time_since_last_measurement;
@@ -88,18 +91,19 @@ void interface_fijnstof::getIns()
 					end = strstr(start, "<");
 					if (end and end > start)
 					{
-						//printf("%.*s\n", end-start, start);
+						//printf("Firmware: %.*s\n", end-start, start);
 						// The current firmware is NRZ-2019-127-1, how to convert this back to an numeric value?
 						// Lets take every integer and concatenate this: 20191271
 						// Then ignore the 20: 191271 This will fit in an float
 						int a, b, c, num;
 						num = sscanf(start, "%*6c%2d%*c%3d%*c%d", &a, &b, &c);
-						//printf("%d %d %d %d", a, b, c, num);
+						if(num == 2)
+							num = sscanf(start, "%*6c%2d%*c%3d%*c%*c%d", &a, &b, &c);
 						if(num == 3)
 							fw_ver->setValue((float) c + 10.0*b + 10000.0*a);
 					}
-				} 
-
+				}
+ 
 				if (findFloatAfter(page, "<td>SDS011</td><td>PM2.5</td><td class='r'>", f))
 					pm2->setValue(f, t);
 				
