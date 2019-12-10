@@ -126,8 +126,12 @@ void loop10s(){
 	rwl->getIns();
 	host->getIns();
 	//scan_xiaomi->getIns();
-	fijnstof->getIns();
 	}
+
+void loop11s()
+{
+	fijnstof->getIns();
+}
 
 void loopDarksky(){
 	darksky->getIns();
@@ -198,6 +202,7 @@ int main(){
 	
 	callFuncOnInterval(loop1s, 1);
 	callFuncOnInterval(loop10s, 10);
+	callFuncOnInterval(loop11s, 11);
 	callFuncOnInterval(loop15s, 15); // only this: keeps running
 	callFuncOnInterval(loop60s, 60); // only this: keeps running	
 	callFuncOnInterval(loopstoreio, 1*3600); // only this: keeps running
