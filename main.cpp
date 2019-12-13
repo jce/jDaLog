@@ -29,6 +29,7 @@
 #include "interface_maria.h"
 #include "interface_fijnstof.h"
 #include "logic_fijnstof.h"
+#include "logic_rain.h"
 
 using namespace std;
 //#define debug
@@ -44,7 +45,7 @@ in *buildNr, *version, *haveControl;
 interface *scan_xiaomi;
 interface *xmrstak_main;
 interface *maria, *fijnstof;
-logic *lfijnstof;
+logic *lfijnstof, *lrain;
 
 // Signal handling.
 void handle_signal(int signal){
@@ -194,6 +195,7 @@ int main(){
 	maria = new interface_maria("maria", "Maria");
 	fijnstof = new interface_fijnstof("fijnstof", "Fijnstof", "10.0.0.139");
 	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
+	lrain = new logic_rain("lrain", "LRain");
 
 	if (not globalControl)
 		webGuiStart("8094");
@@ -223,6 +225,7 @@ int main(){
 		for (i = myThreadList.begin(); i != myThreadList.end(); i++)
 			pthread_join((*i)->thread, NULL);
 
+	delete lrain;
 	delete lfijnstof;
 	delete fijnstof;
 	delete maria;
