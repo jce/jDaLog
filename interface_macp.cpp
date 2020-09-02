@@ -59,6 +59,8 @@ interface_macp::~interface_macp()
 {
 	delete mac_present;
 	delete searchtime;
+	for (auto mac = macs.begin(); mac != macs.end(); mac++)
+		delete mac->second;
 }
 
 void interface_macp::getIns()
