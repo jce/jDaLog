@@ -10,7 +10,7 @@ CPP=g++
 CCFLAGS=-I. -W -Wall -std=c99 -g -O0 -Wno-psabi#-O3
 CPPFLAGS=-I. -W -Wall -std=c++17 -g -O0 -Wno-psabi# -O3#-m32
 #LFLAGS=-ldl -pthread -lcurl -lmodbus -lsnap7 -ljansson -lmicrohttpd -L/usr/lib/arm-linux-gnueabihf  -lmariadbclient 
-LFLAGS=-ldl -pthread -lcurl -lmodbus -lsnap7 -ljansson -L/usr/lib/arm-linux-gnueabihf  -lmariadbclient 
+LFLAGS=-ldl -pthread -lcurl -lmodbus -lsnap7 -ljansson -L/usr/lib/arm-linux-gnueabihf  -lmariadbclient -lstdc++fs
 OBJDIR=obj
 INCDIRS=
 

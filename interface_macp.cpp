@@ -14,6 +14,7 @@
 #include <cstdio>
 #include <memory>
 #include <regex>
+#include <filesystem>	// C++17, directory iterator
 
 #define debug
 
@@ -37,6 +38,21 @@ interface_macp::interface_macp(const string d, const string n, const string macs
 
 	searchtime = new in(getDescriptor() + "_st", getName() + " searchtime", "s", 3);
 	mac_present = new in(getDescriptor() + "_mp", getName() + " mac present", "", 0);
+
+	// Data is stored in #define tcDataDir + /in/ then in a dir.
+	// Try and reconstruct any mac_ to in's 
+	for( auto& p: filesystem::directory_iterator(tcDataDir "in/"))
+		if (p.is_directory())
+		{
+			string stem = p.path().stem().string();
+			size_t pos = stem.find("mac_");
+			if (pos != string::npos)
+			{
+				string mac(stem, pos+4);
+				//printf(mac.c_str()); printf("\n");
+				macs[mac] = new in("mac_" + mac, "mac " + mac, "", 0);
+			}
+		}
 }
 
 interface_macp::~interface_macp()
