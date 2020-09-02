@@ -17,6 +17,7 @@ class interface_fijnstof : public interface
 	private:
 		const std::string _ipstr;
 		int nr_samples = 0;
+		double time_at_last_measurement = 0.0;	
 };
 
 #endif // HAVE_INTERFACE_FIJNSTOF_H

@@ -72,7 +72,7 @@ void interface_macp::getIns()
 		
 		// Create in's for new mac addresses
 		if (macs.count(match_str) != 1)
-			macs[match_str] = new in("mac_" + match_str, "mac_" + match_str, "", 0);
+			macs[match_str] = new in("mac_" + match_str, "mac " + match_str, "", 0);
 	}
 
 	// Update the status of known addresses.

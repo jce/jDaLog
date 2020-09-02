@@ -53,7 +53,8 @@ void interface_fijnstof::getIns()
 	double end = now();
 	double t = (start + end) / 2;
 	float f;
-	
+	//double time_at_last_measurement = 0.0; in class definition. JCE. 11-1-2020	
+
 	latency->setValue((end-start)*1000, t);
 	
 	if (findFloatAfter(page, "Tijdsduur opsturen metingen</td><td class='r'>", f))
@@ -68,16 +69,19 @@ void interface_fijnstof::getIns()
 	if (findFloatAfter(page, "<td>WiFi</td><td>Signaalkwaliteit</td><td class='r'>", f))
 		wifi_qua->setValue(f, t);
 
-	int new_nr_samples;
-	bool have_new_nr_samples = false;
-	have_new_nr_samples = findIntAfter(page, "Aantal metingen</td><td class='r'>", new_nr_samples);
-	if (not have_new_nr_samples)
-		have_new_nr_samples = findIntAfter(page, "Aantal metingen:</td><td class='r'>", new_nr_samples);
-	if (have_new_nr_samples and new_nr_samples != nr_samples)
+	//int new_nr_samples;
+	//bool have_new_nr_samples = false;
+	//have_new_nr_samples = findIntAfter(page, "Aantal metingen</td><td class='r'>", new_nr_samples);
+	//if (not have_new_nr_samples)
+	//	have_new_nr_samples = findIntAfter(page, "Aantal metingen:</td><td class='r'>", new_nr_samples);
+	//if (have_new_nr_samples and new_nr_samples != nr_samples)
+	int time_since_last_measurement;
+	if (findIntAfter(page, "Huidige data</h4><b>", time_since_last_measurement))
+		if (t - time_since_last_measurement > time_at_last_measurement + 10.0 )
 		{
-			nr_samples = new_nr_samples;
-			int time_since_last_measurement;
-			if (findIntAfter(page, "Huidige data</h4><b>", time_since_last_measurement))
+			//nr_samples = new_nr_samples;
+			//int time_since_last_measurement;
+			//if (findIntAfter(page, "Huidige data</h4><b>", time_since_last_measurement))
 			{
 				t -= time_since_last_measurement;
 
@@ -96,9 +100,11 @@ void interface_fijnstof::getIns()
 						// Lets take every integer and concatenate this: 20191271
 						// Then ignore the 20: 191271 This will fit in an float
 						int a, b, c, num;
-						num = sscanf(start, "%*6c%2d%*c%3d%*c%d", &a, &b, &c);
+						num = sscanf(start, "%*6c%2d%*c%3d%*c%d", &a, &b, &c); 			// ______20-129-1
 						if(num == 2)
-							num = sscanf(start, "%*6c%2d%*c%3d%*c%*c%d", &a, &b, &c);
+							num = sscanf(start, "%*6c%2d%*c%3d%*c%*c%d", &a, &b, &c); 	// ______20-129-a1
+						if(num == 2)													// ______20-129
+							fw_ver->setValue((float) 10.0*b + 10000.0*a);
 						if(num == 3)
 							fw_ver->setValue((float) c + 10.0*b + 10000.0*a);
 					}
