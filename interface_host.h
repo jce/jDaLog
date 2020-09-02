@@ -17,6 +17,8 @@ class interface_host : public interface{
 		in *diskfree, *diskused, *diskusedp;
 		in *wd2diskfree, *wd2diskused, *wd2diskusedp;
 		in *wd4diskfree, *wd4diskused, *wd4diskusedp;
+		in *sdfree, *sdused, *sdusedp;
+		in *ksfree, *ksused, *ksusedp;
 		//in *fanspd, *requests, *resets, *scanrate, *uptime, *latency;
 		// program cpu ins
 		in *cpuus, *cpuss, *cpcus, *cpcss, *cputs, *cputp;

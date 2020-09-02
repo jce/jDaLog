@@ -13,6 +13,7 @@
 #include <iostream>
 #include <cstdio>
 #include <memory>
+#include <regex>
 
 #define debug
 
@@ -48,16 +49,37 @@ void interface_macp::getIns()
 {
 	double start = now();
 	string command;
-	command = "nmap -sP -n 10.0.0.0/24 > /dev/null; arp -an | grep ";
-	command.append(_macstr);
+	//command = "nmap -sP -n 10.0.0.0/24 > /dev/null; arp -an | grep ";
+	//command.append(_macstr);
+	command = "nmap -sP -n 10.0.0.0/24 > /dev/null; arp";
 	string result;
 	result = exec(command.c_str());
-	//printf(result.c_str()); 
 	
-	//string powerPage = get_html_page(_ipstr, 2);
 	double end = now();
 	double t = (start + end) / 2;
 	searchtime->setValue((end-start), t); 
+
+	// Find all mac addresses, add an entry in macs for new addresses.
+	// Ooh i had one problem, then i tought to fix it with an regex. Now i have two problems...
+	regex mac_regex("([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})");
+	auto macs_begin = sregex_iterator(result.begin(), result.end(), mac_regex);
+	auto macs_end = sregex_iterator();
+	for (sregex_iterator i = macs_begin; i != macs_end; i++)
+	{
+		smatch match = *i;
+		string match_str = match.str();
+		//printf(match_str.c_str());
+		
+		// Create in's for new mac addresses
+		if (macs.count(match_str) != 1)
+			macs[match_str] = new in("mac_" + match_str, "mac_" + match_str, "", 0);
+	}
+
+	// Update the status of known addresses.
+	for (auto mac = macs.begin(); mac != macs.end(); mac++)
+		mac->second->setValue(result.find(mac->first) != string::npos, t);
+
+	// Separately scan also for this one mac.
 	mac_present->setValue(result.find(_macstr) != string::npos, t);
 }
 

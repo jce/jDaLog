@@ -126,7 +126,6 @@ void loop1s(){
 void loop10s(){
 	rwl->getIns();
 	host->getIns();
-	//scan_xiaomi->getIns();
 	}
 
 void loop11s()
@@ -150,6 +149,7 @@ void loop60s(){
 	touchAllWebins();
 	// scan_xiaomi->getIns();
 	//xmrstak_main->getIns();
+	scan_xiaomi->getIns();
 }
 
 void loopstoreio(){

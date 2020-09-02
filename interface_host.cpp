@@ -35,6 +35,12 @@ interface_host::interface_host(const string d, const string n):interface(d, n), 
 	wd4diskfree    = new in("wd4_disk_free", "wd4 disk free", "byte");
 	wd4diskused   = new in("wd4_disk_used", "wd4 disk used", "byte");
 	wd4diskusedp  = new in("wd4_disk_usedp", "wd4 disk used p", "%", 7);
+	sdfree    = new in("sd_disk_free", "SD card free", "byte");
+	sdused   = new in("sd_disk_used", "SD card used", "byte");
+	sdusedp  = new in("sd_disk_usedp", "SD card used p", "%", 7);
+	ksfree    = new in("ks_disk_free", "Kingston free", "byte");
+	ksused   = new in("ks_disk_used", "Kingston used", "byte");
+	ksusedp  = new in("ks_disk_usedp", "Kingston used p", "%", 7);
 	cpuus = new in("prog_utime", "Program cpu time user code", "s", 6);
 	cpuss = new in("prog_stime", "Program cpu time system functions", "s", 6);
 	cpcus = new in("prog_cutime", "Programs children cpu time user code", "s", 6);
@@ -99,6 +105,12 @@ interface_host::~interface_host(){
 	delete cpuFrequency;
 	delete cpuTemperature; // JCE, 3-9-2018
 
+	delete ksfree;
+	delete ksused;
+	delete ksusedp;
+	delete sdfree;
+	delete sdused;
+	delete sdusedp;
 	delete wd4diskfree;
 	delete wd4diskused;
 	delete wd4diskusedp;
@@ -365,19 +377,73 @@ void interface_host::getIns(){
 	//nbavailp->setValue( ((float) s.f_blocks - s.f_bavail) / s.f_blocks * 100, thisT);
 
 	// File system status, harddisk "wd" mounted in home
-	statvfs("/home/jeindhoven/wd2", &s);
-	totalBytes = (double) s.f_frsize * s.f_blocks;
-	freeBytes = (double) s.f_frsize * s.f_bfree;
-	wd2diskfree->setValue(freeBytes, thisT);
-	wd2diskused->setValue(totalBytes - freeBytes, thisT);
-	wd2diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
-	
+	if (statvfs("/home/jeindhoven/wd2", &s) == 0)
+	{
+		totalBytes = (double) s.f_frsize * s.f_blocks;
+		freeBytes = (double) s.f_frsize * s.f_bfree;
+		wd2diskfree->setValue(freeBytes, thisT);
+		wd2diskused->setValue(totalBytes - freeBytes, thisT);
+		wd2diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+	}
+	else
+	{
+		wd2diskfree->setValid(false);
+		wd2diskused->setValid(false);
+		wd2diskusedp->setValid(false);
+	}	
+
+	if (statvfs("/home/jeindhoven/wd4", &s) == 0)
+	{
+		totalBytes = (double) s.f_frsize * s.f_blocks;
+		freeBytes = (double) s.f_frsize * s.f_bfree;
+		wd4diskfree->setValue(freeBytes, thisT);
+		wd4diskused->setValue(totalBytes - freeBytes, thisT);
+		wd4diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+	}
+	else
+	{
+		wd4diskfree->setValid(false);
+		wd4diskused->setValid(false);
+		wd4diskusedp->setValid(false);
+	}	
+
+	if (statvfs("/mnt/mmcblk0p2", &s) == 0)
+	{
+		totalBytes = (double) s.f_frsize * s.f_blocks;
+		freeBytes = (double) s.f_frsize * s.f_bfree;
+		sdfree->setValue(freeBytes, thisT);
+		sdused->setValue(totalBytes - freeBytes, thisT);
+		sdusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+	}
+	else
+	{
+		sdfree->setValid(false);
+		sdused->setValid(false);
+		sdusedp->setValid(false);
+	}	
+
+	if (statvfs("/home/jeindhoven/kingston", &s) == 0)
+	{
+		totalBytes = (double) s.f_frsize * s.f_blocks;
+		freeBytes = (double) s.f_frsize * s.f_bfree;
+		ksfree->setValue(freeBytes, thisT);
+		ksused->setValue(totalBytes - freeBytes, thisT);
+		ksusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+	}
+	else
+	{
+		ksfree->setValid(false);
+		ksused->setValid(false);
+		ksusedp->setValid(false);
+	}
+	/*
 	statvfs("/home/jeindhoven/wd4", &s);
 	totalBytes = (double) s.f_frsize * s.f_blocks;
 	freeBytes = (double) s.f_frsize * s.f_bfree;
 	wd4diskfree->setValue(freeBytes, thisT);
 	wd4diskused->setValue(totalBytes - freeBytes, thisT);
 	wd4diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+	*/
 	/*
 	struct rusage r;
 	//rv = 
