@@ -476,14 +476,16 @@ void interface_host::getIns(){
 	// JCE, 3-9-2018
 	string command, result;
 	bool commandExecutedOK;
-	command = "sudo vcgencmd measure_temp";
+	//command = "sudo vcgencmd measure_temp";
+	command = "vcgencmd measure_temp";
 	result = _exec(command.c_str());
 	//printf(result.c_str());
 	commandExecutedOK = (result.find("temp=") != string::npos);
 	cpuTemperature->setValid(commandExecutedOK);
 	if (commandExecutedOK) cpuTemperature->setValue( stod(result.substr(5, 4)), thisT);
 
-	command = " sudo vcgencmd measure_clock arm";
+	//command = " sudo vcgencmd measure_clock arm";
+	command = "vcgencmd measure_clock arm";
 	// Answer should be: frequency(45)=600000000 Note for Pi4 45 -> 48
 	result = _exec(command.c_str());
 	commandExecutedOK = (result.find("frequency(48)=") != string::npos);
