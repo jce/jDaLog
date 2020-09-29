@@ -65,6 +65,19 @@ int findFloatAfter(const char* str, const char* cue, float& f){
 int findFloatAfter(string str, const char* cue, float& f){
 	return findFloatAfter(str.c_str(), cue, f);}
 
+void findFloatAfter(const char* str, const char* cue, in *i, double t)
+{
+	float f;
+	if (findFloatAfter(str, cue, f))
+		i->setValue(f, t);
+	else
+		i->setValid(false);
+}
+void findFloatAfter(string str, const char* cue, in& i, double t)
+{
+	findFloatAfter(str.c_str(), cue, i, t);
+}
+
 //int findDoubleAfter(const char* str, const char* cue, double& d){
 //	const char* loc = strstr(str, cue);
 //	if (loc and strlen(loc) > strlen(cue))

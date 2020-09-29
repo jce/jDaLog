@@ -1,20 +1,24 @@
 #ifndef HAVE_INTERFACE_S1200_H
 #define HAVE_INTERFACE_S1200_H
 
+#define byte byte_override
+#include "snap7-full-1.4.2/release/Wrappers/c-cpp/snap7.h"
+#undef byte
+
+#include "interface.h"
 #include "stdio.h"
 #include <string>
 #include "in.h"
 #include "out.h"
 #include "stringStore.h"
-#include "snap7-full-1.4.2/release/Wrappers/c-cpp/snap7.h"
 
-using namespace std;
+//using namespace std;
 
 // Base class for interfaces. An interface is responsible for acquiring the values/datas for in's. In the future also for setting out's. This is the base class, every in should be an expansion of this. Dont know if this one should be instantiated as well, but should be possible for testing purposes. JCE, 20-6-13
 
 class interface_S1200 : public interface{
 	public:
-		interface_S1200(const string, const string, const string); // descr, name, ip-as-string
+		interface_S1200(const std::string, const std::string, const std::string); // descr, name, ip-as-string
 		~interface_S1200();
 		void getIns();
 		in *latency;
@@ -57,7 +61,7 @@ class interface_S1200 : public interface{
 		//in *temp, *rh, *dewp, *SOt, *SOrh;
 		void setOut(out*, float);
 	private:
-		const string _ipstr;
+		const std::string _ipstr;
 		//TS7Client *S1200;
         	S7Object PLC;
 		uint32_t scancounter, writecounter;

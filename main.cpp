@@ -8,6 +8,7 @@
 #include "version.h"
 #include "webgui.h"
 #include "webgui2.h"
+#include "webgui_mac.h"
 #include "sys/time.h"
 #include "unistd.h" // usleep
 #include "pthread.h"
@@ -30,6 +31,7 @@
 #include "interface_fijnstof.h"
 #include "logic_fijnstof.h"
 #include "logic_rain.h"
+#include "interface_hs110.h"
 
 using namespace std;
 //#define debug
@@ -46,6 +48,7 @@ interface *scan_xiaomi;
 interface *xmrstak_main;
 interface *maria, *fijnstof;
 logic *lfijnstof, *lrain;
+interface *hs110_werkplaats;
 
 // Signal handling.
 void handle_signal(int signal){
@@ -126,6 +129,7 @@ void loop1s(){
 void loop10s(){
 	rwl->getIns();
 	host->getIns();
+	hs110_werkplaats->getIns();
 	}
 
 void loop11s()
@@ -196,6 +200,7 @@ int main(){
 	fijnstof = new interface_fijnstof("fijnstof", "Fijnstof", "10.0.0.139");
 	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
 	lrain = new logic_rain("lrain", "LRain");
+	hs110_werkplaats = new interface_hs110("hs110_wp", "Werkplaats", "10.10.0.1");
 
 	if (not globalControl)
 		webGuiStart("8094");
@@ -225,6 +230,7 @@ int main(){
 		for (i = myThreadList.begin(); i != myThreadList.end(); i++)
 			pthread_join((*i)->thread, NULL);
 
+	delete hs110_werkplaats;
 	delete lrain;
 	delete lfijnstof;
 	delete fijnstof;

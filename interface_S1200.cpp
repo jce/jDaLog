@@ -1,16 +1,15 @@
+#include "interface_S1200.h"
 #include "stdio.h"
 #include <string>
 #include "string.h"
 #include "floatLog.h"
 #include "interface.h"
-#include "interface_S1200.h"
 #include "main.h"
 #include "sys/stat.h" // mkdir
 #include "sys/time.h" // gettimeofday(()
 #include "stringStore.h"
 #include "math.h" // pow()
 #include "out.h"
-//#include "snap7-full-1.4.0/release/Wrappers/c-cpp/snap7.h"
 #include "endian.h" 
 
 //#define debug
@@ -19,7 +18,6 @@
 #define VERSION_WRITE 1
 
 using namespace std;
-
 
 interface_S1200::interface_S1200(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr){
 	latency = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
