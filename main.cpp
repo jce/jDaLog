@@ -32,6 +32,7 @@
 #include "logic_fijnstof.h"
 #include "logic_rain.h"
 #include "interface_hs110.h"
+#include "logic_power.h"
 
 using namespace std;
 //#define debug
@@ -48,7 +49,9 @@ interface *scan_xiaomi;
 interface *xmrstak_main;
 interface *maria, *fijnstof;
 logic *lfijnstof, *lrain;
-interface *hs110_werkplaats;
+interface *hs110_werkplaats, *hs110_koelkasten, *hs110_kamer;
+logic *lpower;
+in* pwrsum;
 
 // Signal handling.
 void handle_signal(int signal){
@@ -124,12 +127,24 @@ void callFuncOnInterval(void(*func)(), float interval){
 
 void loop1s(){
 	S1200->getIns();
+	hs110_werkplaats->getIns();
+	hs110_koelkasten->getIns();
+	hs110_kamer->getIns();
+
+	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
+	in *hs110_rm_tot = get_in("hs110_rm_tot");
+	in *hs110_fr_tot = get_in("hs110_fr_tot");
+	in *hs110_wp_tot = get_in("hs110_wp_tot");
+	if (hs110_rm_tot and hs110_fr_tot and hs110_wp_tot)
+		pwrsum->setValue(hs110_rm_tot->getValue() + hs110_fr_tot->getValue() + hs110_wp_tot->getValue());
+	else
+		pwrsum->setValid(false);
 	}
 
 void loop10s(){
 	rwl->getIns();
 	host->getIns();
-	hs110_werkplaats->getIns();
+	//hs110_werkplaats->getIns();
 	}
 
 void loop11s()
@@ -201,6 +216,10 @@ int main(){
 	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
 	lrain = new logic_rain("lrain", "LRain");
 	hs110_werkplaats = new interface_hs110("hs110_wp", "Werkplaats", "10.10.0.1");
+	hs110_koelkasten = new interface_hs110("hs110_fr", "Koelkasten", "10.10.0.2");
+	hs110_kamer = new interface_hs110("hs110_rm", "Kamer", "10.10.0.3");
+	lpower = new logic_power("lpower", "LPower");
+	pwrsum = new in("pwrsum", "Power sum", "kWh", 3);
 
 	if (not globalControl)
 		webGuiStart("8094");
@@ -230,6 +249,10 @@ int main(){
 		for (i = myThreadList.begin(); i != myThreadList.end(); i++)
 			pthread_join((*i)->thread, NULL);
 
+	delete pwrsum;
+	delete lpower;
+	delete hs110_kamer;
+	delete hs110_koelkasten;
 	delete hs110_werkplaats;
 	delete lrain;
 	delete lfijnstof;
