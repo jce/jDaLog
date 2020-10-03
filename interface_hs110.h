@@ -6,6 +6,7 @@
 #include "in.h"
 #include "stringStore.h"
 #include <netinet/in.h>
+#include "float.h"
 
 #define HS110_BUFSIZE 2048
 using namespace std;
@@ -20,6 +21,9 @@ class interface_hs110 : public interface{
 		const string _ipstr;
 		char buf[HS110_BUFSIZE];
 		struct sockaddr_in sa;
+		float kWh_stored_at_startup;
+		float Wh_hs110_at_startup = FLT_MAX;
+		float Wh_hs110_last_readout = FLT_MAX;
 	};
 
 #endif // HAVE_INTERFACE_HS110_H

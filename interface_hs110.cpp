@@ -29,6 +29,8 @@ interface_hs110::interface_hs110(const string d, const string n, const string ip
 	va = new in(getDescriptor() + "_va", getName() + " va", "VA", 3);
 	pf = new in(getDescriptor() + "_pf", getName() + " pf", "", 5);
 
+	kWh_stored_at_startup = total_kwh->getValue();
+
 	memset(&sa, 0, sizeof(sockaddr_in));
 	sa.sin_family = AF_INET;
 	sa.sin_addr.s_addr = inet_addr(_ipstr.c_str());
@@ -124,8 +126,22 @@ void interface_hs110::getIns()
 		else
 			power->setValid(false);
 
+		//if (findFloatAfter(buf+4, "total_wh\":", wh))
+		//	total_kwh->setValue(wh/1000, t);		
+		//else
+		//	total_kwh->setValid(false);
+		// It seems the meter does not store watthours over a restart. JCE, 3-10-2020
 		if (findFloatAfter(buf+4, "total_wh\":", wh))
-			total_kwh->setValue(wh/1000, t);		
+		{
+			if (wh < Wh_hs110_last_readout)
+			{
+				kWh_stored_at_startup +=( Wh_hs110_last_readout - Wh_hs110_at_startup) / 1000;
+				Wh_hs110_at_startup = wh;
+			}
+			Wh_hs110_last_readout = wh;
+
+			total_kwh->setValue(kWh_stored_at_startup + (wh - Wh_hs110_at_startup)/1000, t);		
+		}
 		else
 			total_kwh->setValid(false);
 

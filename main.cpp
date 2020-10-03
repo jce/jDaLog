@@ -51,7 +51,7 @@ interface *maria, *fijnstof;
 logic *lfijnstof, *lrain;
 interface *hs110_werkplaats, *hs110_koelkasten, *hs110_kamer;
 logic *lpower;
-in* pwrsum;
+in *pwrsum, *kWhsum;
 
 // Signal handling.
 void handle_signal(int signal){
@@ -132,13 +132,22 @@ void loop1s(){
 	hs110_kamer->getIns();
 
 	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
+	in *hs110_rm_p = get_in("hs110_rm_p");
+	in *hs110_fr_p = get_in("hs110_fr_p");
+	in *hs110_wp_p = get_in("hs110_wp_p");
+	if (hs110_rm_p and hs110_fr_p and hs110_wp_p)
+		pwrsum->setValue(hs110_rm_p->getValue() + hs110_fr_p->getValue() + hs110_wp_p->getValue());
+	else
+		pwrsum->setValid(false);
+
+	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
 	in *hs110_rm_tot = get_in("hs110_rm_tot");
 	in *hs110_fr_tot = get_in("hs110_fr_tot");
 	in *hs110_wp_tot = get_in("hs110_wp_tot");
 	if (hs110_rm_tot and hs110_fr_tot and hs110_wp_tot)
-		pwrsum->setValue(hs110_rm_tot->getValue() + hs110_fr_tot->getValue() + hs110_wp_tot->getValue());
+		kWhsum->setValue(hs110_rm_tot->getValue() + hs110_fr_tot->getValue() + hs110_wp_tot->getValue());
 	else
-		pwrsum->setValid(false);
+		kWhsum->setValid(false);
 	}
 
 void loop10s(){
@@ -219,7 +228,8 @@ int main(){
 	hs110_koelkasten = new interface_hs110("hs110_fr", "Koelkasten", "10.10.0.2");
 	hs110_kamer = new interface_hs110("hs110_rm", "Kamer", "10.10.0.3");
 	lpower = new logic_power("lpower", "LPower");
-	pwrsum = new in("pwrsum", "Power sum", "kWh", 3);
+	pwrsum = new in("pwrsum", "Power sum", "W", 3);
+	kWhsum = new in("kwhsum", "kWh sum", "kWh", 3);
 
 	if (not globalControl)
 		webGuiStart("8094");
@@ -249,6 +259,7 @@ int main(){
 		for (i = myThreadList.begin(); i != myThreadList.end(); i++)
 			pthread_join((*i)->thread, NULL);
 
+	delete kWhsum;
 	delete pwrsum;
 	delete lpower;
 	delete hs110_kamer;
