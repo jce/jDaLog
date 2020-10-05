@@ -68,6 +68,7 @@ struct myThread{
 	void (*func)();
 	float interval;
 	//in *scantime;
+	string name;
 	};
 
 list<myThread*> myThreadList;
@@ -77,8 +78,16 @@ void* myThreadFunc(void* blah){
 	printf("%f second loop has started\n", data->interval);
 	double start, end;
 	char sname[101], lname[101];
-	snprintf(sname, 100,  "scant%fs", data->interval);
-	snprintf(lname, 100, "Scantime %f second scan", data->interval);
+	if (data->name != "")
+	{
+		snprintf(sname, 100,  "scant%s_%fs", data->name.c_str(), data->interval);
+		snprintf(lname, 100, "Scantime %s %f second scan", data->name.c_str(), data->interval);
+	}
+	else
+	{
+		snprintf(sname, 100,  "scant%fs", data->interval);
+		snprintf(lname, 100, "Scantime %f second scan", data->interval);
+	}
 	in scantime(sname, lname, "s", 6);
 	double ttni = 0;
 	while (run){
@@ -116,18 +125,18 @@ void* myThreadFunc(void* blah){
 	printf("%f second loop has stopped\n", data->interval);
 	return NULL;}
 
-void callFuncOnInterval(void(*func)(), float interval){
+void callFuncOnInterval(void(*func)(), float interval, string name = ""){
 	myThread *t = new myThread;
 	t->func = func;
 	t->interval = interval;
-	
+	t->name = name;	
+
 	pthread_create(&(t->thread), NULL, &myThreadFunc, (void*) t);
 	myThreadList.push_back(t);
 	}
 
 void loop1s(){
 	S1200->getIns();
-	hs110_werkplaats->getIns();
 	hs110_koelkasten->getIns();
 	hs110_kamer->getIns();
 
@@ -149,6 +158,19 @@ void loop1s(){
 	else
 		kWhsum->setValid(false);
 	}
+
+void loop_hs110_kamer()
+{
+	hs110_kamer->getIns();
+}
+void loop_hs110_werkplaats()
+{
+	hs110_werkplaats->getIns();
+}
+void loop_hs110_koelkasten()
+{
+	hs110_koelkasten->getIns();
+}
 
 void loop10s(){
 	rwl->getIns();
@@ -237,6 +259,9 @@ int main(){
 		webGuiStart();
 	
 	callFuncOnInterval(loop1s, 1);
+	callFuncOnInterval(loop_hs110_kamer, 1, "kamer");
+	callFuncOnInterval(loop_hs110_werkplaats, 1, "werkplaats");
+	callFuncOnInterval(loop_hs110_koelkasten, 1, "koelkaten");
 	callFuncOnInterval(loop10s, 10);
 	callFuncOnInterval(loop11s, 11);
 	callFuncOnInterval(loop15s, 15); // only this: keeps running

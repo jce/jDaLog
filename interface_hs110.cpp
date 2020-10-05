@@ -156,7 +156,10 @@ void interface_hs110::getIns()
 			va->setValue(tmpva, t);
 			if (power->isValid())
 			{
-				tmppf = p / 1000 / tmpva;
+				if (tmpva != 0)
+					tmppf = p / 1000 / tmpva;
+				else
+					tmppf = 0;
 				pf->setValue(tmppf, t);
 			}
 			else
@@ -168,6 +171,6 @@ void interface_hs110::getIns()
 			pf->setValid(false);
 		}
 	}
-	latency->setValue((end-start)/2*1000, t); // 2 requests, scale = ms
+	latency->setValue((end-start) * 1000, t); 
 }
 

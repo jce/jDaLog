@@ -20,6 +20,7 @@ int logic_power::make_page(struct mg_connection *conn){
 	mg_printf(conn, "<br>Power page</br><hr>");
 	string line;
 	in *pwrsum = get_in("pwrsum");
+	in *kWhsum = get_in("kwhsum");
 	in *hs110_rm_p = get_in("hs110_rm_p");
 	in *hs110_rm_u = get_in("hs110_rm_u");
 	in *hs110_rm_tot = get_in("hs110_rm_tot");
@@ -30,9 +31,12 @@ int logic_power::make_page(struct mg_connection *conn){
 	in *hs110_wp_u = get_in("hs110_wp_u");
 	in *hs110_wp_tot = get_in("hs110_wp_tot");
 
-	if (not (pwrsum and hs110_rm_p and hs110_rm_u and hs110_rm_tot and hs110_fr_p and hs110_fr_u and hs110_fr_tot and hs110_wp_p and hs110_wp_u and hs110_wp_tot ) )
+	if (not (pwrsum and kWhsum and hs110_rm_p and hs110_rm_u and hs110_rm_tot and hs110_fr_p and hs110_fr_u and hs110_fr_tot and hs110_wp_p and hs110_wp_u and hs110_wp_tot ) )
 		return 0;
-	line = make_image_line(plotLine(pwrsum, now() - 24*3600, now(), 1220, 300));mg_printf(conn, line.c_str());
+	line = make_image_line(plotLines(pwrsum, kWhsum, now() - 3600, now(), 1220, 300, "last hour"));mg_printf(conn, line.c_str());
+	line = make_image_line(plotLines(hs110_rm_u, hs110_wp_u, hs110_fr_u, now() - 3600, now(), 1220, 300, "last hour"));mg_printf(conn, line.c_str());
+	line = make_image_line(plotLines(hs110_rm_p, hs110_wp_p, hs110_fr_p, now() - 3600, now(), 1220, 300, "last hour"));mg_printf(conn, line.c_str());
+	line = make_image_line(plotLines(pwrsum, kWhsum, now() - 24*3600, now(), 1220, 300, "last day"));mg_printf(conn, line.c_str());
 	line = make_image_line(plotLines(hs110_rm_u, hs110_wp_u, hs110_fr_u, now() - 24*3600, now(), 1220, 300, "last day"));mg_printf(conn, line.c_str());
 	line = make_image_line(plotLines(hs110_rm_p, hs110_wp_p, hs110_fr_p, now() - 24*3600, now(), 1220, 300, "last day"));mg_printf(conn, line.c_str());
 	//line = make_image_line(plotLines(pm10, pm2, wb, now() - 7*24*3600, now(), 1280, 300, "last week"));mg_printf(conn, line.c_str());
