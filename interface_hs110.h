@@ -17,6 +17,7 @@ class interface_hs110 : public interface{
 		~interface_hs110();
 		void getIns();
 		in *voltage, *current, *power, *total_kwh, *err_code, *latency, *va, *pf;
+		in  *whreadout;
 	private:
 		const string _ipstr;
 		char buf[HS110_BUFSIZE];

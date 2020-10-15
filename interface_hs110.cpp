@@ -12,6 +12,8 @@
 #include <arpa/inet.h>
 #include <endian.h>
 #include <netinet/in.h>
+#include <sys/select.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -28,7 +30,7 @@ interface_hs110::interface_hs110(const string d, const string n, const string ip
 	latency = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 	va = new in(getDescriptor() + "_va", getName() + " va", "VA", 3);
 	pf = new in(getDescriptor() + "_pf", getName() + " pf", "", 5);
-
+	whreadout = new in(getDescriptor() + "_whr", getName() + " wh readout", "wh");
 	kWh_stored_at_startup = total_kwh->getValue();
 
 	memset(&sa, 0, sizeof(sockaddr_in));
@@ -39,6 +41,7 @@ interface_hs110::interface_hs110(const string d, const string n, const string ip
 
 interface_hs110::~interface_hs110()
 {
+	delete(whreadout);
 	delete(pf);
 	delete(va);
 	delete(voltage);
@@ -76,6 +79,13 @@ static void decrypt(char *str, size_t len)
 
 void interface_hs110::getIns()
 {
+	struct timeval timeout;
+	timeout.tv_sec = 1;
+	timeout.tv_usec = 0;
+	fd_set set;
+	bool rv;
+	ssize_t ans_len = 0;
+
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (!sock)
 		return;
@@ -96,7 +106,14 @@ void interface_hs110::getIns()
 	//printf("%s\n", buf);
 	write(sock, &req_len_be, 4);
 	write(sock, buf, req_len);
-	ssize_t ans_len = read(sock, buf, HS110_BUFSIZE);
+
+	FD_ZERO(&set);
+	FD_SET(sock, &set);
+	rv = select(sock+1, &set, NULL, NULL, &timeout);
+
+	if (rv > 0)
+		ans_len = read(sock, buf, HS110_BUFSIZE);
+
 	close(sock);
 	double end = now();
 	double t = (start + end) / 2;
@@ -141,6 +158,7 @@ void interface_hs110::getIns()
 			Wh_hs110_last_readout = wh;
 
 			total_kwh->setValue(kWh_stored_at_startup + (wh - Wh_hs110_at_startup)/1000, t);		
+			whreadout->setValue(wh, t);
 		}
 		else
 			total_kwh->setValid(false);
