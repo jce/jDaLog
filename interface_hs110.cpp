@@ -11,6 +11,7 @@
 
 #include <arpa/inet.h>
 #include <endian.h>
+#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/select.h>
 #include <sys/stat.h>
@@ -77,47 +78,93 @@ static void decrypt(char *str, size_t len)
 		str[0] = str[0] ^ KEY;
 }
 
+/*
+static void prp(double t, const char* s)
+{
+	//print debug point.
+	// If the time is longer than treshold, print time and string.
+	float treshold = 1.000;
+	if ((now() - t) >= treshold)
+	{
+		printf("%.3f +%.3f %s\n", now(), now() - t, s);
+	}
+}*/
+//prp(t, "a");
+#define prp(_X_,_Y)
+
 void interface_hs110::getIns()
 {
+//double q = now();
+prp(q, "a");
 	struct timeval timeout;
 	timeout.tv_sec = 1;
 	timeout.tv_usec = 0;
 	fd_set set;
-	bool rv;
+	int rv;
 	ssize_t ans_len = 0;
 
+prp(q, "b");
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (!sock)
 		return;
 
-	if ( connect(sock, (sockaddr*) &sa, sizeof(sockaddr_in)) )
-		return;
+	FD_ZERO(&set);
+	FD_SET(sock, &set);
+prp(q, "c");
 
+	int opt = fcntl (sock, F_GETFL, NULL);
+	fcntl(sock, F_SETFL, opt | O_NONBLOCK);	// Set to non blocking
+	rv = connect(sock, (sockaddr*) &sa, sizeof(sockaddr_in));
+	if (rv < 0 and errno == EINPROGRESS)
+	{
+		rv = select(sock+1, NULL, &set, NULL, &timeout);
+		if (rv == 1)
+			rv = 0;
+	}
+	
+	if ( rv != 0 )
+	{
+		close(sock);
+		return;
+	}
+
+	//fcntl(sock, F_SETFL, opt);	// Reset socket flags
+
+prp(q, "d");
 	// bla bla interactions
 	double start = now();
 
+prp(q, "e");
 	const char *request = "{\"emeter\":{\"get_realtime\":{}}}";
 	const size_t req_len = strlen(request);
 	const uint32_t req_len_be = htobe32(req_len);
 
+prp(q, "f");
 	strcpy(buf, request);
 	//printf("%s\n", buf);
 	encrypt(buf, req_len);
 	//printf("%s\n", buf);
+prp(q, "g");
 	write(sock, &req_len_be, 4);
+prp(q, "h");
 	write(sock, buf, req_len);
+prp(q, "i");
 
-	FD_ZERO(&set);
-	FD_SET(sock, &set);
+prp(q, "j");
+prp(q, "k");
 	rv = select(sock+1, &set, NULL, NULL, &timeout);
 
+prp(q, "l");
 	if (rv > 0)
 		ans_len = read(sock, buf, HS110_BUFSIZE);
 
+prp(q, "m");
 	close(sock);
+prp(q, "n");
 	double end = now();
 	double t = (start + end) / 2;
 
+prp(q, "o");
 	//printf("%d\n", ans_len);
 	if (ans_len >= 4)
 	{	
@@ -199,5 +246,6 @@ void interface_hs110::getIns()
 	if (l > 1000)
 		l = 1000;
 	latency->setValue(l, t); 
+prp(q, "p");
 }
 

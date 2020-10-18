@@ -137,8 +137,6 @@ void callFuncOnInterval(void(*func)(), float interval, string name = ""){
 
 void loop1s(){
 	S1200->getIns();
-	hs110_koelkasten->getIns();
-	hs110_kamer->getIns();
 
 	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
 	in *hs110_rm_p = get_in("hs110_rm_p");
