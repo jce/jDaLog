@@ -3,6 +3,7 @@
 #include <string>
 #include "string.h"
 #include "floatLog.h"
+#include "in_to_maria.h"
 #include "main.h"
 #include "mongoose.h"
 #include "version.h"
@@ -19,6 +20,7 @@
 #include "interface_host.h"
 #include "interface_solarlog.h"
 #include "mytime.h" // now()
+#include "mysql/mysql.h"
 #include "interface_adam6052.h"
 #include "interface_S1200.h"
 #include "interface_macp.h"
@@ -210,6 +212,12 @@ void loopstoreio(){
 	deleteOldFiles(); // AKA segmentation fault... JCE, 5-7-13
 	}
 
+void loop_in_to_maria()
+{
+	sleep(2);
+	in_to_maria();
+}
+
 int main(){
 	// Signal handler
 	struct sigaction sa;
@@ -227,6 +235,9 @@ int main(){
 
 	// Startup
 	printf("welkom bij %s V %.3f build %i\n", tcProgramName, tcProgramVersion, (int)tcBuildNr);
+
+	mysql_library_init(0, NULL, NULL);
+
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);
 	rwl = new interface_rwl("rwl", "Regen waterlevel interface", "10.0.0.23");
@@ -266,6 +277,7 @@ int main(){
 	callFuncOnInterval(loop60s, 60); // only this: keeps running	
 	callFuncOnInterval(loopstoreio, 1*3600); // only this: keeps running
 	callFuncOnInterval(loopDarksky, (24.0*3600.0)/1000.0); // 1000 calls per day
+	callFuncOnInterval(loop_in_to_maria, 3600);
 
 	usleep(100000);
 	printf("running... (press control+C to stop)\n");
@@ -305,6 +317,8 @@ int main(){
 	delete buildNr;
 	delete version;
 	delete haveControl;
+
+	mysql_library_end();
 
 	printf("%s V %.3f build %i has shutdown. byebye.\n", tcProgramName, tcProgramVersion, (int)tcBuildNr);
 	return 0;

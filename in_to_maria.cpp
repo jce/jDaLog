@@ -3,8 +3,8 @@
 #include "string.h"
 #include "floatLog.h"
 #include "interface.h"
-#include "interface_maria.h"
 #include "main.h"
+#include "mysql/mysql.h"
 #include "sys/stat.h" // mkdir
 #include "sys/time.h" // gettimeofday(()
 #include "stringStore.h"
@@ -14,51 +14,72 @@
 
 using namespace std;
 
-interface_maria::interface_maria(const string d, const string n):interface(d, n)
+#define HOST		"localhost"
+#define PORT		3306	
+#define DATABASE	"tcfarmcontrol"
+#define USER		"tcfarmcontrol"
+#define PASS		"technochicken123!@"
+#define QSIZE		2048
+
+bool firstrun = true;
+
+void query(MYSQL *m, const char *q)
 {
-	responseTime = new in(getDescriptor() + "_rt", getName() + " response time", "ms", 3);
-	//mysql_library_init(0, NULL, NULL); Done only once in main.cpp. JCE, 18-10-2020
-	pthread_create(&thread, NULL, &thread_fnc_cc, (void*) this);
+	printf("%s\n", q);
+	mysql_query(m, q);
+	printf("%u %s\n", mysql_errno(m), mysql_error(m));
 }
 
-interface_maria::~interface_maria(){
-	pthread_cancel(thread);
-	pthread_join(thread, 0);
-	delete responseTime;
-	mysql_close(mysql);
-	//mysql_library_end(); Done only once in main.cpp. JCE, 18-10-2020
-	}
-
-void interface_maria::connect()
+void create_index_table(MYSQL *m)
 {
-	printf("entering connect()\n");fflush(stdout);
-	mysql = mysql_init(NULL);
-	mysql_real_connect(mysql, host, username, password, database, port, NULL, 0);
+	// Construction queries are separated out per column, for if the table exists but one column does not, it is not added.
+	//query(m, "CREATE TABLE IF NOT EXISTS  `__index` ( `name` TINYTEXT NOT NULL, `long_name` TINYTEXT NULL, `note` TEXT NULL DEFAULT '', PRIMARY KEY (`name`(100)) )COMMENT='comment' COLLATE='utf8mb4_general_ci';");
+	query(m, "CREATE TABLE IF NOT EXISTS  `__index` ( `name` TINYTEXT NOT NULL, PRIMARY KEY (`name`(100)) ) COLLATE='utf8mb4_general_ci'");
+	query(m, "ALTER TABLE `__index` ADD COLUMN IF NOT EXISTS `long_name` TINYTEXT NULL DEFAULT NULL");
+	query(m, "ALTER TABLE `__index` ADD COLUMN IF NOT EXISTS `unit` TINYTEXT NULL DEFAULT NULL");
+	query(m, "ALTER TABLE `__index` ADD COLUMN IF NOT EXISTS `decimals` TINYINT NULL DEFAULT NULL");
+	query(m, "ALTER TABLE `__index` ADD COLUMN IF NOT EXISTS `note` TEXT NULL DEFAULT NULL");
+}
+
+void in_to_index(MYSQL *m, in *i)
+{
+	char buf[QSIZE];
+	snprintf(buf, QSIZE, "INSERT INTO `tcfarmcontrol`.`__index` (`name`) VALUES ('%s')", i->getDescriptor().c_str());
+	query(m, buf);
+	snprintf(buf, QSIZE, "UPDATE `tcfarmcontrol`.`__index` SET `long_name`='%s' WHERE `name`='%s'", i->getName().c_str(), i->getDescriptor().c_str());
+	query(m, buf);
+	snprintf(buf, QSIZE, "UPDATE `tcfarmcontrol`.`__index` SET `unit`='%s' WHERE `name`='%s'", i->getUnits().c_str(), i->getDescriptor().c_str());
+	query(m, buf);
+	snprintf(buf, QSIZE, "UPDATE `tcfarmcontrol`.`__index` SET `decimals`='%d' WHERE `name`='%s'", i->getDecimals(), i->getDescriptor().c_str());
+	query(m, buf);
+	snprintf(buf, QSIZE, "UPDATE `tcfarmcontrol`.`__index` SET `note`='%s' WHERE `name`='%s'", i->getNote().c_str(), i->getDescriptor().c_str());
+	query(m, buf);
+}
+
+void in_to_maria()
+{
+	printf("running floatlog_to_maria function.\n");fflush(stdout);
+	// Brutal program that goes through all the binary data, by hour, and verifies if the number of records agrees with what is in the database. If not, it adds / overwrites all records.
+
+	MYSQL *m = mysql_init(NULL);
+	mysql_real_connect(m, HOST, USER, PASS, DATABASE, PORT, NULL, 0);
 	my_bool reconnect = 1;
-	mysql_options(mysql, MYSQL_OPT_RECONNECT, &reconnect);
-	printf("leaving connect()\n");fflush(stdout);
+	mysql_options(m, MYSQL_OPT_RECONNECT, &reconnect);
+
+	// First create one table with all ins
+	if(firstrun)
+	{
+		firstrun = false;	
+		create_index_table(m);
+		map<string, in*>::iterator i;
+		for(i = inmap.begin(); i != inmap.end(); i++)
+			in_to_index(m, i->second);
+	}
+	mysql_close(m);
+	printf("finished floatlog_to_maria function.\n");fflush(stdout);
 }
 
-void interface_maria::reconnect()
-{
-	printf("entering reconnect()\n");fflush(stdout);
-	mysql_close(mysql);
-	connect();
-	printf("leaving reconnect()\n");fflush(stdout);
-}
-
-void* interface_maria::thread_fnc_cc(void* imvp)
-{
-	interface_maria* im = (interface_maria*) imvp;
-	im->thread_fnc();	
-	return imvp;
-}
-
-void print_tm(tm &tmr)
-{
-	printf("%i-%i-%i %i:%i:%i wday = %i, yday = %i, is_dst = %i\n", tmr.tm_year + 1900, tmr.tm_mon + 1, tmr.tm_mday, tmr.tm_hour, tmr.tm_min, tmr.tm_sec, tmr.tm_wday, tmr.tm_yday, tmr.tm_isdst);
-}
-
+/*
 double interface_maria::get_last_logged_day_from_db()
 {
 	// The query is 
@@ -255,14 +276,14 @@ void interface_maria::write_one_day_record(double from)
 		}
 	}
 
-	/*inp = get_in("S1200_rac");
+	inp = get_in("S1200_rac");
 	if (inp)
 		if (inp->get_value_at(from+12*60*60, val, ts) and (from - ts < 300))
 			{
 			snprintf(query, QSIZE, "UPDATE `Farm`.`tcFarmControl days` SET `rain`='%f' WHERE `date`='%s';", val, date);
 			mysql_query(mysql, query);
 			printf("%s\n", query);
-			}*/
+			}
 	if (in_to_day_diff("S1200_rac", from, val))
 	{
 		snprintf(query, QSIZE, "UPDATE `Farm`.`tcFarmControl days` SET `rain`='%f' WHERE `date`='%s';", val, date);
@@ -281,3 +302,5 @@ void interface_maria::setOut(out*, float)
 {
 
 }
+*/
+

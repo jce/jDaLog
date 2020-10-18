@@ -1,0 +1,4 @@
+you need these packages:
+
+
+sudo apt-get install libmariadbclient-dev
