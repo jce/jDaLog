@@ -356,8 +356,95 @@ void floatLog::importFromBinFile(string s){
 	// Read , clear and write own data set.
 	_addDataToFloatLog(data);}
 
+size_t floatLog::records_in_file()
+{
+	FILE *fp;
+	size_t num;
+	fp = fopen(_pathAndName.c_str(), "a");
+	if(fp)
+	{
+		num = ftell(fp) / sizeof(record);
+		fclose(fp);
+	}
+	return num;
+}
 
+size_t floatLog::getNumRecords()
+{
+	size_t num;
+	pthread_mutex_lock(&_fileMutex);
+		num = records_in_file();
+	pthread_mutex_unlock(&_fileMutex);
+	pthread_mutex_lock(&_memMutex);
+		num += _recordsToFile.size();
+	pthread_mutex_unlock(&_memMutex);
+	return num;
+}
 
+void floatLog::getRecords(map<double, float> &m, size_t from_total, size_t len_total)
+{
+	FILE *fp;
+	record r;
+	size_t records_in_file = floatLog::records_in_file();
+	//size_t records_in_mem = _recordsToFile.size();
+	//size_t last_record = from_total + len_total - 1;
+
+	// From the total, are there any in the file, and any in the mem?
+	bool any_from_file = from_total < records_in_file;					// There are records from file needed, if the first record is one of the file recors.
+	bool any_from_mem = from_total + len_total > records_in_file;		// There can be mem records needed, if the last records is further away than available in the file.
+
+	if (any_from_file)
+	{
+		size_t from = from_total;
+		size_t to = from_total + len_total; // Not including, so records to 4 means 0, 1, 2, 3, not 4.
+		if (to > records_in_file + 1)
+			to = records_in_file + 1;
+		size_t len = to - from;
+
+		pthread_mutex_lock(&_fileMutex);
+		fp = fopen(_pathAndName.c_str(), "r");
+		if (fp)
+		{
+			fseek(fp, sizeof(record) * from, SEEK_SET);
+			while (len --)
+			{
+				fread(&r, sizeof(record), 1, fp);
+				m[r.t] = r.v;
+			}
+			fclose(fp);
+		}
+		pthread_mutex_unlock(&_fileMutex);
+	}
+
+	if (any_from_mem)
+	{
+		size_t from;
+		size_t len;
+		if (from_total > records_in_file)
+		{
+			from = from_total - records_in_file;
+			len = len_total;
+		}
+		else
+		{
+			from = 0;
+			len = len_total - (records_in_file - from_total);
+		}
+
+		pthread_mutex_lock(&_memMutex);
+		list<record>::iterator i = _recordsToFile.begin();
+		while(from-- && ++i != _recordsToFile.end()) {}
+		while(len--)
+		{
+			if (i == _recordsToFile.end())
+				break;
+			r = *i;
+			m[r.t] = r.v;
+			i++;
+		}
+		pthread_mutex_unlock(&_memMutex);
+	}	
+}
 
 
 

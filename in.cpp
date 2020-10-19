@@ -154,6 +154,17 @@ void in::writeToFile(){	// Pass to floatlog. JCE, 1-7-13
 void in::getData(map<double, float>& data, double from, double to){
 	_logger->readFromTo(data, from, to);}
 
+size_t in::getNumRecords()
+{
+	return _logger->getNumRecords();
+}
+
+void in::getRecords(map<double, float> &m, size_t s, size_t l)
+{
+	_logger->getRecords(m, s, l);
+}
+
+
 void in::getDataSummary(vector<flStat> &stats, unsigned length , double from, double to){ // JCE, 31-12-13
 	_logger->summaryFromTo(stats, length, from, to);}
 

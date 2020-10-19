@@ -38,6 +38,9 @@ class floatLog{
 		bool get_value_at(double, float&, double&);	// When, returned value, returned time. JCE, 19-6-2019
 		void readFromTo(map<double, float> &, double, double);	// JCE, 5-7-13
 		void summaryFromTo(vector<flStat> &, unsigned, double, double);	// JCE, 30-12-13
+		size_t getNumRecords();
+		void getRecords(map<double, float> &m, size_t s, size_t l);
+
 	private:
 		void _addDataToFloatLog(map<double, float> &);
 		list<record> _recordsToFile;
@@ -45,6 +48,7 @@ class floatLog{
 		//void writeToFile();
 		//void _read(map<double, float> &);
 		pthread_mutex_t _fileMutex, _memMutex;
+		size_t records_in_file(); // Not protected by a mutex!
 		};
 
 #endif // HAVE_FLOATLOG_H

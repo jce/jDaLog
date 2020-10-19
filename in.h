@@ -35,6 +35,8 @@ class in{
 		unsigned int getDecimals();
 		void writeToFile();		// JCE, 1-7-13
 		void getData(map<double, float> &, double, double);	// JCE, 5-7-13 
+		size_t getNumRecords();
+		void getRecords(map<double, float> &, size_t, size_t);	// JCE, 5-7-13 
 		// getDataSummary is a semi-draconic function to get a data summary (min, avg, max, samples-in-bin) without creating a list or map with every intermediate value. Should result in saving of memory and processor time. double 1 is the start-time, double 2 the end-time. 
 		void getDataSummary(vector<flStat>&, unsigned, double, double); // JCE, 31-12-13
 		void importData();		// JCE, 18-7-13, JCE, should kick the floatLogger into importing data from some configured filenames.

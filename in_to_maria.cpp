@@ -19,7 +19,7 @@ using namespace std;
 #define DATABASE	"tcfarmcontrol"
 #define USER		"tcfarmcontrol"
 #define PASS		"technochicken123!@"
-#define QSIZE		2048
+#define QSIZE		100000
 
 bool firstrun = true;
 
@@ -39,6 +39,35 @@ void create_index_table(MYSQL *m)
 	query(m, "ALTER TABLE `__index` ADD COLUMN IF NOT EXISTS `unit` TINYTEXT NULL DEFAULT NULL");
 	query(m, "ALTER TABLE `__index` ADD COLUMN IF NOT EXISTS `decimals` TINYINT NULL DEFAULT NULL");
 	query(m, "ALTER TABLE `__index` ADD COLUMN IF NOT EXISTS `note` TEXT NULL DEFAULT NULL");
+}
+
+void create_in_table(MYSQL *m, const char* name)
+{
+    char buf[QSIZE];
+    snprintf(buf, QSIZE, "CREATE TABLE IF NOT EXISTS `%s` ( `time` DECIMAL(17,6) NOT NULL, `value` FLOAT NULL, PRIMARY KEY (`time`) ) COLLATE='utf8mb4_general_ci'", name);
+    query(m, buf);
+}
+
+void records_to_in_table(MYSQL *m, const char *name, map<double, float> &data)
+{
+	char buf[QSIZE];
+	size_t len = 0;
+	//REPLACE INTO `tcfarmcontrol`.`asdf` (`time`, `value`) VALUES ('123', '44'), ('1234', '444');
+	len += snprintf(buf, QSIZE-len, "REPLACE INTO `tcfarmcontrol`.`%s` (`time`, `value`) VALUES ", name);
+
+	for (auto i = data.begin(); i != data.end(); i++)
+	{
+		len += snprintf(buf+len, QSIZE-len, "('%f', '%f'),", i->first, i->second);	
+	}
+
+	// Remove last comma
+	if (data.size() > 1)
+	{
+		len -= 1;
+		buf[len] = 0;
+	}
+		
+	query(m, buf);
 }
 
 void in_to_index(MYSQL *m, in *i)
@@ -73,7 +102,21 @@ void in_to_maria()
 		create_index_table(m);
 		map<string, in*>::iterator i;
 		for(i = inmap.begin(); i != inmap.end(); i++)
+		{
 			in_to_index(m, i->second);
+			create_in_table(m, i->second->getDescriptor().c_str());
+			map<double, float> data;
+			//test[200] = 50;
+			//test[201.539] = 51.234;
+			size_t num_records = i->second->getNumRecords();
+			const unsigned int block = 1024;
+			for (size_t b = 0; b < num_records; b += block) 
+			{
+				i->second->getRecords(data, b, block);
+				records_to_in_table(m, i->second->getDescriptor().c_str(), data);
+				data.clear();
+			}
+		}
 	}
 	mysql_close(m);
 	printf("finished floatlog_to_maria function.\n");fflush(stdout);
