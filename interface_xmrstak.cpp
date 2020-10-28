@@ -13,7 +13,7 @@
 
 using namespace std;
 
-interface_xmrstak::interface_xmrstak(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr){
+interface_xmrstak::interface_xmrstak(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr){
 		//in *remp, *rh, *dewp, *SOt, *SOrh, *requests, *resets, *scanrate, *uptime, *latency;
 	hashrate = new in(getDescriptor() + "_hr", getName() + " hashrate", "H/s", 1);
 	runtime = new in(getDescriptor() + "_rt", getName() + " runtime", "h", 1);

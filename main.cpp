@@ -52,7 +52,7 @@ interface *scan_xiaomi;
 interface *xmrstak_main;
 interface *maria, *fijnstof;
 logic *lfijnstof, *lrain;
-interface *hs110_werkplaats, *hs110_koelkasten, *hs110_kamer;
+//interface *hs110_werkplaats, *hs110_koelkasten, *hs110_kamer;
 logic *lpower;
 in *pwrsum, *kWhsum;
 
@@ -82,7 +82,7 @@ void build_interfaces(json_t *arr)
 		return;
 	size_t index;
 	json_t *json, *jscan, *jlon, *jlat;
-	const char *type, *id, *name, *key;
+	const char *type, *id, *name, *key, *address;
 	float scan, lon, lat;
 	json_array_foreach(arr, index, json)
 	{
@@ -93,17 +93,29 @@ void build_interfaces(json_t *arr)
 			id = 	json_string_value(json_object_get(json, "id"));
 			name = 	json_string_value(json_object_get(json, "name"));
 			key = 	json_string_value(json_object_get(json, "key"));
+			address = json_string_value(json_object_get(json, "address"));
 			jlon =  json_object_get(json, "lon");
-			lon = json_integer_value(jlon);
+			lon = json_number_value(jlon);
 			jlat =  json_object_get(json, "lat");
-			lat = json_integer_value(jlat);
+			lat = json_number_value(jlat);
 			jscan =  json_object_get(json, "scan");
-			scan = json_integer_value(jscan);
+			scan = json_number_value(jscan);
 
 			// 
 			if (strcmp(type, "darksky") == 0)
-				if (id and name and key and json_is_integer(jlon) and json_is_integer(jlat) and json_is_integer(jscan))
+			{
+				if (id and name and key and json_is_number(jlon) and json_is_number(jlat) and json_is_number(jscan))
 					new interface_darksky(id, name, scan, key, lon, lat);
+				else
+					printf("could not build interface_darksky(%s, %s, %f, %s, %f, %f)\n", id, name, scan, key, lon, lat);
+			}
+			if (strcmp(type, "hs110") == 0)
+			{
+				if (id and name and json_is_number(jscan) and address)
+					new interface_hs110(id, name, scan, address);
+				else
+					printf("could not build interface_hs110(%s, %s, %f, %s)\n", id, name, scan, address);
+			}
 		}
 
 	}	
@@ -193,19 +205,6 @@ void loop1s(){
 		kWhsum->setValid(false);
 	}
 
-void loop_hs110_kamer()
-{
-	hs110_kamer->getIns();
-}
-void loop_hs110_werkplaats()
-{
-	hs110_werkplaats->getIns();
-}
-void loop_hs110_koelkasten()
-{
-	hs110_koelkasten->getIns();
-}
-
 void loop10s(){
 	rwl->getIns();
 	host->getIns();
@@ -283,28 +282,28 @@ int main(){
         return(0);
     }
 
-	build_interfaces(json);
+	build_interfaces(json_object_get(json, "interface"));
 
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);
-	rwl = new interface_rwl("rwl", "Regen waterlevel interface", "10.0.0.23");
-	host = new interface_host("host", "Host");
-	solarlog = new interface_solarlog("solarlog", "Solarlog", "10.0.0.4");
+	rwl = new interface_rwl("rwl", "Regen waterlevel interface", 10, "10.0.0.23");
+	host = new interface_host("host", "Host", 10);
+	solarlog = new interface_solarlog("solarlog", "Solarlog", 15, "10.0.0.4");
 	haveControl = new in("prog_ctrl", "Program has control", "");
-	S1200 = new interface_S1200("S1200", "S1200", "10.0.1.10");
+	S1200 = new interface_S1200("S1200", "S1200", 1, "10.0.1.10");
 	//darksky = new interface_darksky("darksky", "Darksky", "a429dc31f36cda5cf90d27b562cb2325", 52.00788, 4.57637);
 	//dsAalsmeer = new interface_darksky("dsaalsmeer", "DS Aalsmeer", "e9f1b5d9e3a499a00b7c2d85b62ca01f", 52.27589, 4.77275);
 	//dsOosterend = new interface_darksky("dsoosterend", "DS Oosterend", "1bb2281b8e17ee1e94051a13d9edbe5b", 53.40416, 5.37819);
 	//scan_xiaomi = new interface_macp("xp", "Scan Xiaomi", "64:09:80:c7:3f:4e");
-	scan_xiaomi = new interface_macp("xp", "Scan Xiaomi", "20:47:da:20:b6:fb");
+	scan_xiaomi = new interface_macp("xp", "Scan Xiaomi", 60, "20:47:da:20:b6:fb");
 	//xmrstak_main = new interface_xmrstak("main", "main", "10.0.0.40:16000");
-	maria = new interface_maria("maria", "Maria");
-	fijnstof = new interface_fijnstof("fijnstof", "Fijnstof", "10.0.0.139");
+	maria = new interface_maria("maria", "Maria", 10);
+	fijnstof = new interface_fijnstof("fijnstof", "Fijnstof", 11, "10.0.0.139");
 	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
 	lrain = new logic_rain("lrain", "LRain");
-	hs110_werkplaats = new interface_hs110("hs110_wp", "Werkplaats", "10.10.0.1");
-	hs110_koelkasten = new interface_hs110("hs110_fr", "Koelkasten", "10.10.0.2");
-	hs110_kamer = new interface_hs110("hs110_rm", "Kamer", "10.10.0.3");
+	//hs110_werkplaats = new interface_hs110("hs110_wp", "Werkplaats", 1, "10.10.0.1");
+	//hs110_koelkasten = new interface_hs110("hs110_fr", "Koelkasten", 1, "10.10.0.2");
+	//hs110_kamer = new interface_hs110("hs110_rm", "Kamer", 1, "10.10.0.3");
 	lpower = new logic_power("lpower", "LPower");
 	pwrsum = new in("pwrsum", "Power sum", "W", 3);
 	kWhsum = new in("kwhsum", "kWh sum", "kWh", 3);
@@ -315,9 +314,6 @@ int main(){
 		webGuiStart();
 	
 	callFuncOnInterval(loop1s, 1);
-	callFuncOnInterval(loop_hs110_kamer, 1, "kamer");
-	callFuncOnInterval(loop_hs110_werkplaats, 1, "werkplaats");
-	callFuncOnInterval(loop_hs110_koelkasten, 1, "koelkaten");
 	callFuncOnInterval(loop10s, 10);
 	callFuncOnInterval(loop11s, 11);
 	callFuncOnInterval(loop15s, 15); // only this: keeps running
@@ -344,9 +340,9 @@ int main(){
 	delete kWhsum;
 	delete pwrsum;
 	delete lpower;
-	delete hs110_kamer;
-	delete hs110_koelkasten;
-	delete hs110_werkplaats;
+	//delete hs110_kamer;
+	//delete hs110_koelkasten;
+	//delete hs110_werkplaats;
 	delete lrain;
 	delete lfijnstof;
 	delete fijnstof;

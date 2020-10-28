@@ -30,7 +30,7 @@ double now(); // returns the current timestamp, with us resolution as a double.
 
 class interface: public outhost{
 	public:
-		interface(const std::string, const std::string name = ""); // descr, units, name
+		interface(const std::string, const std::string, float interval); // descr, units, name
 		virtual ~interface();
 		virtual void getIns();
 		virtual void setOuts();
@@ -38,9 +38,17 @@ class interface: public outhost{
 		const std::string getDescriptor();
 		const std::string getName();		// JCE, 20-6-13
 		const std::string getNote();		// JCE, 20-6-13
+		void stop();	// Signals the thread(s) to stop. JCE, 28-10-2020
+		void join();	// Joins the thread (waits untill it is really stopped). JCE, 28-10-2020
+		void run();		// Override in derived class.
+	protected:
+		void start();	// Start the thread.  JCE, 28-10-2020
 	private:
 		const std::string _descr;
 		stringStore *_name, *_note; // JCE, 20-6-13
+		pthread_t thread;
+		float interval; // [s] time between getIns calls.
+		bool run_flg;
 	};
 
 extern std::map<std::string, interface*> interfaces;

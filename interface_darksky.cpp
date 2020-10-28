@@ -54,7 +54,7 @@ string get_https_page(const string& url, long timeout) // Make sure https is in 
 	return s;
 }
 
-interface_darksky::interface_darksky(const string d, const string n, const string key, const float latitude, const float longitude):interface(d, n), _key(key), _lat(latitude), _lon(longitude){
+interface_darksky::interface_darksky(const string d, const string n, float i, const string key, const float latitude, const float longitude):interface(d, n, i), _key(key), _lat(latitude), _lon(longitude){
 	
 	responseTime = new in(getDescriptor() + "_rt", getName() + " response time", "ms", 3);
 	
@@ -72,6 +72,7 @@ interface_darksky::interface_darksky(const string d, const string n, const strin
 	uvIndex = new in(getDescriptor() + "_uv", getName() + " uv index", "", 0);
 	visibility = new in(getDescriptor() + "_v", getName() + " visibility", "km", 2);
 	ozone = new in(getDescriptor() + "_oz", getName() + " ozone", "DU", 2);
+	start();
 	}
 
 interface_darksky::~interface_darksky(){

@@ -13,7 +13,7 @@ using namespace std;
 
 class interface_fridge : public interface{
 	public:
-		interface_fridge(const string, const string, const string); // descr, name, ip-as-string
+		interface_fridge(const string, const string, float, const string); // descr, name, ip-as-string
 		~interface_fridge();
 		void getIns();
 		in *requests, *resets, *scanrate, *uptime, *latency;

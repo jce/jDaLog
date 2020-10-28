@@ -13,7 +13,7 @@ using namespace std;
 
 class interface_solarlog : public interface{
 	public:
-		interface_solarlog(const string, const string, const string); // descr, name, ip-as-string
+		interface_solarlog(const string, const string, float, const string); // descr, name, ip-as-string
 		~interface_solarlog();
 		void getIns();
 		void makeModbusContext();

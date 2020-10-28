@@ -15,7 +15,7 @@
 
 using namespace std;
 
-interface_fridge::interface_fridge(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr){
+interface_fridge::interface_fridge(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr){
 	//in *requests, *resets, *scanrate, *uptime, *latency;
 	requests = new in(getDescriptor() + "_rq", getName() + " request counter", "");
 	resets = new in(getDescriptor() + "_rs", getName() + " reset counter", "");

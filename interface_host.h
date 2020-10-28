@@ -11,7 +11,7 @@ using namespace std;
 
 class interface_host : public interface{
 	public:
-		interface_host(const string, const string); // descr, name, ip-as-string
+		interface_host(const string, const string, float); // descr, name, ip-as-string
 		~interface_host();
 		void getIns();
 		in *diskfree, *diskused, *diskusedp;

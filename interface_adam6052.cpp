@@ -16,7 +16,7 @@
 
 using namespace std;
 
-interface_adam6052::interface_adam6052(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr), _ctx(NULL), _lastValidDateTime(0){
+interface_adam6052::interface_adam6052(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr), _ctx(NULL), _lastValidDateTime(0){
 	latency = new in(getDescriptor() + "_lat", getName() + " latency", "ms", 3);
 	char name[100], descr[100];
 	for (uint16_t i = 0; i<8; i++){

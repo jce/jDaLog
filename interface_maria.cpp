@@ -14,7 +14,7 @@
 
 using namespace std;
 
-interface_maria::interface_maria(const string d, const string n):interface(d, n)
+interface_maria::interface_maria(const string d, const string n, float i):interface(d, n, i)
 {
 	responseTime = new in(getDescriptor() + "_rt", getName() + " response time", "ms", 3);
 	//mysql_library_init(0, NULL, NULL); Done only once in main.cpp. JCE, 18-10-2020

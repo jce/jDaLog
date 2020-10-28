@@ -25,7 +25,7 @@
 
 using namespace std;
 
-interface_host::interface_host(const string d, const string n):interface(d, n), _prevT(0){
+interface_host::interface_host(const string d, const string n, float i):interface(d, n, i), _prevT(0){
 	diskfree    = new in("host_disk_free", "Host disk free", "byte");
 	diskused   = new in("host_disk_used", "Host disk used", "byte");
 	diskusedp  = new in("host_disk_usedp", "Host disk used p", "%", 7);

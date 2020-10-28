@@ -12,7 +12,7 @@ using namespace std;
 
 class interface_rwl : public interface{
 	public:
-		interface_rwl(const string, const string, const string); // descr, name, ip-as-string
+		interface_rwl(const string, const string, float, const string); // descr, name, ip-as-string
 		~interface_rwl();
 		void getIns();
 		in *adcreadout, *waterlevel, *watervolume, *requestcounter, *resetcounter, *scanrate, *uptime, *latency;

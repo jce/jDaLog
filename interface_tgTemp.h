@@ -12,7 +12,7 @@ using namespace std;
 
 class interface_tgTemp : public interface{
 	public:
-		interface_tgTemp(const string, const string, const string); // descr, name, ip-as-string
+		interface_tgTemp(const string, const string, float, const string); // descr, name, ip-as-string
 		~interface_tgTemp();
 		void getIns();
 		in *temp, *rh, *dewp, *SOt, *SOrh, *requests, *resets, *scanrate, *uptime, *latency;

@@ -15,7 +15,7 @@
 
 using namespace std;
 
-interface_ping::interface_ping(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr){
+interface_ping::interface_ping(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr){
 	//in *requests, *resets, *scanrate, *uptime, *latency;
 	latency = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 	}

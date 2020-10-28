@@ -12,7 +12,7 @@ using namespace std;
 
 class interface_xmrstak : public interface{
 	public:
-		interface_xmrstak(const string, const string, const string); // descr, name, ip-as-string
+		interface_xmrstak(const string, const string, float, const string); // descr, name, ip-as-string
 		~interface_xmrstak();
 		void getIns();
 		in *hashrate, *runtime, *powerUsed, *latency;

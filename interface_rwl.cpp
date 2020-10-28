@@ -12,7 +12,7 @@
 using namespace std;
 
 
-interface_rwl::interface_rwl(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr){
+interface_rwl::interface_rwl(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr){
 	waterlevel = new in(getDescriptor() + "_wl", getName() + " water level", "m", 3);
 	watervolume = new in(getDescriptor() + "_wv", getName() + " water volume", "m3", 3);
 	requestcounter = new in(getDescriptor() + "_rq", getName() + " request counter", "");

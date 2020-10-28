@@ -13,7 +13,7 @@ using namespace std;
 
 class interface_darksky : public interface{
 	public:
-		interface_darksky(const string, const string, const string, const float, const float); // descr, name, key, latitude, longitude
+		interface_darksky(const string, const string, float, const string, const float, const float); // descr, name, key, latitude, longitude
 		~interface_darksky();
 		void getIns();
 		in *responseTime;

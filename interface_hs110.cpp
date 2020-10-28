@@ -21,7 +21,7 @@
 
 using namespace std;
 
-interface_hs110::interface_hs110(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr)
+interface_hs110::interface_hs110(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr)
 {
 	voltage = new in(getDescriptor() + "_u", getName() + " voltage", "V", 3);
 	current = new in(getDescriptor() + "_i", getName() + " current", "A", 3);
@@ -38,6 +38,7 @@ interface_hs110::interface_hs110(const string d, const string n, const string ip
 	sa.sin_family = AF_INET;
 	sa.sin_addr.s_addr = inet_addr(_ipstr.c_str());
 	sa.sin_port = htons(9999);
+	start();
 }
 
 interface_hs110::~interface_hs110()

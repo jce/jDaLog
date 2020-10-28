@@ -13,7 +13,7 @@ using namespace std;
 
 class interface_hs110 : public interface{
 	public:
-		interface_hs110(const string, const string, const string); // descr, name, ip-as-string
+		interface_hs110(const string, const string, float, const string); // descr, name, ip-as-string
 		~interface_hs110();
 		void getIns();
 		in *voltage, *current, *power, *total_kwh, *err_code, *latency, *va, *pf;

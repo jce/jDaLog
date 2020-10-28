@@ -12,7 +12,7 @@
 
 class interface_maria : public interface{
 	public:
-		interface_maria(const std::string, const std::string); // descr, name
+		interface_maria(const std::string, const std::string, float); // descr, name
 		~interface_maria();
 		void getIns();
 		in *responseTime;

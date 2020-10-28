@@ -13,7 +13,7 @@ using namespace std;
 
 class interface_adam6052 : public interface{
 	public:
-		interface_adam6052(const string, const string, const string); // descr, name, ip-as-string
+		interface_adam6052(const string, const string, float, const string); // descr, name, ip-as-string
 		~interface_adam6052();
 		void getIns();
 		void makeModbusContext();

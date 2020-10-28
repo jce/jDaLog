@@ -19,7 +19,7 @@
 
 using namespace std;
 
-interface_S1200::interface_S1200(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr){
+interface_S1200::interface_S1200(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr){
 	latency = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 	//S1200 = new TS7Client();
 	//Cli_Create();

@@ -10,7 +10,7 @@
 class interface_fijnstof : public interface
 {
 	public:
-		interface_fijnstof(const std::string, const std::string, const std::string); // descr, name, ip-as-string
+		interface_fijnstof(const std::string, const std::string, float interval, const std::string); // descr, name, ip-as-string
 		~interface_fijnstof();
 		void getIns();
 		in *pm2, *pm10, *temp, *rh, *pressure, *wifi_str, *wifi_qua, *samples, *time_sending, *fw_ver, *errors, *latency;

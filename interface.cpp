@@ -4,9 +4,13 @@
 #include "floatLog.h"
 #include "interface.h"
 #include "main.h"
+#include "math.h"	// fmod(a, b)
+#include "mytime.h"	// now()
+#include "unistd.h" // usleep
 #include "sys/stat.h" // mkdir
 #include "sys/time.h" // gettimeofday(()
 #include "mytime.h"	// now() jeu
+#include "pthread.h"
 #include "stringStore.h"
 #include "out.h"
 
@@ -104,7 +108,7 @@ int findIntAfter(string str, const char* cue, int& i){
 
 map<string, interface*> interfaces;
 
-interface::interface(const string d, const string n) : _descr(d) {
+interface::interface(const string d, const string n, float _interval) : _descr(d), interval(_interval) {
 	string path = tcDataDir;	
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
 	path += "/interface/";
@@ -153,3 +157,57 @@ const string interface::getName(){
 
 const string interface::getNote(){
 	return _note->getString();}
+
+// Thread per interface
+static void* interface_run_cc(void*);
+void interface::start()
+{
+	run_flg = true;
+	pthread_create(&thread, NULL, &interface_run_cc, (void*) this);
+	char name[16];
+	strncpy(name, _descr.c_str(), 15);
+	name[15] = 0;
+	pthread_setname_np(thread, name);
+}
+
+void interface::stop()
+{
+	run_flg = false;
+}
+
+void interface::join()
+{
+	stop();
+	pthread_join(thread, NULL);
+}
+
+static void* interface_run_cc(void* p)
+{
+	interface *i = (interface*) p;
+	i->run();
+	return p;
+}
+
+void interface::run()
+{
+	float ttni = 0;
+	while(run_flg)
+	{	
+		if (ttni <= 1)
+		{
+			getIns();
+			ttni = 1000000.0 * (interval - fmod(now(), interval));
+		}
+		else if (ttni > 100000 )
+		{
+			ttni -= 100000;
+			usleep(100000);
+		}
+		else
+		{
+			usleep(ttni);
+			ttni = 0;
+		}
+	}
+}
+

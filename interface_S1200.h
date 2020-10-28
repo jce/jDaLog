@@ -18,7 +18,7 @@
 
 class interface_S1200 : public interface{
 	public:
-		interface_S1200(const std::string, const std::string, const std::string); // descr, name, ip-as-string
+		interface_S1200(const std::string, const std::string, float, const std::string); // descr, name, ip-as-string
 		~interface_S1200();
 		void getIns();
 		in *latency;

@@ -15,7 +15,7 @@
 
 using namespace std;
 
-interface_fijnstof::interface_fijnstof(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr){
+interface_fijnstof::interface_fijnstof(const string d, const string n, float interval, const string ipstr):interface(d, n, interval), _ipstr(ipstr){
 	//in *requests, *resets, *scanrate, *uptime, *latency;
 	pm2 = new in(getDescriptor() + "_pm2.5", getName() + " pm2.5", "ug/m3", 1);
 	pm10 = new in(getDescriptor() + "_pm10", getName() + " pm10", "ug/m3", 1);

@@ -34,7 +34,7 @@ string exec(const char* cmd)
     return result;
 }
 
-interface_macp::interface_macp(const string d, const string n, const string macstr):interface(d, n), _macstr(macstr){
+interface_macp::interface_macp(const string d, const string n, float i, const string macstr):interface(d, n, i), _macstr(macstr){
 
 	searchtime = new in(getDescriptor() + "_st", getName() + " searchtime", "s", 3);
 	mac_present = new in(getDescriptor() + "_mp", getName() + " mac present", "", 0);

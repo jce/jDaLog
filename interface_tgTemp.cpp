@@ -12,7 +12,7 @@
 
 using namespace std;
 
-interface_tgTemp::interface_tgTemp(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr){
+interface_tgTemp::interface_tgTemp(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr){
 		//in *remp, *rh, *dewp, *SOt, *SOrh, *requests, *resets, *scanrate, *uptime, *latency;
 	temp = new in(getDescriptor() + "_temp", getName() + " temperature", "degC", 3);
 	rh = new in(getDescriptor() + "_rh", getName() + " humidity", "% RH", 2);

@@ -28,6 +28,27 @@
 			"key":"1bb2281b8e17ee1e94051a13d9edbe5b",
 			"lon":53.40416,
 			"lat":5.37819
+		},
+		{
+			"type":"hs110",
+			"id":"hs110_wp",
+			"name":"Werkplaats",
+			"scan":1.0,
+			"address":"10.10.0.1"
+		},
+		{
+			"type":"hs110",
+			"id":"hs110_fr",
+			"name":"Koelkasten",
+			"scan":1.0,
+			"address":"10.10.0.2"
+		},
+		{
+			"type":"hs110",
+			"id":"hs110_rm",
+			"name":"Kamer",
+			"scan":1.0,
+			"address":"10.10.0.3"
 		}
 	],
 	"in":

@@ -15,7 +15,7 @@
 
 using namespace std;
 
-interface_solarlog::interface_solarlog(const string d, const string n, const string ipstr):interface(d, n), _ipstr(ipstr), _ctx(NULL), _lastValidDateTime(0){
+interface_solarlog::interface_solarlog(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr), _ctx(NULL), _lastValidDateTime(0){
 
 	//in *lastUpdateTime, *Pac, *Pdc, *Uac, *Udcavg, *efficiency, *totalKwhProduced, *latency;
 	//lastUpdateTime = new in(getDescriptor() + "_lut", getName() + " last update time", "s"); // dat kan niet in een float, helaas. Dat moet in een double!!! en wat is het eingelijk. JCE< 27-6-13

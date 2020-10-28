@@ -12,7 +12,7 @@
 
 class interface_macp : public interface{
 	public:
-		interface_macp(const std::string, const std::string, const std::string); // descr, name, url
+		interface_macp(const std::string, const std::string, float, const std::string); // descr, name, url
 		void look_for_mac(const string&);
 		void track_all_macs();
 		~interface_macp();

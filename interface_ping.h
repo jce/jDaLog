@@ -11,7 +11,7 @@ using namespace std;
 
 class interface_ping : public interface{
 	public:
-		interface_ping(const string, const string, const string); // descr, name, url
+		interface_ping(const string, const string, float, const string); // descr, name, url
 		~interface_ping();
 		void getIns();
 		in *latency;
