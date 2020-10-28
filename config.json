@@ -65,6 +65,27 @@
 			"address":"10.10.0.3"
 		},
 		{
+			"type":"rwl",
+			"id":"rwl",
+			"name":"Regen waterlevel interface",
+			"scan":10,
+			"address":"10.0.0.23"
+		},
+		{
+			"type":"fijnstof",
+			"id":"fijnstof",
+			"name":"Fijnstof",
+			"scan":10,
+			"address":"10.0.0.139"
+		},
+		{
+			"type":"macp",
+			"id":"xp",
+			"name":"Scan Xiaomi",
+			"scan":60,
+			"address":"20:47:da:20:b6:fb"
+		},
+		{
 			"type":"host",
 			"id":"host",
 			"name":"Host",
