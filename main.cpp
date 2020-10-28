@@ -35,6 +35,7 @@
 #include "logic_rain.h"
 #include "interface_hs110.h"
 #include "logic_power.h"
+#include "jansson.h"
 
 using namespace std;
 //#define debug
@@ -232,11 +233,29 @@ int main(){
 	// https://curl.haxx.se/libcurl/c/curl_global_init.html
 	// JCE, 25-9-2018
 	curl_global_init(CURL_GLOBAL_ALL);
+	mysql_library_init(0, NULL, NULL);
 
 	// Startup
 	printf("welkom bij %s V %.3f build %i\n", tcProgramName, tcProgramVersion, (int)tcBuildNr);
 
-	mysql_library_init(0, NULL, NULL);
+	// Read configuration
+    json_t *json;
+    json_error_t error;
+    FILE *fp = NULL;
+    fp = fopen("config.json", "r");
+    if (!fp)
+    {
+        printf("config.json missing.\n");
+        exit(0);
+    }
+    json = json_loadf(fp, 0, &error);
+    fclose(fp);
+    if (not json)
+    {
+        printf("interpreting config.json failed: %s at position %i (line %i, column %i)\n", error.text, error.position, error.line, error.column);
+        return(0);
+    }
+
 
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);
@@ -277,7 +296,7 @@ int main(){
 	callFuncOnInterval(loop60s, 60); // only this: keeps running	
 	callFuncOnInterval(loopstoreio, 1*3600); // only this: keeps running
 	callFuncOnInterval(loopDarksky, (24.0*3600.0)/1000.0); // 1000 calls per day
-	callFuncOnInterval(loop_in_to_maria, 3600);
+	//callFuncOnInterval(loop_in_to_maria, 3600);
 
 	usleep(100000);
 	printf("running... (press control+C to stop)\n");

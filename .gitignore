@@ -13,6 +13,10 @@ mongoose/
 old/
 snap7*
 
+#JCE, 23-10-2020
+loader
+loader_src
+
 # Created by https://www.gitignore.io/api/c,c++,linux
 
 ### C ###
