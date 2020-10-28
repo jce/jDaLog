@@ -46,7 +46,7 @@ bool run(true);
 bool globalControl(true);	// The inverse of isDevelopmentVersion heh. JCE, 25-9-13
 
 interface *rwl;
-interface *host, *solarlog, *S1200, *darksky, *dsAalsmeer, *dsOosterend;
+interface *host, *solarlog, *S1200;//, *darksky, *dsAalsmeer, *dsOosterend;
 in *buildNr, *version, *haveControl;
 interface *scan_xiaomi;
 interface *xmrstak_main;
@@ -75,6 +75,39 @@ struct myThread{
 	};
 
 list<myThread*> myThreadList;
+
+void build_interfaces(json_t *arr)
+{
+	if (! json_is_array(arr))
+		return;
+	size_t index;
+	json_t *json, *jscan, *jlon, *jlat;
+	const char *type, *id, *name, *key;
+	float scan, lon, lat;
+	json_array_foreach(arr, index, json)
+	{
+		if (json_is_object(json))
+		{
+			// Get as many features as possible.
+			type = 	json_string_value(json_object_get(json, "type"));
+			id = 	json_string_value(json_object_get(json, "id"));
+			name = 	json_string_value(json_object_get(json, "name"));
+			key = 	json_string_value(json_object_get(json, "key"));
+			jlon =  json_object_get(json, "lon");
+			lon = json_integer_value(jlon);
+			jlat =  json_object_get(json, "lat");
+			lat = json_integer_value(jlat);
+			jscan =  json_object_get(json, "scan");
+			scan = json_integer_value(jscan);
+
+			// 
+			if (strcmp(type, "darksky") == 0)
+				if (id and name and key and json_is_integer(jlon) and json_is_integer(jlat) and json_is_integer(jscan))
+					new interface_darksky(id, name, scan, key, lon, lat);
+		}
+
+	}	
+}
 
 void* myThreadFunc(void* blah){
 	struct myThread* data = (myThread*) blah;
@@ -184,12 +217,6 @@ void loop11s()
 	fijnstof->getIns();
 }
 
-void loopDarksky(){
-	darksky->getIns();
-	dsAalsmeer->getIns();
-	dsOosterend->getIns();
-	}
-
 void loop15s(){
 	solarlog->getIns();}
 
@@ -256,6 +283,7 @@ int main(){
         return(0);
     }
 
+	build_interfaces(json);
 
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);
@@ -264,9 +292,9 @@ int main(){
 	solarlog = new interface_solarlog("solarlog", "Solarlog", "10.0.0.4");
 	haveControl = new in("prog_ctrl", "Program has control", "");
 	S1200 = new interface_S1200("S1200", "S1200", "10.0.1.10");
-	darksky = new interface_darksky("darksky", "Darksky", "a429dc31f36cda5cf90d27b562cb2325", 52.00788, 4.57637);
-	dsAalsmeer = new interface_darksky("dsaalsmeer", "DS Aalsmeer", "e9f1b5d9e3a499a00b7c2d85b62ca01f", 52.27589, 4.77275);
-	dsOosterend = new interface_darksky("dsoosterend", "DS Oosterend", "1bb2281b8e17ee1e94051a13d9edbe5b", 53.40416, 5.37819);
+	//darksky = new interface_darksky("darksky", "Darksky", "a429dc31f36cda5cf90d27b562cb2325", 52.00788, 4.57637);
+	//dsAalsmeer = new interface_darksky("dsaalsmeer", "DS Aalsmeer", "e9f1b5d9e3a499a00b7c2d85b62ca01f", 52.27589, 4.77275);
+	//dsOosterend = new interface_darksky("dsoosterend", "DS Oosterend", "1bb2281b8e17ee1e94051a13d9edbe5b", 53.40416, 5.37819);
 	//scan_xiaomi = new interface_macp("xp", "Scan Xiaomi", "64:09:80:c7:3f:4e");
 	scan_xiaomi = new interface_macp("xp", "Scan Xiaomi", "20:47:da:20:b6:fb");
 	//xmrstak_main = new interface_xmrstak("main", "main", "10.0.0.40:16000");
@@ -295,7 +323,7 @@ int main(){
 	callFuncOnInterval(loop15s, 15); // only this: keeps running
 	callFuncOnInterval(loop60s, 60); // only this: keeps running	
 	callFuncOnInterval(loopstoreio, 1*3600); // only this: keeps running
-	callFuncOnInterval(loopDarksky, (24.0*3600.0)/1000.0); // 1000 calls per day
+	//callFuncOnInterval(loopDarksky, (24.0*3600.0)/1000.0); // 1000 calls per day
 	//callFuncOnInterval(loop_in_to_maria, 3600);
 
 	usleep(100000);
@@ -326,9 +354,9 @@ int main(){
 
 	//delete xmrstak_main;
 	delete scan_xiaomi;
-	delete darksky;
-	delete dsAalsmeer;
-	delete dsOosterend;
+	//delete darksky;
+	//delete dsAalsmeer;
+	//delete dsOosterend;
 	delete S1200;
 	delete rwl;
 	delete host;

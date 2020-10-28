@@ -1,5 +1,35 @@
 {
 	"control":true,
+	"interface":
+	[
+		{
+			"type":"darksky",
+			"id":"darksky",
+			"name":"Darksky",
+			"scan":86.4,
+			"key":"a429dc31f36cda5cf90d27b562cb2325",
+			"lon":52.00788,
+			"lat":4.57637
+		},
+		{
+			"type":"darksky",
+			"id":"dsaalsmeer",
+			"name":"DS Aalsmeer",
+			"scan":86.4,
+			"key":"e9f1b5d9e3a499a00b7c2d85b62ca01f",
+			"lon":52.27589,
+			"lat":4.77257
+		},
+		{
+			"type":"darksky",
+			"id":"dsoosterend",
+			"name":"DS Oosterend",
+			"scan":86.4,
+			"key":"1bb2281b8e17ee1e94051a13d9edbe5b",
+			"lon":53.40416,
+			"lat":5.37819
+		}
+	],
 	"in":
 	{
 
