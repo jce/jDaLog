@@ -19,7 +19,8 @@
 
 using namespace std;
 
-interface_S1200::interface_S1200(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr){
+interface_S1200::interface_S1200(const string d, const string n, float i, const string ipstr):interface(d, n, i), _ipstr(ipstr)
+{
 	latency = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 	//S1200 = new TS7Client();
 	//Cli_Create();
@@ -77,7 +78,8 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 //	Q0_0 = new out(getDescriptor() + "_Q0_0", getName() + " Q0.0", "", 0, (void*)this);
 
 	writecounter = 0;
-	}
+	start();
+}
 
 interface_S1200::~interface_S1200(){
 	Cli_Disconnect(PLC);
@@ -364,7 +366,6 @@ void interface_S1200::getIns(){
 //	hyfstarts->setValue(be16toh( &((uint16_t*) data + 12)) );
 	fishTankPump->setValid(b_PLCOnline);	
 	
-
 	//uint16_t header_scancounter = be16toh(&((uint16_t*)ptr));
 	//uint16_t header_scancounter = be16toh(&((uint16_t*)ptr));
 	//
@@ -382,18 +383,23 @@ void interface_S1200::getIns(){
 	version = htobe16(VERSION_WRITE);
 	memcpy(data+4, &version, 2);
 	// Fill in the data to transfer
-	
-	f = inmap["rwl_wv"]->getValue();
-	f = htobef(f);
-	memcpy(data+10, &f, 4);
-	f = inmap["xp_mp"]->getValue();
-	if (f>0.5) data[14] |= (1 << 0);
-	if (inmap["rwl_wv"]->isValid()) data[14] |= (1 << 1);	
- 	if (inmap["xp_mp"]->isValid()) data[14] |= (1 << 2);	
-	//if (Q0_0->getValue()) data[14] |= (1 << 3);
 
-	// Write to PLC
-	rv = Cli_DBWrite(PLC, 86, 0, 114, &data);
+	in *rwl_wv = get_in("rwl_wv");
+	in *xp_mp = get_in("xp_mp");
+	if (rwl_wv && xp_mp)
+	{
+		f = rwl_wv->getValue();
+		f = htobef(f);
+		memcpy(data+10, &f, 4);
+		f = xp_mp->getValue();
+		if (f>0.5) data[14] |= (1 << 0);
+		if (rwl_wv->isValid()) data[14] |= (1 << 1);	
+ 		if (xp_mp->isValid()) data[14] |= (1 << 2);	
+		//if (Q0_0->getValue()) data[14] |= (1 << 3);
+
+		// Write to PLC
+		rv = Cli_DBWrite(PLC, 86, 0, 114, &data);
+	}
 
 	// Close the connection to the PLC. JCE, 15-10-2016
 	//Cli_Disconnect(PLC);

@@ -46,7 +46,6 @@ bool run(true);
 bool globalControl(true);	// The inverse of isDevelopmentVersion heh. JCE, 25-9-13
 
 interface *rwl;
-interface *host, *solarlog, *S1200;//, *darksky, *dsAalsmeer, *dsOosterend;
 in *buildNr, *version, *haveControl;
 interface *scan_xiaomi;
 interface *xmrstak_main;
@@ -90,34 +89,57 @@ void build_interfaces(json_t *arr)
 		{
 			// Get as many features as possible.
 			type = 	json_string_value(json_object_get(json, "type"));
-			id = 	json_string_value(json_object_get(json, "id"));
-			name = 	json_string_value(json_object_get(json, "name"));
-			key = 	json_string_value(json_object_get(json, "key"));
-			address = json_string_value(json_object_get(json, "address"));
-			jlon =  json_object_get(json, "lon");
-			lon = json_number_value(jlon);
-			jlat =  json_object_get(json, "lat");
-			lat = json_number_value(jlat);
-			jscan =  json_object_get(json, "scan");
-			scan = json_number_value(jscan);
-
-			// 
-			if (strcmp(type, "darksky") == 0)
+			if (type)
 			{
-				if (id and name and key and json_is_number(jlon) and json_is_number(jlat) and json_is_number(jscan))
-					new interface_darksky(id, name, scan, key, lon, lat);
-				else
-					printf("could not build interface_darksky(%s, %s, %f, %s, %f, %f)\n", id, name, scan, key, lon, lat);
-			}
-			if (strcmp(type, "hs110") == 0)
-			{
-				if (id and name and json_is_number(jscan) and address)
-					new interface_hs110(id, name, scan, address);
-				else
-					printf("could not build interface_hs110(%s, %s, %f, %s)\n", id, name, scan, address);
-			}
-		}
+				id = 	json_string_value(json_object_get(json, "id"));
+				name = 	json_string_value(json_object_get(json, "name"));
+				key = 	json_string_value(json_object_get(json, "key"));
+				address = json_string_value(json_object_get(json, "address"));
+				jlon =  json_object_get(json, "lon");
+				lon = json_number_value(jlon);
+				jlat =  json_object_get(json, "lat");
+				lat = json_number_value(jlat);
+				jscan =  json_object_get(json, "scan");
+				scan = json_number_value(jscan);
 
+				// Build different types
+				if (strcmp(type, "darksky") == 0)
+				{
+					if (id and name and key and json_is_number(jlon) and json_is_number(jlat) and json_is_number(jscan))
+						new interface_darksky(id, name, scan, key, lon, lat);
+					else
+						printf("could not build interface_darksky(%s, %s, %f, %s, %f, %f)\n", id, name, scan, key, lon, lat);
+				}
+				if (strcmp(type, "solarlog") == 0)
+				{
+					if (id and name and json_is_number(jscan) and address)
+						new interface_solarlog(id, name, scan, address);
+					else
+						printf("could not build interface_solarlog(%s, %s, %f, %s)\n", id, name, scan, address);
+				}
+				if (strcmp(type, "S1200") == 0)
+				{
+					if (id and name and json_is_number(jscan) and address)
+						new interface_S1200(id, name, scan, address);
+					else
+						printf("could not build interface_S1200(%s, %s, %f, %s)\n", id, name, scan, address);
+				}
+				if (strcmp(type, "hs110") == 0)
+				{
+					if (id and name and json_is_number(jscan) and address)
+						new interface_hs110(id, name, scan, address);
+					else
+						printf("could not build interface_hs110(%s, %s, %f, %s)\n", id, name, scan, address);
+				}
+				if (strcmp(type, "host") == 0)
+				{
+					if (id and name and json_is_number(jscan))
+						new interface_host(id, name, scan);
+					else
+						printf("could not build interface_host(%s, %s, %f)\n", id, name, scan);
+				}
+			}
+		}	
 	}	
 }
 
@@ -184,7 +206,6 @@ void callFuncOnInterval(void(*func)(), float interval, string name = ""){
 	}
 
 void loop1s(){
-	S1200->getIns();
 
 	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
 	in *hs110_rm_p = get_in("hs110_rm_p");
@@ -207,7 +228,7 @@ void loop1s(){
 
 void loop10s(){
 	rwl->getIns();
-	host->getIns();
+	//host->getIns();
 	//hs110_werkplaats->getIns();
 	}
 
@@ -215,9 +236,6 @@ void loop11s()
 {
 	fijnstof->getIns();
 }
-
-void loop15s(){
-	solarlog->getIns();}
 
 void loop60s(){
 	buildNr->setValue(tcBuildNr);
@@ -287,10 +305,10 @@ int main(){
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);
 	rwl = new interface_rwl("rwl", "Regen waterlevel interface", 10, "10.0.0.23");
-	host = new interface_host("host", "Host", 10);
-	solarlog = new interface_solarlog("solarlog", "Solarlog", 15, "10.0.0.4");
+	//host = new interface_host("host", "Host", 10);
+	//solarlog = new interface_solarlog("solarlog", "Solarlog", 15, "10.0.0.4");
 	haveControl = new in("prog_ctrl", "Program has control", "");
-	S1200 = new interface_S1200("S1200", "S1200", 1, "10.0.1.10");
+	//S1200 = new interface_S1200("S1200", "S1200", 1, "10.0.1.10");
 	//darksky = new interface_darksky("darksky", "Darksky", "a429dc31f36cda5cf90d27b562cb2325", 52.00788, 4.57637);
 	//dsAalsmeer = new interface_darksky("dsaalsmeer", "DS Aalsmeer", "e9f1b5d9e3a499a00b7c2d85b62ca01f", 52.27589, 4.77275);
 	//dsOosterend = new interface_darksky("dsoosterend", "DS Oosterend", "1bb2281b8e17ee1e94051a13d9edbe5b", 53.40416, 5.37819);
@@ -316,7 +334,6 @@ int main(){
 	callFuncOnInterval(loop1s, 1);
 	callFuncOnInterval(loop10s, 10);
 	callFuncOnInterval(loop11s, 11);
-	callFuncOnInterval(loop15s, 15); // only this: keeps running
 	callFuncOnInterval(loop60s, 60); // only this: keeps running	
 	callFuncOnInterval(loopstoreio, 1*3600); // only this: keeps running
 	//callFuncOnInterval(loopDarksky, (24.0*3600.0)/1000.0); // 1000 calls per day
@@ -330,12 +347,21 @@ int main(){
 	printf("shuttind down...\n");
 	run = false;
 	//webGuiStop();
+
+	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
+		i->second->stop();
 	
 	// for all threads, join
 	list<myThread*>::iterator i;
 	if (myThreadList.size())
 		for (i = myThreadList.begin(); i != myThreadList.end(); i++)
 			pthread_join((*i)->thread, NULL);
+
+	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
+		i->second->join();
+
+	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
+		delete i->second;
 
 	delete kWhsum;
 	delete pwrsum;
@@ -345,18 +371,18 @@ int main(){
 	//delete hs110_werkplaats;
 	delete lrain;
 	delete lfijnstof;
-	delete fijnstof;
-	delete maria;
+	//delete fijnstof;
+	//delete maria;
 
 	//delete xmrstak_main;
-	delete scan_xiaomi;
+	//delete scan_xiaomi;
 	//delete darksky;
 	//delete dsAalsmeer;
 	//delete dsOosterend;
-	delete S1200;
-	delete rwl;
-	delete host;
-	delete solarlog;
+	//delete S1200;
+	//delete rwl;
+	//delete host;
+	//delete solarlog;
 	delete buildNr;
 	delete version;
 	delete haveControl;

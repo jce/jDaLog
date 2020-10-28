@@ -46,7 +46,7 @@ class interface: public outhost{
 	private:
 		const std::string _descr;
 		stringStore *_name, *_note; // JCE, 20-6-13
-		pthread_t thread;
+		pthread_t thread = 0;
 		float interval; // [s] time between getIns calls.
 		bool run_flg;
 	};
