@@ -232,22 +232,25 @@ void floatLog::writeToFile() {
 	pthread_mutex_lock(&_memMutex);
 		fp = fopen(_pathAndName.c_str(), "a");
 
-		// Align to a multiple of records. Opened for appending always writes at the back so no seeking back.
-		// JCE, 29-8-2019
-		long int pos = ftell(fp);
-		unsigned int rlen = sizeof(record);
-		unsigned int overshoot_on_multiple_of_records = pos % rlen;
-		if (overshoot_on_multiple_of_records)
+		if(fp)
 		{
-			int padding_required = rlen - overshoot_on_multiple_of_records;
-			printf("%s is not record aligned, adding %i bytes.\n", _pathAndName.c_str(), padding_required);
-			for (int i = 0; i < padding_required; i++)
-				fputc('\0' , fp);
+			// Align to a multiple of records. Opened for appending always writes at the back so no seeking back.
+			// JCE, 29-8-2019
+			long int pos = ftell(fp);
+			unsigned int rlen = sizeof(record);
+			unsigned int overshoot_on_multiple_of_records = pos % rlen;
+			if (overshoot_on_multiple_of_records)
+			{
+				int padding_required = rlen - overshoot_on_multiple_of_records;
+				printf("%s is not record aligned, adding %i bytes.\n", _pathAndName.c_str(), padding_required);
+				for (int i = 0; i < padding_required; i++)
+					fputc('\0' , fp);
+			}
+			for (i = _recordsToFile.begin(); i != _recordsToFile.end(); i++){
+				r = *i;
+				fwrite(&r, sizeof(record), 1, fp);}
+			fclose(fp);
 		}
-		for (i = _recordsToFile.begin(); i != _recordsToFile.end(); i++){
-			r = *i;
-			fwrite(&r, sizeof(record), 1, fp);}
-		fclose(fp);
 		_recordsToFile.clear();
 	pthread_mutex_unlock(&_fileMutex);
 	pthread_mutex_unlock(&_memMutex);}

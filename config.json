@@ -92,6 +92,13 @@
 			"scan":10
 		}
 	],
+	"dir_to_ins":
+	[
+		{
+			"dir":"/home/jeindhoven/tcFarmControl/data/aalsmeer",
+			"prefix":"z_"
+		}
+	],
 	"in":
 	{
 

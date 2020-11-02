@@ -39,7 +39,18 @@ in::in(const string d, const string n, const string u, const unsigned int de) : 
 	inmap[_descr] = this ;
 	inmap_mutex.unlock();}	
 
-	//printf("eind in initializer\n");}
+in::in(uint8_t, const char *dir, const string d, const string prefix): _decimals(6), _value(0), _time(0), _logger(NULL), _isValid(false),_isKnown(false), _descr(d), _name(NULL), _units(NULL), _note(NULL), name_prefix(prefix)
+{
+	_logger = new floatLog(string(dir) + "/floatLog.bin");
+	_units = new stringStore(string(dir) + "/units.txt");
+	_name = new stringStore(string(dir) + "/name.txt");
+	_note = new stringStore(string(dir) + "/note.txt");
+	
+	inmap_mutex.lock();	
+	if (inmap.find(_descr) != inmap.end()) printf("Double description used for ""in"" %s\n", _descr.c_str());
+	inmap[_descr] = this ;
+	inmap_mutex.unlock();
+}	
 
 in::~in(){
 	#ifdef debug
@@ -137,7 +148,7 @@ const string in::getUnits(){
 	return _units->getString();}
 
 const string in::getName(){
-	return _name->getString();}
+	return name_prefix + _name->getString();}
 
 const string in::getNote(){
 	return _note->getString();}

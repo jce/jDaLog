@@ -36,6 +36,7 @@
 #include "interface_hs110.h"
 #include "logic_power.h"
 #include "jansson.h"
+#include "in_from_dir.h"
 
 using namespace std;
 //#define debug
@@ -160,6 +161,24 @@ void build_interfaces(json_t *arr)
 	}	
 }
 
+void build_dir_to_ins(json_t *arr)
+{
+	if (! json_is_array(arr))
+		return;
+	size_t index;
+	json_t *json;
+	const char *dir, *prefix;
+	json_array_foreach(arr, index, json)
+	{
+		if (json_is_object(json))
+		{
+			dir = 	json_string_value(json_object_get(json, "dir"));
+			prefix =json_string_value(json_object_get(json, "prefix"));
+			read_ins_from_dir(dir, prefix);
+		}
+	}
+}
+
 void* myThreadFunc(void* blah){
 	struct myThread* data = (myThread*) blah;
 	printf("%f second loop has started\n", data->interval);
@@ -256,9 +275,11 @@ void loop60s(){
 void loopstoreio(){
 	// for all esnsors, call store to file
 	map<string, in*>::iterator i;
-	for (i = inmap.begin(); i!= inmap.end(); i++){
+	for (i = inmap.begin(); i!= inmap.end(); i++)
+	{
 		i->second->importData();
-		i->second->writeToFile();}
+		i->second->writeToFile();
+	}
 	// webgui.h / webgui.cp
 	deleteOldFiles(); // AKA segmentation fault... JCE, 5-7-13
 	}
@@ -307,6 +328,7 @@ int main(){
     }
 
 	build_interfaces(json_object_get(json, "interface"));
+	build_dir_to_ins(json_object_get(json, "dir_to_ins"));
 
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);

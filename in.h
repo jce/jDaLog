@@ -17,6 +17,7 @@ class in{
 	public:
 		//in(const string); // descr
 		in(const string, const string name = "", const string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
+		in(uint8_t, const char *dir, const string descr, const string prefix); // bogus item as hack, storage location, descr, prefix for name.
 		~in();
 		void setValue(float, double = 0);
 		void setVal(float, double = 0);
@@ -49,6 +50,7 @@ class in{
 		bool _isValid, _isKnown;	// isKnown will be set if _value is input or read from file. JCE, 25-6-13
 		const string _descr;
 		stringStore *_name, *_units, *_note; // JCE, 20-6-13
+		const string name_prefix = "";
 	};
 
 extern mutex inmap_mutex; // JCE, 9-10-2018
