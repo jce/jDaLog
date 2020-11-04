@@ -17,6 +17,7 @@
 #include "logic.h"
 #include <vector>
 #include "webin.h"
+#include "webgui_autograph.h"
 
 //#define debug
 //#define debug_mg
@@ -871,6 +872,9 @@ static int begin_request(struct mg_connection *conn) {
 
 	if (!strcmp(ri->uri, "/") or !strcmp(ri->uri, "/index.htm") or !strcmp(ri->uri, "/index.html")){
 		return make_root_page(conn);}
+
+	//return webgui_autograph(ri->uri);
+	return webgui_autograph(string(ri->uri)); 
 
 	#ifdef debug_mg
 		printf("Mongoose: finished request %s\n", ri->uri);
