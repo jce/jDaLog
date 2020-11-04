@@ -19,6 +19,7 @@ string plotLine(in*, unsigned long, unsigned long, unsigned int, unsigned int);
 // list<in*>, tmin, tmax, x-pixels, y-pixels, title
 string plotLines(list<in*>, unsigned long, unsigned long, unsigned int, unsigned int, string);
 // convenience functions, 2, 3 and 4 ins instead of list
+string plotLines(in*, unsigned long, unsigned long, unsigned int, unsigned int, string);
 string plotLines(in*, in*, unsigned long, unsigned long, unsigned int, unsigned int, string);
 string plotLines(in*, in*, in*, unsigned long, unsigned long, unsigned int, unsigned int, string);
 string plotLines(in*, in*, in*, in*, unsigned long, unsigned long, unsigned int, unsigned int, string);

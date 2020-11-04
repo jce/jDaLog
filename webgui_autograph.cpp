@@ -23,7 +23,7 @@
 
 using namespace std;
 
-int webgui_autograph(string url)
+int webgui_autograph(string /*url*/)
 {
 	return 0;
 }

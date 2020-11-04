@@ -67,7 +67,10 @@ struct y_ax{string units; list<inWithData> iwdl; double ymin; double yrange; dou
 
 
 // Per 30-12-13, modified this function to relay the summaries to the floatLog instance(s).
-string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title){
+string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title)
+{
+	//printf("plotlines( %d ins, %ld, %ld, %d, %d, %s)\n", ins.size(), tmin, tmax, x, y, title.c_str());
+
 	// Construct the image's filename, secondly get the units for x1 and x2, and number of plottable lines.
 	char imageName[1025], scriptName[1025], imageUrl[1025];
 	string names;
@@ -102,6 +105,7 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 		list<y_ax> y_axes;
 		list<y_ax>::iterator yi;
 		for(ini=ins.begin(); ini!=ins.end(); ini++){
+			printf("_h");
 			string units;
 			units = (*ini)->getUnits();
 			bool foundyax(false);
@@ -291,6 +295,12 @@ string plotLine(in* myIn, unsigned long tmin, unsigned long tmax, unsigned int x
 	list<in*> inList;
 	inList.push_back(myIn);
 	return plotLines(inList, tmin, tmax, x, y, myIn->getName());
+	}
+
+string plotLines(in* i1, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title){
+	list<in*> inList;
+	inList.push_back(i1);
+	return plotLines(inList, tmin, tmax, x, y, title);
 	}
 
 string plotLines(in* i1, in* i2, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title){

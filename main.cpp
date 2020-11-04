@@ -37,6 +37,7 @@
 #include "logic_power.h"
 #include "jansson.h"
 #include "in_from_dir.h"
+#include "logic_km.h"
 
 using namespace std;
 //#define debug
@@ -175,6 +176,39 @@ void build_dir_to_ins(json_t *arr)
 			dir = 	json_string_value(json_object_get(json, "dir"));
 			prefix =json_string_value(json_object_get(json, "prefix"));
 			read_ins_from_dir(dir, prefix);
+		}
+	}
+}
+
+void build_logics(json_t *arr)
+{
+	if (! json_is_array(arr))
+		return;
+	size_t index;
+	json_t *json;
+	in *inp;
+	const char *type, *indescr, *name, *id;
+	json_array_foreach(arr, index, json)
+	{
+		if (json_is_object(json))
+		{
+			type = 	json_string_value(json_object_get(json, "type"));
+			if (type)
+			{
+				id = 	json_string_value(json_object_get(json, "id"));
+				name = 	json_string_value(json_object_get(json, "name"));
+				indescr = json_string_value(json_object_get(json, "in"));
+
+				// Build different types
+				if (strcmp(type, "km") == 0)
+				{
+					inp = get_in(indescr);
+					if (id and name and inp)
+						new logic_km(id, name, inp);
+					else
+						printf("could not build logic_km(%s, %s, get_in(%s))\n", id, name, indescr);
+				}
+			}
 		}
 	}
 }
@@ -329,7 +363,7 @@ int main(){
 
 	build_interfaces(json_object_get(json, "interface"));
 	build_dir_to_ins(json_object_get(json, "dir_to_ins"));
-
+	build_logics(json_object_get(json, "logic"));
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);
 	haveControl = new in("prog_ctrl", "Program has control", "");

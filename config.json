@@ -99,9 +99,14 @@
 			"prefix":"z_"
 		}
 	],
-	"in":
-	{
-
-
-	}
+	"logic":
+	[
+		{
+			"type":"km",
+			"id":"kmj",
+			"name":"Kilometer vergoeding Jannes",
+			"in":"z_xp_mp"
+		}
+	]
+	
 }
