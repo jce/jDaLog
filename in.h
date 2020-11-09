@@ -8,6 +8,7 @@
 #include <map>
 //#include <vector>
 #include <mutex>
+#include "callback.h"
 
 using namespace std;
 
@@ -42,6 +43,13 @@ class in{
 		void getDataSummary(vector<flStat>&, unsigned, double, double); // JCE, 31-12-13
 		void importData();		// JCE, 18-7-13, JCE, should kick the floatLogger into importing data from some configured filenames.
 		void touch();			// JCE, 28-8-13, makes a new measurement point, equal to the previous value.
+
+		// Callbacks on specific events. JCE, 9-11-2020
+		void register_callback_on_update(void (*)(void*), void*);
+		void register_callback_on_change(void (*)(void*), void*);
+		void register_callback_on_turn_invalid(void (*)(void*), void*);
+		void register_callback_on_turn_valid(void (*)(void*), void*);
+		
 	private:
 		const unsigned int _decimals;
 		float _value;
@@ -51,6 +59,11 @@ class in{
 		const string _descr;
 		stringStore *_name, *_units, *_note; // JCE, 20-6-13
 		const string name_prefix = "";
+		callback_list *on_update = NULL;
+		callback_list *on_change = NULL;
+		callback_list *on_turn_invalid = NULL;
+		callback_list *on_turn_valid = NULL;
+
 	};
 
 extern mutex inmap_mutex; // JCE, 9-10-2018

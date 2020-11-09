@@ -52,7 +52,13 @@ in::in(uint8_t, const char *dir, const string d, const string prefix): _decimals
 	inmap_mutex.unlock();
 }	
 
-in::~in(){
+in::~in()
+{
+	cb_free(&on_update);
+	cb_free(&on_change);
+	cb_free(&on_turn_invalid);
+	cb_free(&on_turn_valid);
+
 	#ifdef debug
 		printf("Destroying %s ...remove self from inmap: %s\nInmap contains: ", _descr.c_str(), _descr.c_str());
 		fflush(stdout);
@@ -96,13 +102,25 @@ in::~in(){
 	#endif
 	}
 
-void in::setValue(float v, double t){
+void in::setValue(float v, double t)
+{
+	bool changed, tvalid;
+	changed = !(_value == v);
+	tvalid = ! _isValid;
+
 	_value = v;
 	_isValid = true;
 	_isKnown = true;
 	if (t == 0) t = now();		// fixed t!= 0 -> t==0. JCE, 4-7-13
 	_time = t;
-	_logger->append(t, v);}
+	_logger->append(t, v);
+
+	cb_call(on_update);
+	if (changed)
+		cb_call(on_change);
+	if (tvalid)
+		cb_call(on_turn_valid);
+}
 
 void in::setVal(float v, double t){
 	setValue(v, t);}
@@ -135,8 +153,13 @@ double in::getAge(){
 float in::getVal(){
 	return getValue();}
 
-void in::setValid(bool v){
-	_isValid = v;}
+void in::setValid(bool v)
+{
+	bool tinvalid = _isValid && !v;
+	_isValid = v;
+	if (tinvalid)
+		cb_call(on_turn_invalid);
+}
 
 bool in::isValid(){
 	return _isValid;}
@@ -198,3 +221,12 @@ in* get_in(string name)
 	inmap_mutex.unlock();
 	return rv;
 }
+
+
+
+// Callbacks on specific events. JCE, 9-11-2020
+
+void in::register_callback_on_update(void (*f)(void*), void *p)			{cb_add(&on_update, f, p);}
+void in::register_callback_on_change(void (*f)(void*), void *p)			{cb_add(&on_change, f, p);}
+void in::register_callback_on_turn_invalid(void (*f)(void*), void *p)	{cb_add(&on_turn_invalid, f, p);}
+void in::register_callback_on_turn_valid(void (*f)(void*), void *p)		{cb_add(&on_turn_valid, f, p);}
