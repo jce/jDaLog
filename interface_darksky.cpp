@@ -72,7 +72,6 @@ interface_darksky::interface_darksky(const string d, const string n, float i, co
 	uvIndex = new in(getDescriptor() + "_uv", getName() + " uv index", "", 0);
 	visibility = new in(getDescriptor() + "_v", getName() + " visibility", "km", 2);
 	ozone = new in(getDescriptor() + "_oz", getName() + " ozone", "DU", 2);
-	start();
 	}
 
 interface_darksky::~interface_darksky(){

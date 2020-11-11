@@ -33,12 +33,14 @@ interface_hs110::interface_hs110(const string d, const string n, float i, const 
 	pf = new in(getDescriptor() + "_pf", getName() + " pf", "", 5);
 	whreadout = new in(getDescriptor() + "_whr", getName() + " wh readout", "wh");
 	kWh_stored_at_startup = total_kwh->getValue();
+	rssi = new in(getDescriptor() + "_rs", getName() + " rssi", "dB");
+	relay = new out(getDescriptor() + "_rly", getName() + " relay", "", 0, this, 0, 1, 1);
+	led = new out(getDescriptor() + "_led", getName() + " led", "", 0, this, 0, 1, 1);
 
 	memset(&sa, 0, sizeof(sockaddr_in));
 	sa.sin_family = AF_INET;
 	sa.sin_addr.s_addr = inet_addr(_ipstr.c_str());
 	sa.sin_port = htons(9999);
-	start();
 }
 
 interface_hs110::~interface_hs110()
@@ -52,6 +54,9 @@ interface_hs110::~interface_hs110()
 	delete(total_kwh);
 	delete(err_code);
 	delete(latency);
+	delete(rssi);
+	delete(relay);
+	delete(led);
 }
 
 // Many thanks to these guys!
@@ -93,10 +98,9 @@ static void prp(double t, const char* s)
 //prp(t, "a");
 #define prp(_X_,_Y)
 
-void interface_hs110::getIns()
+// Sends message in buffer, returns answer in buffer. Returns success.
+ssize_t interface_hs110::send_receive(char* p, size_t size)
 {
-//double q = now();
-prp(q, "a");
 	struct timeval timeout;
 	timeout.tv_sec = 1;
 	timeout.tv_usec = 0;
@@ -104,14 +108,12 @@ prp(q, "a");
 	int rv;
 	ssize_t ans_len = 0;
 
-prp(q, "b");
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
 	if (!sock)
-		return;
+		return 0;
 
 	FD_ZERO(&set);
 	FD_SET(sock, &set);
-prp(q, "c");
 
 	int opt = fcntl (sock, F_GETFL, NULL);
 	fcntl(sock, F_SETFL, opt | O_NONBLOCK);	// Set to non blocking
@@ -126,42 +128,32 @@ prp(q, "c");
 	if ( rv != 0 )
 	{
 		close(sock);
-		return;
+		return 0;
 	}
 
-	//fcntl(sock, F_SETFL, opt);	// Reset socket flags
-
-prp(q, "d");
-	// bla bla interactions
-	double start = now();
-
-prp(q, "e");
-	const char *request = "{\"emeter\":{\"get_realtime\":{}}}";
-	const size_t req_len = strlen(request);
+	const size_t req_len = strlen(p);
 	const uint32_t req_len_be = htobe32(req_len);
 
-prp(q, "f");
-	strcpy(buf, request);
-	//printf("%s\n", buf);
-	encrypt(buf, req_len);
-	//printf("%s\n", buf);
-prp(q, "g");
+	encrypt(p, req_len);
 	write(sock, &req_len_be, 4);
-prp(q, "h");
-	write(sock, buf, req_len);
-prp(q, "i");
-
-prp(q, "j");
-prp(q, "k");
+	write(sock, p, req_len);
 	rv = select(sock+1, &set, NULL, NULL, &timeout);
-
-prp(q, "l");
 	if (rv > 0)
-		ans_len = read(sock, buf, HS110_BUFSIZE);
-
-prp(q, "m");
+		ans_len = read(sock, p, size);
 	close(sock);
-prp(q, "n");
+
+	if (ans_len > 4)
+		decrypt(p+4, ans_len - 4);
+
+	return ans_len;
+}
+
+void interface_hs110::getIns()
+{
+	char buf[HS110_BUFSIZE];
+	strcpy(buf, "{\"system\":{\"get_sysinfo\":{}},\"emeter\":{\"get_realtime\":{}}}");
+	double start = now();
+	size_t ans_len = send_receive(buf, HS110_BUFSIZE);
 	double end = now();
 	double t = (start + end) / 2;
 
@@ -170,7 +162,7 @@ prp(q, "o");
 	if (ans_len >= 4)
 	{	
 		//printf("%.*s\n", ans_len, buf);
-		decrypt(buf+4, ans_len - 4);
+		//decrypt(buf+4, ans_len - 4);
 		buf[ans_len] = 0x00;
 		//printf("%s\n", buf+4);
 		
@@ -242,6 +234,23 @@ prp(q, "o");
 			va->setValid(false);
 			pf->setValid(false);
 		}
+
+
+		if (findFloatAfter(buf+4, "rssi\":", v))
+			rssi->setValue(v, t);		
+		else
+			rssi->setValid(false);
+
+		if (findFloatAfter(buf+4, "relay_state\":", v))
+			relay->setValue(v, t);		
+		else
+			relay->setValid(false);
+
+		if (findFloatAfter(buf+4, "led_off\":", v))
+			led->setValue(1 - v, t);		
+		else
+			led->setValid(false);
+
 	}
 	float l = (end - start) * 1000;
 	if (l > 1000)
@@ -250,3 +259,23 @@ prp(q, "o");
 prp(q, "p");
 }
 
+void interface_hs110::setOut(out* o, float v)
+{
+	if (!globalControl)
+		return;
+	
+	char buf[HS110_BUFSIZE];
+
+	if (o == relay && v >= 0.5)
+		strcpy(buf, "{\"system\":{\"set_relay_state\":{\"state\":1}}}");
+	if (o == relay && v < 0.5)
+		strcpy(buf, "{\"system\":{\"set_relay_state\":{\"state\":0}}}");
+	if (o == led && v >= 0.5)
+		strcpy(buf, "{\"system\":{\"set_led_off\":{\"off\":0}}}");
+	if (o == led && v < 0.5)
+		strcpy(buf, "{\"system\":{\"set_led_off\":{\"off\":1}}}");
+
+	send_receive(buf, HS110_BUFSIZE);
+	
+	getIns();
+}

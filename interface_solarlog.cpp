@@ -27,7 +27,6 @@ interface_solarlog::interface_solarlog(const string d, const string n, float i, 
 	totalKwhProduced = new in(getDescriptor() + "_tep", getName() + " total energy produced", "kWh", 3);
 	latency = new in(getDescriptor() + "_lat", getName() + " latency", "ms", 3);
 	//makeModbusContext(); Do not wait for this during startup
-	start();
 	}
 
 interface_solarlog::~interface_solarlog(){

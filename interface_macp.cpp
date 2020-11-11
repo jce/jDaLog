@@ -53,7 +53,6 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 				macs[mac] = new in("mac_" + mac, "mac " + mac, "", 0);
 			}
 		}
-	start();
 }
 
 interface_macp::~interface_macp()

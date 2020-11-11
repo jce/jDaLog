@@ -107,6 +107,9 @@
 			"name":"Kilometer vergoeding Jannes",
 			"in":"z_xp_mp"
 		}
-	]
+	],
+	"out":
+	{
+	}
 	
 }

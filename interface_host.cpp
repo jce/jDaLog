@@ -98,7 +98,6 @@ interface_host::interface_host(const string d, const string n, float i):interfac
 		//in *hcpuuserp, *hcpusystemp, *hcpuidlep, *hcpuiowaitp, *hcpuirqp, *hcpusoftirqp, *hcputotalp, *hcputotalnoiowaitp;
 	cpuTemperature = new in("host_cpu_temperature", "Host cpu temperature", "°C", 1); // JCE, 3-9-2018
 	cpuFrequency = new in("host_cpu_frequency", "Host cpu frequency", "Hz", 0);
-	start();
 	}
 
 interface_host::~interface_host(){

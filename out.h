@@ -1,6 +1,9 @@
 #ifndef HAVE_OUT_H
 #define HAVE_OUT_H
 
+#include "out_expr.h"
+
+
 #include "stdio.h"
 #include <string>
 #include "floatLog.h"
@@ -9,6 +12,8 @@
 #include <map>
 #include "in.h"
 #include "pthread.h"
+#include "jansson.h"
+#include "tinyexpr.h"
 
 using namespace std;
 
@@ -29,15 +34,36 @@ class out: public in {	// Een out is een in, maar dan aangepast. Namelijk er moe
 		void setMan(bool);
 		bool getMan();
 		bool getControl();
+	friend void out_cb_in_changed(void*);
+	friend void out_cb_in_invalid(void*);
+	friend void out_cb_in_valid(void*);
 	private:
 		void *_interface;	// this is an interface*, that has the setOut(out*, float) function. Cannot mutually include.
 		bool _man, _control;			// man: in manual mode. manOut wordt op de uitgang gezet. control: of uberhaupt op de uitgang gezet wordt. ~true na 1 keer setOut.
 		float _min, _step, _max, _out, _manOut; // control minimum, step size and maximum. Memory for out setpoint, and manual out setpoint.
 		void _setout();
 		pthread_mutex_t _mutex;
+
+		char* expression;
+		int error;
+		te_variable *vars = NULL;
+		te_expr *expr = NULL;
+		int num_vars;
+		int valid_vars;		
 };
 
 extern map<string, out*> outmap;
 unsigned int outsInManual();
+
+void out_conf(json_t*);	// Modifies outs defaults by given json.
+// out{
+//	name:{}, name2:{}
+// Supply the "out" object from the json, First members should be out's descriptors
+
+// Callbacks: in change, in invalid and in valid.
+void out_cb_in_changed(void*);
+void out_cb_in_invalid(void*);
+void out_cb_in_valid(void*);
+
 
 #endif // HAVE_OUT_H

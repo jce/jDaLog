@@ -16,15 +16,17 @@ class interface_hs110 : public interface{
 		interface_hs110(const string, const string, float, const string); // descr, name, ip-as-string
 		~interface_hs110();
 		void getIns();
+		void setOut(out*, float);
 		in *voltage, *current, *power, *total_kwh, *err_code, *latency, *va, *pf;
-		in  *whreadout;
+		in  *whreadout, *rssi;
+		out *relay, *led;
 	private:
 		const string _ipstr;
-		char buf[HS110_BUFSIZE];
 		struct sockaddr_in sa;
 		float kWh_stored_at_startup;
 		float Wh_hs110_at_startup = FLT_MAX;
 		float Wh_hs110_last_readout = FLT_MAX;
+		ssize_t send_receive(char* p, size_t size);
 	};
 
 #endif // HAVE_INTERFACE_HS110_H

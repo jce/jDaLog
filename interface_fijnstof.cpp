@@ -29,7 +29,6 @@ interface_fijnstof::interface_fijnstof(const string d, const string n, float int
 	fw_ver = new in(getDescriptor() + "_fw", getName() + " firmware version", "");
 	errors = new in(getDescriptor() + "_er", getName() + " errors", "");
 	latency = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
-	start();
 	}
 
 interface_fijnstof::~interface_fijnstof(){

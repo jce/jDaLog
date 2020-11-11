@@ -364,6 +364,8 @@ int main(){
 	build_interfaces(json_object_get(json, "interface"));
 	build_dir_to_ins(json_object_get(json, "dir_to_ins"));
 	build_logics(json_object_get(json, "logic"));
+	out_conf(json_object_get(json, "out"));
+
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);
 	haveControl = new in("prog_ctrl", "Program has control", "");
@@ -379,6 +381,8 @@ int main(){
 	else
 		webGuiStart();
 	
+	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
+		i->second->start();
 	callFuncOnInterval(loop1s, 1);
 	callFuncOnInterval(loop60s, 60); // only this: keeps running	
 	callFuncOnInterval(loopstoreio, 1*3600); // only this: keeps running

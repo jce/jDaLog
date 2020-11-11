@@ -21,7 +21,6 @@ interface_rwl::interface_rwl(const string d, const string n, float i, const stri
 	uptime = new in(getDescriptor() + "_ut", getName() + " uptime", "s");
 	latency = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 	adcreadout = new in(getDescriptor() + "_ar", getName() + " adc readout", "");
-	start();
 }
 
 interface_rwl::~interface_rwl(){

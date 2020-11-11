@@ -105,7 +105,6 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 		list<y_ax> y_axes;
 		list<y_ax>::iterator yi;
 		for(ini=ins.begin(); ini!=ins.end(); ini++){
-			printf("_h");
 			string units;
 			units = (*ini)->getUnits();
 			bool foundyax(false);

@@ -78,7 +78,6 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 //	Q0_0 = new out(getDescriptor() + "_Q0_0", getName() + " Q0.0", "", 0, (void*)this);
 
 	writecounter = 0;
-	start();
 }
 
 interface_S1200::~interface_S1200(){

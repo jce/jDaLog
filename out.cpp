@@ -26,6 +26,9 @@ out::out(const string d, const string n, const string u, const unsigned int de, 
 
 out::~out(){
 	pthread_mutex_destroy(&_mutex);
+	free(expression);
+	free(vars);
+	te_free(expr);
 	}
 
 void out::_setout(){
@@ -87,3 +90,31 @@ unsigned int outsInManual(){
 			rv++;
 	return rv;
 	}
+
+
+
+void out_conf(json_t*){}	// Modifies outs defaults by given json.
+// out{
+//	name:{}, name2:{}
+// Supply the "out" object from the json, First members should be out's descriptors
+
+// Callbacks on in events
+void out_cb_in_changed(void *p)
+{
+	out *o = (out*) p;
+}
+
+void out_cb_in_invalid(void *p)
+{
+	out *o = (out*) p;
+	pthread_mutex_lock(&o->_mutex);
+	o->valid_vars --;
+	pthread_mutex_unlock(&o->_mutex);
+}
+void out_cb_in_valid(void *p)
+{
+	out *o = (out*) p;
+	pthread_mutex_lock(&o->_mutex);
+	o->valid_vars ++;
+	pthread_mutex_unlock(&o->_mutex);
+}
