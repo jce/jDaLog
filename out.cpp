@@ -48,11 +48,6 @@ void out::setOut(float o){
 	_out = o;
 	_control = true;
 	_setout();
-	//if (_man)	// Automatic is overruled by manual.
-	//	((interface*)_interface)->setOut(this, _manOut);
-	//else
-	//	((interface*)_interface)->setOut(this, _out);
-	//((interface*)_interface)->getIns();
 	}
 
 // Should be used to change the manual mode setpoint
@@ -61,9 +56,7 @@ void out::setManOut(float o){
 	if (o < _min) o = _min;
 	if (o > _max) o = _max;
 	_manOut = o;
-	_setout();
-	//((interface*)_interface)->setOut(this, _manOut);
-	//((interface*)_interface)->getIns();
+	pthread_mutex_unlock(&_mutex);
 	}
 
 // Should be used to get in and out of manual mode
@@ -71,8 +64,6 @@ void out::setMan(bool m){
 	pthread_mutex_lock(&_mutex);
 	_man = m;
 	_setout();
-	//((interface*)_interface)->setOut(this, _manOut);
-	//((interface*)_interface)->getIns();
 	}
 
 float out::getManOut(){return _manOut;}
@@ -98,6 +89,7 @@ void out_conf(json_t*){}	// Modifies outs defaults by given json.
 //	name:{}, name2:{}
 // Supply the "out" object from the json, First members should be out's descriptors
 
+/*
 // Callbacks on in events
 void out_cb_in_changed(void *p)
 {
@@ -118,3 +110,4 @@ void out_cb_in_valid(void *p)
 	o->valid_vars ++;
 	pthread_mutex_unlock(&o->_mutex);
 }
+*/
