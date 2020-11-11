@@ -38,6 +38,7 @@
 #include "jansson.h"
 #include "in_from_dir.h"
 #include "logic_km.h"
+#include "interface_pi_gpio.h"
 
 using namespace std;
 //#define debug
@@ -156,6 +157,16 @@ void build_interfaces(json_t *arr)
 						new interface_host(id, name, scan);
 					else
 						printf("could not build interface_host(%s, %s, %f)\n", id, name, scan);
+				}
+				if (strcmp(type, "pi_gpio") == 0)
+				{
+					if (id and name and json_is_number(jscan))
+					{
+						interface_pi_gpio *i = new interface_pi_gpio(id, name, scan);
+						read_gpios_from_json(i, json_object_get(json, "gpio"));
+					}
+					else
+						printf("could not build interface_pi_gpio(%s, %s, %f)\n", id, name, scan);
 				}
 			}
 		}	

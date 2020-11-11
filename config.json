@@ -90,6 +90,37 @@
 			"id":"host",
 			"name":"Host",
 			"scan":10
+		},
+		{
+			"type":"pi_gpio",
+			"id":"gpio",
+			"name":"gpio",
+			"scan":1,
+			"gpio":
+			{
+				"1":
+				{
+					"id":"t1",
+					"name":"test 1",
+					"default":0,
+					"pull":"off"
+				},
+				"21":
+				{
+					"id":"t21",
+					"name":"gpio 21, part of vga",
+					"pull":"off",
+					"mode":"no_change"
+				},
+				"22":
+				{
+					"id":"t22",
+					"name":"test 22",
+					"mode":"output",
+					"default":0,
+					"pull":"off"
+				}
+			}
 		}
 	],
 	"dir_to_ins":
