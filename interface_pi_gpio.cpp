@@ -75,7 +75,7 @@ void interface_pi_gpio::getIns()
 
 void interface_pi_gpio::conf_gpio(int gpio, gpio_mode mode, pull_state pull, int def, const char *descr, const char *name)
 {
-	printf("conf_gpio(%d, %d, %d, %d, %s %s)\n", gpio, mode, pull, def, descr, name);
+	//printf("conf_gpio(%d, %d, %d, %d, %s %s)\n", gpio, mode, pull, def, descr, name);
 	if (inputs.count(gpio))
 		return;
 

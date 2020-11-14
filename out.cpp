@@ -11,6 +11,7 @@
 #include "interface.h"
 #include <map>
 #include "pthread.h"
+#include "string.h"
 
 using namespace std;
 
@@ -26,9 +27,9 @@ out::out(const string d, const string n, const string u, const unsigned int de, 
 
 out::~out(){
 	pthread_mutex_destroy(&_mutex);
-	free(expression);
-	free(vars);
-	te_free(expr);
+	//free(expression);
+	//free(vars);
+	//te_free(expr);
 	}
 
 void out::_setout(){
@@ -82,14 +83,137 @@ unsigned int outsInManual(){
 	return rv;
 	}
 
+out* get_out(const char* descr)
+{
+	return get_out(string(descr));
+}
+
+out* get_out(const std::string &descr)
+{
+	if (outmap.count(descr))
+		return outmap[descr];
+	return NULL;
+}
 
 
-void out_conf(json_t*){}	// Modifies outs defaults by given json.
-// out{
-//	name:{}, name2:{}
-// Supply the "out" object from the json, First members should be out's descriptors
+void out_conf(json_t* json)	// Modifies existing outs by given json.
+{
+	// Root level objects will be out desriptors
+	const char *out_descr;
+	json_t *j_out;
+	json_object_foreach(json, out_descr, j_out)
+	{
+		//printf("%s\n", out_descr);
+		out* o = get_out(out_descr);
+		if (!o)
+		{
+			printf("Configuring out \"%s\": Out with this descriptor does not exist.\n", out_descr);
+			continue;
+		}
+		const char *s_expr = 	json_string_value(json_object_get(j_out, "expr"));
+		json_t *j_default = json_object_get(j_out, "default");
+		bool have_default_val = json_is_number(j_default);
+		float default_val = json_number_value(j_default);
+		json_t *vars_j = json_object_get(j_out, "var");
+		const char* var_descr;
+		json_t *var_j;
+		map<const char*, in_and_double> vars_from_conf;
+		if (json_is_object(vars_j))
+		{
+			bool ok = true;
+			// Iterates over vars
+			json_object_foreach(vars_j, var_descr, var_j)
+			{
+				if (json_is_string(var_j))
+				{
+					const char* in_descr = json_string_value(var_j);
+					if (! in_descr)
+					{
+						printf("Configuring out \"%s\": Cannot read in descriptor for variable \"%s\"", out_descr, var_descr);
+						ok = false;
+					}
+					in *i = get_in(in_descr);
+					if (!i)
+					{
+						printf("Configuring out \"%s\": Cannot find in \"%s\" for variable \"%s\".\n", out_descr, in_descr, var_descr);
+						ok = false;
+					}
+					vars_from_conf[var_descr] = {i, 0};
+				}
+				else if (json_is_number(var_j))
+					vars_from_conf[var_descr] = {NULL, json_number_value(var_j)};
+				else
+				{
+					printf("Configuring out \"%s\": Cannnot interpret content for variable \"%s\".\n", out_descr, var_descr);
+					ok = false;
+				}
+			}
+			if (!ok)
+				continue;
 
-/*
+			// tinyexpr compiles an expression. this is a translation of strings in the equation to double pointers.
+			// The double pointers should ofc. point to doubles. These can therefore not move anymore.
+			// Build the vars locations
+			int nr_vars = vars_from_conf.size();
+			in_and_double *vars_ins = (in_and_double*) malloc(sizeof(in_and_double) * nr_vars);
+			if (!vars_ins)
+				continue;
+			memset(vars_ins, 0, sizeof(in_and_double) * nr_vars);
+			
+			// vars_ins are oredered identically as vars_from_conf.
+			// build the vars array itself.
+			te_variable *vars = (te_variable*) malloc(sizeof(te_variable) * nr_vars);
+
+			for (int i = 0; i < nr_vars; i++)
+				vars[i].address = &vars_ins->d;				
+
+			int index = 0;
+			for (auto i = vars_from_conf.begin(); i != vars_from_conf.end(); i++)
+			{
+				vars[index].name = i->first;
+				vars_ins[index].i = i->second.i;
+				vars_ins[index].d = i->second.d;
+				index++;
+			}
+
+			// Try and compile the expression
+			int err;
+			te_expr *expr = te_compile(s_expr, vars, nr_vars, &err);
+
+			if (!expr)
+			{
+				printf("Configuring out \"%s\": Compiling expression failed.\n\t%s\n\t%*s^\n\tError near here.\n", out_descr, s_expr, err-1, " ");
+				free(vars);
+				free(vars_ins);
+				continue;
+			}
+
+			// Program the out.
+			o->expression = s_expr;
+			o->vars_ins = vars_ins;
+			free(vars);
+			o->expr = expr;
+			o->nr_vars = nr_vars;
+			int nr_ins = 0;
+			for (int i = 0; i < nr_vars; i++)
+				nr_ins += (bool) vars_ins[i].i;
+			o->nr_ins = nr_ins;
+			o->valid_ins = 0;
+			o->have_default_val = have_default_val;
+			o->default_val = default_val;
+
+			// Register callbacks on the in's to this out.
+			for (int i = 0; i < nr_vars; i++)
+				if(vars_ins[i].i)
+				{
+					vars_ins[i].i->register_callback_on_change(			out_cb_in_changed, (void*) o);
+        			vars_ins[i].i->register_callback_on_turn_invalid(	out_cb_in_invalid, (void*) o);
+        			vars_ins[i].i->register_callback_on_turn_valid(		out_cb_in_valid, (void*) o);
+				}
+		}
+	}
+}
+
 // Callbacks on in events
 void out_cb_in_changed(void *p)
 {
@@ -100,14 +224,14 @@ void out_cb_in_invalid(void *p)
 {
 	out *o = (out*) p;
 	pthread_mutex_lock(&o->_mutex);
-	o->valid_vars --;
+	o->valid_ins --;
 	pthread_mutex_unlock(&o->_mutex);
 }
 void out_cb_in_valid(void *p)
 {
 	out *o = (out*) p;
 	pthread_mutex_lock(&o->_mutex);
-	o->valid_vars ++;
+	o->valid_ins ++;
 	pthread_mutex_unlock(&o->_mutex);
 }
-*/
+
