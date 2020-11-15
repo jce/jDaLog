@@ -141,15 +141,15 @@
 	],
 	"out":
 	{
-		"gpio_123":{},
 		"gpio_t22":
 		{
-			"expr":"a*x + b",
+			"expr":"1*x- 50 + c * p",
 			"var":
 			{
-				"a":0.5,
-				"x":"_host_cpu_temperature",
-				"b":false
+				"a":1,
+				"x":"host_cpu_temperature",
+				"c":3,
+				"p":"gpio_t22"
 			},
 			"default":1
 		}

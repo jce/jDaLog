@@ -138,7 +138,6 @@ bool in::get_value_at(double time, float &value, double &value_time)	// When, re
 	return _logger->get_value_at(time, value, value_time);
 }
 
-
 double in::getTime(){
 	if (not _isKnown){
 		_value = _logger->getLastValue();
@@ -156,9 +155,12 @@ float in::getVal(){
 void in::setValid(bool v)
 {
 	bool tinvalid = _isValid && !v;
+	bool tvalid = !_isValid && v;
 	_isValid = v;
 	if (tinvalid)
 		cb_call(on_turn_invalid);
+	if (tvalid)
+		cb_call(on_turn_valid);
 }
 
 bool in::isValid(){
@@ -198,7 +200,6 @@ void in::getRecords(map<double, float> &m, size_t s, size_t l)
 	_logger->getRecords(m, s, l);
 }
 
-
 void in::getDataSummary(vector<flStat> &stats, unsigned length , double from, double to){ // JCE, 31-12-13
 	_logger->summaryFromTo(stats, length, from, to);}
 
@@ -210,8 +211,6 @@ void in::importData(){
 
 void in::touch(){setValue(getValue());}
 
-
-
 in* get_in(string name)
 {
 	in* rv = 0;
@@ -222,10 +221,7 @@ in* get_in(string name)
 	return rv;
 }
 
-
-
 // Callbacks on specific events. JCE, 9-11-2020
-
 void in::register_callback_on_update(void (*f)(void*), void *p)			{cb_add(&on_update, f, p);}
 void in::register_callback_on_change(void (*f)(void*), void *p)			{cb_add(&on_change, f, p);}
 void in::register_callback_on_turn_invalid(void (*f)(void*), void *p)	{cb_add(&on_turn_invalid, f, p);}

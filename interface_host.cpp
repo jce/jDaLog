@@ -481,16 +481,16 @@ void interface_host::getIns(){
 	result = _exec(command.c_str());
 	//printf(result.c_str());
 	commandExecutedOK = (result.find("temp=") != string::npos);
-	cpuTemperature->setValid(commandExecutedOK);
 	if (commandExecutedOK) cpuTemperature->setValue( stod(result.substr(5, 4)), thisT);
+	cpuTemperature->setValid(commandExecutedOK);
 
 	//command = " sudo vcgencmd measure_clock arm";
 	command = "vcgencmd measure_clock arm";
 	// Answer should be: frequency(45)=600000000 Note for Pi4 45 -> 48
 	result = _exec(command.c_str());
 	commandExecutedOK = (result.find("frequency(48)=") != string::npos);
-	cpuFrequency->setValid(commandExecutedOK);
 	if (commandExecutedOK) cpuFrequency->setValue( stod(result.substr(14)), thisT);
+	cpuFrequency->setValid(commandExecutedOK);
 
 
 	_prevT = thisT;

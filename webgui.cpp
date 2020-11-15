@@ -1,6 +1,7 @@
 #include "stdio.h"
 #include <cstdlib> // system()
 #include <list>
+#include <set>
 #include <string>
 #include "string.h"
 #include "floatLog.h"
@@ -62,9 +63,23 @@ void fprintt(FILE *fp, double a){
 	fprintf(fp, "%u-%u-%u %u:%u:%u.%03u", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, ms);}
 
 //struct stats{int nr; float min; double sum; float max;};
-struct inWithData{in* inp; vector<flStat> stats; unsigned statLen; bool haveData;};
-struct y_ax{string units; list<inWithData> iwdl; double ymin; double yrange; double ymax; bool haveData;};
+struct inWithData
+{
+	in* inp; 
+	vector<flStat> stats; 
+	unsigned statLen; 
+	bool haveData;
+};
 
+struct y_ax
+{
+	string units;
+	list<inWithData> iwdl;
+	double ymin;
+	double yrange;
+	double ymax;
+	bool haveData;
+};
 
 // Per 30-12-13, modified this function to relay the summaries to the floatLog instance(s).
 string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title)
@@ -388,6 +403,18 @@ string make_link(string url, string text){
 	if (text == "") text = url;
 	return "<a href=\"" + url + "\">" + text + "</a>";}
 
+string make_in_link(in* i)
+{
+	return make_link("/in/" + i->getDescriptor(), i->getName());
+}
+
+string make_in_link_or_constant(in* i)
+{
+	if (!i)
+		return "constant";
+	return make_in_link(i);
+}
+
 string make_image(string url){
 	return "<img src=\"" + url + "\">";}
 string make_image_line(string url){
@@ -692,12 +719,28 @@ int make_out_page(struct mg_connection *conn, string outName){
 		mg_printf(conn, "<INPUT type=\"submit\" name=\"blah\" value=\"manual:\"><INPUT type=\"TEXT\" name=\"set\" value=\"%.*f\"<br>", dec, myOut->getManOut());
 	mg_printf(conn, "</form>");
 
+	mg_printf(conn, "Equation: %s<br>\n", myOut->expression.c_str());
+	mg_printf(conn, "<table><tr><th>Variable</th><th>Value</th><th>Source</th></tr>\n");
+	for (int i = 0; i < myOut->nr_vars; i++)
+	{
+		mg_printf(conn, "<tr><td>%s</td><td>%f</td><td>%s</td><tr>\n", myOut->vars[i].var, myOut->vars[i].d, make_in_link_or_constant(myOut->vars[i].i).c_str());
+	}	
+	mg_printf(conn, "</table>\n");
+
 	string line = make_image_line(plotLine(myOut, now() - 299, now() + 1, 1000, 300)); // function rounds time, losing the most recent record. Thus, to 1 sec in the future. JCE, 25-7-13
 	mg_printf(conn, line.c_str());
-	//line = make_image_line(plotLine(myOut, now() - 24*3600, now(), 1000, 300));
-	//mg_printf(conn, line.c_str());
-	//line = make_image_line(plotLine(myOut, now() - 7*24*3600, now(), 1000, 300));
-	//mg_printf(conn, line.c_str());
+
+	set<in*> in_s;		// Intermediate step with a set is because ins might occur multiple times in vars. JCE, 15-11-2020
+	in_s.insert(myOut);
+	for (int i = 0; i < myOut->nr_vars; i++)
+		if (myOut->vars[i].i)
+			in_s.insert(myOut->vars[i].i);
+	list<in*> ins(in_s.begin(), in_s.end());
+
+	line = make_image_line(plotLines(ins, now() - 300, now(), 1000, 300, ""));
+	mg_printf(conn, line.c_str());
+	line = make_image_line(plotLines(ins, now() - 24*3600, now(), 1000, 300, ""));
+	mg_printf(conn, line.c_str());
 	//line = make_image_line(plotLine(myOut, now() - 4*7*24*3600, now(), 1000, 300));
 	//mg_printf(conn, line.c_str());
 	string note(myOut->getNote());

@@ -21,18 +21,23 @@ using namespace std;
 
 map<string, out*> outmap;
 
-out::out(const string d, const string n, const string u, const unsigned int de, void* interface, float min, float step, float max) : in(d, n, u, de), _interface(interface), _man(false), _control(false), _min(min), _step(step), _max(max), _out(0), _manOut(0) {
+out::out(const string d, const string n, const string u, const unsigned int de, void* interface, float min, float step, float max) : in(d, n, u, de), _interface(interface), _man(false), _control(false), _min(min), _step(step), _max(max), _out(0), _manOut(0) 
+{
 	pthread_mutex_init(&_mutex, NULL);
-	outmap[getDescriptor()] = this ;}
+	outmap[getDescriptor()] = this ;
+}
 
-out::~out(){
+out::~out()
+{
 	pthread_mutex_destroy(&_mutex);
-	//free(expression);
-	//free(vars);
-	//te_free(expr);
-	}
+	if(vars)
+		free(vars);
+	if(expr)
+		te_free(expr);
+}
 
-void out::_setout(){
+void out::_setout()
+{
 	//setValue(getValue()); // outputs are discrete. Untill now the value is known and now it will be changed. JCE, 25-7-13
 	// should be printed in a custom graph? stepping graph, or maybe a singleline graph and still use this line? JCE, 25-7-13
 	float o = _out;
@@ -40,32 +45,35 @@ void out::_setout(){
 		o = _manOut;
 	pthread_mutex_unlock(&_mutex);
 	((interface*)_interface)->setOut(this, o);
-	}
+}
 
-void out::setOut(float o){
+void out::setOut(float o)
+{
 	pthread_mutex_lock(&_mutex);
 	if (o < _min) o = _min;
 	if (o > _max) o = _max;
 	_out = o;
 	_control = true;
 	_setout();
-	}
+}
 
 // Should be used to change the manual mode setpoint
-void out::setManOut(float o){
+void out::setManOut(float o)
+{
 	pthread_mutex_lock(&_mutex);
 	if (o < _min) o = _min;
 	if (o > _max) o = _max;
 	_manOut = o;
 	pthread_mutex_unlock(&_mutex);
-	}
+}
 
 // Should be used to get in and out of manual mode
-void out::setMan(bool m){
+void out::setMan(bool m)
+{
 	pthread_mutex_lock(&_mutex);
 	_man = m;
 	_setout();
-	}
+}
 
 float out::getManOut(){return _manOut;}
 float out::getOut(){return _out;}
@@ -74,6 +82,23 @@ bool out::getControl(){return _control or _man;}
 float out::getMin(){return _min;}
 float out::getStep(){return _step;}
 float out::getMax(){return _max;}
+
+void out::eval_expr()
+{
+	pthread_mutex_lock(&_mutex);
+	if (nr_ins != valid_ins)
+	{
+		_control = false;
+		pthread_mutex_unlock(&_mutex);
+		return;
+	}
+	for (int i = 0; i < nr_vars; i++)
+		if (vars[i].i)
+			vars[i].d = vars[i].i->getValue();
+	_out = te_eval(expr);
+	_control = true;
+	_setout();
+}
 
 unsigned int outsInManual(){
 	unsigned int rv(0);
@@ -94,7 +119,6 @@ out* get_out(const std::string &descr)
 		return outmap[descr];
 	return NULL;
 }
-
 
 void out_conf(json_t* json)	// Modifies existing outs by given json.
 {
@@ -117,9 +141,13 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 		json_t *vars_j = json_object_get(j_out, "var");
 		const char* var_descr;
 		json_t *var_j;
-		map<const char*, in_and_double> vars_from_conf;
 		if (json_is_object(vars_j))
 		{
+			int nr_vars = json_object_size(vars_j);
+			int i = 0;
+			var_in_double *vars = (var_in_double*) malloc(sizeof(var_in_double) * nr_vars);
+			if (!vars)
+				continue;
 			bool ok = true;
 			// Iterates over vars
 			json_object_foreach(vars_j, var_descr, var_j)
@@ -132,71 +160,76 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 						printf("Configuring out \"%s\": Cannot read in descriptor for variable \"%s\"", out_descr, var_descr);
 						ok = false;
 					}
-					in *i = get_in(in_descr);
-					if (!i)
+					in *in_p = get_in(in_descr);
+					if (!in_p)
 					{
 						printf("Configuring out \"%s\": Cannot find in \"%s\" for variable \"%s\".\n", out_descr, in_descr, var_descr);
 						ok = false;
 					}
-					vars_from_conf[var_descr] = {i, 0};
+					strncpy(vars[i].var, var_descr, VAR_LEN);
+					vars[i].i = in_p;
+					vars[i].d = 0;
 				}
 				else if (json_is_number(var_j))
-					vars_from_conf[var_descr] = {NULL, json_number_value(var_j)};
+				{
+					strncpy(vars[i].var, var_descr, VAR_LEN);
+					vars[i].i = NULL;
+					vars[i].d = json_number_value(var_j);
+				}
 				else
 				{
 					printf("Configuring out \"%s\": Cannnot interpret content for variable \"%s\".\n", out_descr, var_descr);
 					ok = false;
 				}
+				i++;
 			}
 			if (!ok)
+			{
+				free(vars);
 				continue;
-
+			}
+	
 			// tinyexpr compiles an expression. this is a translation of strings in the equation to double pointers.
 			// The double pointers should ofc. point to doubles. These can therefore not move anymore.
 			// Build the vars locations
-			int nr_vars = vars_from_conf.size();
-			in_and_double *vars_ins = (in_and_double*) malloc(sizeof(in_and_double) * nr_vars);
-			if (!vars_ins)
-				continue;
-			memset(vars_ins, 0, sizeof(in_and_double) * nr_vars);
 			
 			// vars_ins are oredered identically as vars_from_conf.
 			// build the vars array itself.
-			te_variable *vars = (te_variable*) malloc(sizeof(te_variable) * nr_vars);
+			te_variable *te_vars = (te_variable*) malloc(sizeof(te_variable) * nr_vars);
+			if (!te_vars)
+			{
+				free(vars);
+				continue;
+			}
+			memset(te_vars, 0, sizeof(te_variable) * nr_vars);
 
 			for (int i = 0; i < nr_vars; i++)
-				vars[i].address = &vars_ins->d;				
-
-			int index = 0;
-			for (auto i = vars_from_conf.begin(); i != vars_from_conf.end(); i++)
 			{
-				vars[index].name = i->first;
-				vars_ins[index].i = i->second.i;
-				vars_ins[index].d = i->second.d;
-				index++;
+				te_vars[i].address = &vars[i].d;				
+				te_vars[i].name = vars[i].var;
 			}
-
+			
 			// Try and compile the expression
 			int err;
-			te_expr *expr = te_compile(s_expr, vars, nr_vars, &err);
+			te_expr *expr = te_compile(s_expr, te_vars, nr_vars, &err);
 
 			if (!expr)
 			{
 				printf("Configuring out \"%s\": Compiling expression failed.\n\t%s\n\t%*s^\n\tError near here.\n", out_descr, s_expr, err-1, " ");
+				free(te_vars);
 				free(vars);
-				free(vars_ins);
 				continue;
 			}
 
 			// Program the out.
 			o->expression = s_expr;
-			o->vars_ins = vars_ins;
-			free(vars);
+			o->vars = vars;
+			free(te_vars);
 			o->expr = expr;
 			o->nr_vars = nr_vars;
 			int nr_ins = 0;
 			for (int i = 0; i < nr_vars; i++)
-				nr_ins += (bool) vars_ins[i].i;
+				nr_ins += (bool) vars[i].i;
 			o->nr_ins = nr_ins;
 			o->valid_ins = 0;
 			o->have_default_val = have_default_val;
@@ -204,11 +237,11 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 
 			// Register callbacks on the in's to this out.
 			for (int i = 0; i < nr_vars; i++)
-				if(vars_ins[i].i)
+				if(vars[i].i)
 				{
-					vars_ins[i].i->register_callback_on_change(			out_cb_in_changed, (void*) o);
-        			vars_ins[i].i->register_callback_on_turn_invalid(	out_cb_in_invalid, (void*) o);
-        			vars_ins[i].i->register_callback_on_turn_valid(		out_cb_in_valid, (void*) o);
+					vars[i].i->register_callback_on_change(			out_cb_in_changed, (void*) o);
+        			vars[i].i->register_callback_on_turn_invalid(	out_cb_in_invalid, (void*) o);
+        			vars[i].i->register_callback_on_turn_valid(		out_cb_in_valid, (void*) o);
 				}
 		}
 	}
@@ -218,6 +251,7 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 void out_cb_in_changed(void *p)
 {
 	out *o = (out*) p;
+	o->eval_expr();
 }
 
 void out_cb_in_invalid(void *p)
@@ -226,6 +260,7 @@ void out_cb_in_invalid(void *p)
 	pthread_mutex_lock(&o->_mutex);
 	o->valid_ins --;
 	pthread_mutex_unlock(&o->_mutex);
+	o->eval_expr();
 }
 void out_cb_in_valid(void *p)
 {
@@ -233,5 +268,6 @@ void out_cb_in_valid(void *p)
 	pthread_mutex_lock(&o->_mutex);
 	o->valid_ins ++;
 	pthread_mutex_unlock(&o->_mutex);
+	o->eval_expr();
 }
 
