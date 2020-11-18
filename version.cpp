@@ -1,3 +1,3 @@
-extern const long tcBuildNr = 1920;
+extern const long tcBuildNr = 1922;
  
-extern const char tcBuildNrText[] = "1920";
+extern const char tcBuildNrText[] = "1922";

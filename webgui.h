@@ -30,4 +30,7 @@ void webGuiStart(string port = "8090");
 void webGuiStop();
 void deleteOldFiles();	// JCE, 5-7-13
 
+// Default image size(s)
+extern uint16_t def_w, def_h;
+
 #endif // HAVE_WEBGUI_H

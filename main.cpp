@@ -376,6 +376,22 @@ int main(){
 	build_dir_to_ins(json_object_get(json, "dir_to_ins"));
 	build_logics(json_object_get(json, "logic"));
 	out_conf(json_object_get(json, "out"));
+	
+	//uint16_t port = 8090;
+	json_t *webgui_j = json_object_get(json, "webgui");
+	if (json_is_object(webgui_j))
+	{
+		json_t *def_w_j, *def_h_j;// *port_j
+		//port_j = json_object_get(webgui_j, "port");
+		def_w_j = json_object_get(webgui_j, "def_w");
+		def_h_j = json_object_get(webgui_j, "def_h");
+		//if (json_is_integer(port_j))
+		//	port = json_integer_value(port_j);
+		if (json_is_integer(def_w_j))
+			def_w = json_integer_value(def_w_j);
+		if (json_is_integer(def_h_j))
+			def_h = json_integer_value(def_h_j);
+	}
 
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);

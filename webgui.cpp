@@ -25,6 +25,9 @@
 
 using namespace std;
 
+uint16_t def_w = 1000;
+uint16_t def_h = 300;
+
 // The purpose of this file is to control mongoose, and create a bunch of semi-uniform webpages that will serve as GUI for tcFarmControl. JCE, 14-6-13
 
 //============================================================================================================
@@ -458,38 +461,38 @@ int make_in_page(struct mg_connection *conn, string inName){
 	//string line = plotLink + "<br>";
 	#ifdef debug
 		double tdata, tscript, tplot, tsum;
-		string line = make_image_line(plotLine(myIn, now() - 3600, now(), 1000, 300, tdata, tscript, tplot));
+		string line = make_image_line(plotLine(myIn, now() - 3600, now(), def_w, def_h, tdata, tscript, tplot));
 		mg_printf(conn, line.c_str());
 		tsum = tdata + tscript + tplot;
 		//mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		//line = make_image_line(plotLine(myIn, now() - 24*3600, now(), 1000, 300, tdata, tscript, tplot));
+		//line = make_image_line(plotLine(myIn, now() - 24*3600, now(), def_w, def_h, tdata, tscript, tplot));
 		//mg_printf(conn, line.c_str());
 		//tsum += tdata + tscript + tplot;
 		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 7*24*3600, now(), 1000, 300, tdata, tscript, tplot));
+		line = make_image_line(plotLine(myIn, now() - 7*24*3600, now(), def_w, def_h, tdata, tscript, tplot));
 		mg_printf(conn, line.c_str());
 		tsum += tdata + tscript + tplot;
 		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600, now(), 1000, 300, tdata, tscript, tplot));
+		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600, now(), def_w, def_h, tdata, tscript, tplot));
 		mg_printf(conn, line.c_str());
 		tsum += tdata + tscript + tplot;
 		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
 		mg_printf(conn, "Graph total time: %f s<br>\n", tsum);
 	#else
 		string line;
-		//line = make_image_line(plotLine(myIn, now() - 5, now(), 1000, 300));
+		//line = make_image_line(plotLine(myIn, now() - 5, now(), def_w, def_h));
 		//mg_printf(conn, line.c_str());
-		//line = make_image_line(plotLine(myIn, now() - 60, now(), 1000, 300));
+		//line = make_image_line(plotLine(myIn, now() - 60, now(), def_w, def_h));
 		//mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 3600, now(), 1000, 300));
+		line = make_image_line(plotLine(myIn, now() - 3600, now(), def_w, def_h));
 		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 24*3600, now(), 1000, 300));
+		line = make_image_line(plotLine(myIn, now() - 24*3600, now(), def_w, def_h));
 		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 7*24*3600, now(), 1000, 300));
+		line = make_image_line(plotLine(myIn, now() - 7*24*3600, now(), def_w, def_h));
 		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600, now(), 1000, 300));
+		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600, now(), def_w, def_h));
 		mg_printf(conn, line.c_str());
-		//line = make_image_line(plotLine(myIn, now() - 1 * 365*24*3600, now(), 1000, 300));
+		//line = make_image_line(plotLine(myIn, now() - 1 * 365*24*3600, now(), def_w, def_h));
 		//mg_printf(conn, line.c_str());
 	#endif
 
@@ -585,31 +588,31 @@ int make_webin_page(struct mg_connection *conn, string webinName){
 	#ifdef debug
 		double tdata, tscript, tplot, tsum;
 		string line;
-		//line = make_image_line(plotLine(myIn, now() - 3600 + 1, now() + 1, 1000, 300, tdata, tscript, tplot));
+		//line = make_image_line(plotLine(myIn, now() - 3600 + 1, now() + 1, def_w, def_h, tdata, tscript, tplot));
 		//mg_printf(conn, line.c_str());
 		//tsum = tdata + tscript + tplot;
 		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 24*3600 + 1, now() + 1, 1000, 300, tdata, tscript, tplot));
+		line = make_image_line(plotLine(myIn, now() - 24*3600 + 1, now() + 1, def_w, def_h, tdata, tscript, tplot));
 		mg_printf(conn, line.c_str());
 		tsum += tdata + tscript + tplot;
 		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 7*24*3600 + 1, now() + 1, 1000, 300, tdata, tscript, tplot));
+		line = make_image_line(plotLine(myIn, now() - 7*24*3600 + 1, now() + 1, def_w, def_h, tdata, tscript, tplot));
 		mg_printf(conn, line.c_str());
 		tsum += tdata + tscript + tplot;
 		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600 + 1, now() + 1, 1000, 300, tdata, tscript, tplot));
+		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600 + 1, now() + 1, def_w, def_h, tdata, tscript, tplot));
 		mg_printf(conn, line.c_str());
 		tsum += tdata + tscript + tplot;
 		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
 		mg_printf(conn, "Graph total time: %f s<br>\n", tsum);
 	#else
-		string line = make_image_line(plotLine(myIn, now() - 3600 + 1, now() + 1, 1000, 300));
+		string line = make_image_line(plotLine(myIn, now() - 3600 + 1, now() + 1, def_w, def_h));
 		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 24*3600 + 1, now() + 1, 1000, 300));
+		line = make_image_line(plotLine(myIn, now() - 24*3600 + 1, now() + 1, def_w, def_h));
 		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 7*24*3600 + 1, now() + 1, 1000, 300));
+		line = make_image_line(plotLine(myIn, now() - 7*24*3600 + 1, now() + 1, def_w, def_h));
 		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600 + 1, now() + 1, 1000, 300));
+		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600 + 1, now() + 1, def_w, def_h));
 		mg_printf(conn, line.c_str());
 	#endif
 
@@ -727,7 +730,7 @@ int make_out_page(struct mg_connection *conn, string outName){
 	}	
 	mg_printf(conn, "</table>\n");
 
-	string line = make_image_line(plotLine(myOut, now() - 299, now() + 1, 1000, 300)); // function rounds time, losing the most recent record. Thus, to 1 sec in the future. JCE, 25-7-13
+	string line = make_image_line(plotLine(myOut, now() - 299, now() + 1, def_w, def_h)); // function rounds time, losing the most recent record. Thus, to 1 sec in the future. JCE, 25-7-13
 	mg_printf(conn, line.c_str());
 
 	set<in*> in_s;		// Intermediate step with a set is because ins might occur multiple times in vars. JCE, 15-11-2020
@@ -737,11 +740,11 @@ int make_out_page(struct mg_connection *conn, string outName){
 			in_s.insert(myOut->vars[i].i);
 	list<in*> ins(in_s.begin(), in_s.end());
 
-	line = make_image_line(plotLines(ins, now() - 300, now(), 1000, 300, ""));
+	line = make_image_line(plotLines(ins, now() - 300, now(), def_w, def_h, ""));
 	mg_printf(conn, line.c_str());
-	line = make_image_line(plotLines(ins, now() - 24*3600, now(), 1000, 300, ""));
+	line = make_image_line(plotLines(ins, now() - 24*3600, now(), def_w, def_h, ""));
 	mg_printf(conn, line.c_str());
-	//line = make_image_line(plotLine(myOut, now() - 4*7*24*3600, now(), 1000, 300));
+	//line = make_image_line(plotLine(myOut, now() - 4*7*24*3600, now(), def_w, def_h));
 	//mg_printf(conn, line.c_str());
 	string note(myOut->getNote());
 	make_note(conn, note);
