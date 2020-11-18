@@ -51,7 +51,7 @@ bool globalControl(true);	// The inverse of isDevelopmentVersion heh. JCE, 25-9-
 in *buildNr, *version, *haveControl;
 logic *lfijnstof, *lrain;
 logic *lpower;
-in *pwrsum, *kWhsum;
+in *pwrsum = NULL, *kWhsum = NULL;
 
 // Signal handling.
 void handle_signal(int signal){
@@ -315,7 +315,8 @@ void loop1s(){
 		pwrsum->setValue(hs110_rm_p->getValue() + hs110_fr_p->getValue() + hs110_wp_p->getValue());
 	}
 	else
-		pwrsum->setValid(false);
+		if(pwrsum)
+			pwrsum->setValid(false);
 
 	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
 	in *hs110_rm_tot = get_in("hs110_rm_tot");
@@ -328,7 +329,8 @@ void loop1s(){
 		kWhsum->setValue(hs110_rm_tot->getValue() + hs110_fr_tot->getValue() + hs110_wp_tot->getValue());
 	}
 	else
-		kWhsum->setValid(false);
+		if(pwrsum)
+			kWhsum->setValid(false);
 	}
 
 void loop60s(){
@@ -455,8 +457,10 @@ int main(){
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		delete i->second;
 	
-	delete kWhsum;
-	delete pwrsum;
+	if(kWhsum)
+		delete kWhsum;
+	if (pwrsum)
+		delete pwrsum;
 	delete lpower;
 	delete lrain;
 	delete lfijnstof;
