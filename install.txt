@@ -1,8 +1,17 @@
 you need these packages:
 
+Required packages:
+sudo apt install
+libmariadbclient-dev
+libjansson-dev 
+p7zip p7zip-full
+libmodbus-dev
+libcurl4-openssl-dev
+gnuplot
+nmap
 
-sudo apt-get install libmariadbclient-dev libjansson-dev p7zip p7zip-full libmodbus-dev libcurl4-openssl-dev gnuplot nmap
-
+Optional packages:
+matchbox (on screen keyboard)
 
 
 And manually install: libsnap7 (1.4.2)
