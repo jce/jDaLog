@@ -14,6 +14,8 @@ old/
 snap7*
 tinyexpr/
 
+config.json
+
 #JCE, 23-10-2020
 loader
 loader_src

@@ -1,4 +1,4 @@
 #!/bin/bash
-mkdir /tmp/graphs
+mkdir -p /tmp/graphs
 rm http/graphs -rf
 ln -s /tmp/graphs http

@@ -1,4 +1,28 @@
 you need these packages:
 
 
-sudo apt-get install libmariadbclient-dev
+sudo apt-get install libmariadbclient-dev libjansson-dev p7zip p7zip-full libmodbus-dev libcurl4-openssl-dev gnuplot nmap
+
+
+
+And manually install: libsnap7 (1.4.2)
+wget https://sourceforge.net/projects/snap7/files/1.4.2/
+7z x snap7-full-1.4.2.7z
+cd snap7-full-1.4.2/build/unix
+make -f arm_v7_linux.mk all
+sudo make -f arm_v7_linux.mk install
+
+Building farmcontrol
+mkdir obj
+make
+
+Postbuild config:
+Add to /etc/fstab:
+tmpfs   /tmp    tmpfs   nodev,nosuid,size=1G    0   0
+restart
+
+Add service:
+sudo cp tcFC.service /etc/systemd/system
+maybe change the user and dir in the system file
+sudo systemctl enable tcFC.service
+sudo systemctl start tcFC.service

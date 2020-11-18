@@ -421,7 +421,7 @@ int main(){
 
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		delete i->second;
-
+	
 	delete kWhsum;
 	delete pwrsum;
 	delete lpower;

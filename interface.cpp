@@ -131,7 +131,7 @@ interface::~interface(){
 	#ifdef debug
 		printf("Deleting interface %s...\n", _descr.c_str());
 	#endif
-	interfaces.erase(_descr);
+	//interfaces.erase(_descr);
 	_name->~stringStore();
 	_note->~stringStore();
 	#ifdef debug
