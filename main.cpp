@@ -49,7 +49,6 @@ bool run(true);
 bool globalControl(true);	// The inverse of isDevelopmentVersion heh. JCE, 25-9-13
 
 in *buildNr, *version, *haveControl;
-interface *maria;
 logic *lfijnstof, *lrain;
 logic *lpower;
 in *pwrsum, *kWhsum;
@@ -167,6 +166,13 @@ void build_interfaces(json_t *arr)
 					}
 					else
 						printf("could not build interface_pi_gpio(%s, %s, %f)\n", id, name, scan);
+				}
+				if (strcmp(type, "maria") == 0)
+				{
+					if (id and name and json_is_number(jscan))
+						new interface_maria(id, name, scan);
+					else
+						printf("could not build interface_maria(%s, %s, %f)\n", id, name, scan);
 				}
 			}
 		}	
@@ -329,12 +335,6 @@ void loopstoreio(){
 	deleteOldFiles(); // AKA segmentation fault... JCE, 5-7-13
 	}
 
-void loop_in_to_maria()
-{
-	sleep(2);
-	in_to_maria();
-}
-
 int main(){
 	// Signal handler
 	struct sigaction sa;
@@ -380,7 +380,6 @@ int main(){
 	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
 	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);
 	haveControl = new in("prog_ctrl", "Program has control", "");
-	maria = new interface_maria("maria", "Maria", 10);
 	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
 	lrain = new logic_rain("lrain", "LRain");
 	lpower = new logic_power("lpower", "LPower");
