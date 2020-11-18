@@ -153,7 +153,17 @@ void build_interfaces(json_t *arr)
 				if (strcmp(type, "host") == 0)
 				{
 					if (id and name and json_is_number(jscan))
-						new interface_host(id, name, scan);
+					{
+						interface_host *h = new interface_host(id, name, scan);
+						json_t *disk_j;
+						const char* path;
+						json_object_foreach(json_object_get(json, "disks"), path, disk_j)
+						{
+							const char *did = json_string_value(json_object_get(disk_j, "id"));
+							const char *dname = json_string_value(json_object_get(disk_j, "name"));
+							h->add_disk(path, did, dname);
+						}
+					}
 					else
 						printf("could not build interface_host(%s, %s, %f)\n", id, name, scan);
 				}
@@ -299,7 +309,11 @@ void loop1s(){
 	in *hs110_fr_p = get_in("hs110_fr_p");
 	in *hs110_wp_p = get_in("hs110_wp_p");
 	if (hs110_rm_p and hs110_fr_p and hs110_wp_p)
+	{
+		if (!pwrsum)
+			pwrsum = new in("pwrsum", "Power sum", "W", 3);
 		pwrsum->setValue(hs110_rm_p->getValue() + hs110_fr_p->getValue() + hs110_wp_p->getValue());
+	}
 	else
 		pwrsum->setValid(false);
 
@@ -308,7 +322,11 @@ void loop1s(){
 	in *hs110_fr_tot = get_in("hs110_fr_tot");
 	in *hs110_wp_tot = get_in("hs110_wp_tot");
 	if (hs110_rm_tot and hs110_fr_tot and hs110_wp_tot)
+	{
+		if (!kWhsum)
+			kWhsum = new in("kwhsum", "kWh sum", "kWh", 3);
 		kWhsum->setValue(hs110_rm_tot->getValue() + hs110_fr_tot->getValue() + hs110_wp_tot->getValue());
+	}
 	else
 		kWhsum->setValid(false);
 	}
@@ -399,8 +417,8 @@ int main(){
 	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
 	lrain = new logic_rain("lrain", "LRain");
 	lpower = new logic_power("lpower", "LPower");
-	pwrsum = new in("pwrsum", "Power sum", "W", 3);
-	kWhsum = new in("kwhsum", "kWh sum", "kWh", 3);
+	//pwrsum = new in("pwrsum", "Power sum", "W", 3);
+	//kWhsum = new in("kwhsum", "kWh sum", "kWh", 3);
 
 	if (not globalControl)
 		webGuiStart("8094");

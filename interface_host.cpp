@@ -26,21 +26,22 @@
 using namespace std;
 
 interface_host::interface_host(const string d, const string n, float i):interface(d, n, i), _prevT(0){
-	diskfree    = new in("host_disk_free", "Host disk free", "byte");
-	diskused   = new in("host_disk_used", "Host disk used", "byte");
-	diskusedp  = new in("host_disk_usedp", "Host disk used p", "%", 7);
-	wd2diskfree    = new in("wd2_disk_free", "wd2 disk free", "byte");
-	wd2diskused   = new in("wd2_disk_used", "wd2 disk used", "byte");
-	wd2diskusedp  = new in("wd2_disk_usedp", "wd2 disk used p", "%", 7);
-	wd4diskfree    = new in("wd4_disk_free", "wd4 disk free", "byte");
-	wd4diskused   = new in("wd4_disk_used", "wd4 disk used", "byte");
-	wd4diskusedp  = new in("wd4_disk_usedp", "wd4 disk used p", "%", 7);
-	sdfree    = new in("sd_disk_free", "SD card free", "byte");
-	sdused   = new in("sd_disk_used", "SD card used", "byte");
-	sdusedp  = new in("sd_disk_usedp", "SD card used p", "%", 7);
-	ksfree    = new in("ks_disk_free", "Kingston free", "byte");
-	ksused   = new in("ks_disk_used", "Kingston used", "byte");
-	ksusedp  = new in("ks_disk_usedp", "Kingston used p", "%", 7);
+	add_disk("./", "host_disk", "Host disk");
+	//diskfree    = new in("host_disk_free", "Host disk free", "byte");
+	//diskused   = new in("host_disk_used", "Host disk used", "byte");
+	//diskusedp  = new in("host_disk_usedp", "Host disk used p", "%", 7);
+	//wd2diskfree    = new in("wd2_disk_free", "wd2 disk free", "byte");
+	//wd2diskused   = new in("wd2_disk_used", "wd2 disk used", "byte");
+	//wd2diskusedp  = new in("wd2_disk_usedp", "wd2 disk used p", "%", 7);
+	//wd4diskfree    = new in("wd4_disk_free", "wd4 disk free", "byte");
+	//wd4diskused   = new in("wd4_disk_used", "wd4 disk used", "byte");
+	//wd4diskusedp  = new in("wd4_disk_usedp", "wd4 disk used p", "%", 7);
+	//sdfree    = new in("sd_disk_free", "SD card free", "byte");
+	//sdused   = new in("sd_disk_used", "SD card used", "byte");
+	//sdusedp  = new in("sd_disk_usedp", "SD card used p", "%", 7);
+	//ksfree    = new in("ks_disk_free", "Kingston free", "byte");
+	//ksused   = new in("ks_disk_used", "Kingston used", "byte");
+	//ksusedp  = new in("ks_disk_usedp", "Kingston used p", "%", 7);
 	cpuus = new in("prog_utime", "Program cpu time user code", "s", 6);
 	cpuss = new in("prog_stime", "Program cpu time system functions", "s", 6);
 	cpcus = new in("prog_cutime", "Programs children cpu time user code", "s", 6);
@@ -105,24 +106,13 @@ interface_host::~interface_host(){
 	delete cpuFrequency;
 	delete cpuTemperature; // JCE, 3-9-2018
 
-	delete ksfree;
-	delete ksused;
-	delete ksusedp;
-	delete sdfree;
-	delete sdused;
-	delete sdusedp;
-	delete wd4diskfree;
-	delete wd4diskused;
-	delete wd4diskusedp;
-	delete wd2diskfree;
-	delete wd2diskused;
-	delete wd2diskusedp;
-	delete diskfree;
-	delete diskused;
-	delete diskusedp;
-	//delete bavail;
-	//delete nbavail;
-	//delete nbavailp;
+	for (auto i = disks.begin(); i != disks.end(); i++)
+	{
+		delete i->free;
+		delete i->used;
+		delete i->usedp;
+	}
+
 	delete cpuus;
 	delete cpuss;
 	delete cpcus;
@@ -133,21 +123,8 @@ interface_host::~interface_host(){
 	delete num_threads;
 	delete priority;
 	delete vsize;
-	//delete rsslim;
 	delete nice;
-	//delete rss;
 	delete VmRSS;
-	/*delete maxrss;
-	delete ixrss;
-	delete idrss;
-	delete isrss; 
-	delete minflt;
-	delete majflt;
-	delete nswap;
-	delete inblock;
-	delete oublock;
-	delete nvcsw;
-	delete nivcsw;*/
 	delete runtime; 
 	delete uptime;
 	delete totalruntime;
@@ -359,118 +336,29 @@ void interface_host::getIns(){
 	if (not allok)
 		VmRSS->setValid(false);		
 
-
-
 	// File system status, from library
 	struct statvfs s;
-	statvfs("./", &s);
-
-	//printf("statvfs:\nf_bsize = %lu\nf_frsize = %lu\nf_blocks = %lu\nf_bfree = %lu\nf_bavail = %lu\n", s.f_bsize, s.f_frsize, s.f_blocks, s.f_bfree, s.f_bavail);
-	double totalBytes = (double) s.f_frsize * s.f_blocks;
-	double freeBytes = (double) s.f_frsize * s.f_bfree;
-	//double availBytes = s.f_frsize * s.f_bavail;
-	diskfree->setValue(freeBytes, thisT);
-	diskused->setValue(totalBytes - freeBytes, thisT);
-	diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
-	//bavail->setValue(availBytes, thisT);
-	//nbavail->setValue(totalBytes - availBytes, thisT);
-	//nbavailp->setValue( ((float) s.f_blocks - s.f_bavail) / s.f_blocks * 100, thisT);
-
-	// File system status, harddisk "wd" mounted in home
-	if (statvfs("/home/jeindhoven/wd2", &s) == 0)
+	double totalBytes, freeBytes;
+	for (auto i = disks.begin(); i != disks.end(); i++)
 	{
-		totalBytes = (double) s.f_frsize * s.f_blocks;
-		freeBytes = (double) s.f_frsize * s.f_bfree;
-		wd2diskfree->setValue(freeBytes, thisT);
-		wd2diskused->setValue(totalBytes - freeBytes, thisT);
-		wd2diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+		if (statvfs(i->path.c_str(), &s) == 0)
+		{
+			totalBytes = (double) s.f_frsize * s.f_blocks;
+			freeBytes = (double) s.f_frsize * s.f_bfree;
+			i->free->setValue(freeBytes, thisT);
+			i->used->setValue(totalBytes - freeBytes, thisT);
+			i->usedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+		}
+		else
+		{
+			i->free->setValid(false);
+			i->used->setValid(false);
+			i->usedp->setValid(false);
+		}	
 	}
-	else
-	{
-		wd2diskfree->setValid(false);
-		wd2diskused->setValid(false);
-		wd2diskusedp->setValid(false);
-	}	
-
-	if (statvfs("/home/jeindhoven/wd4", &s) == 0)
-	{
-		totalBytes = (double) s.f_frsize * s.f_blocks;
-		freeBytes = (double) s.f_frsize * s.f_bfree;
-		wd4diskfree->setValue(freeBytes, thisT);
-		wd4diskused->setValue(totalBytes - freeBytes, thisT);
-		wd4diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
-	}
-	else
-	{
-		wd4diskfree->setValid(false);
-		wd4diskused->setValid(false);
-		wd4diskusedp->setValid(false);
-	}	
-
-	if (statvfs("/mnt/mmcblk0p2", &s) == 0)
-	{
-		totalBytes = (double) s.f_frsize * s.f_blocks;
-		freeBytes = (double) s.f_frsize * s.f_bfree;
-		sdfree->setValue(freeBytes, thisT);
-		sdused->setValue(totalBytes - freeBytes, thisT);
-		sdusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
-	}
-	else
-	{
-		sdfree->setValid(false);
-		sdused->setValid(false);
-		sdusedp->setValid(false);
-	}	
-
-	if (statvfs("/home/jeindhoven/kingston", &s) == 0)
-	{
-		totalBytes = (double) s.f_frsize * s.f_blocks;
-		freeBytes = (double) s.f_frsize * s.f_bfree;
-		ksfree->setValue(freeBytes, thisT);
-		ksused->setValue(totalBytes - freeBytes, thisT);
-		ksusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
-	}
-	else
-	{
-		ksfree->setValid(false);
-		ksused->setValid(false);
-		ksusedp->setValid(false);
-	}
-	/*
-	statvfs("/home/jeindhoven/wd4", &s);
-	totalBytes = (double) s.f_frsize * s.f_blocks;
-	freeBytes = (double) s.f_frsize * s.f_bfree;
-	wd4diskfree->setValue(freeBytes, thisT);
-	wd4diskused->setValue(totalBytes - freeBytes, thisT);
-	wd4diskusedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
-	*/
-	/*
-	struct rusage r;
-	//rv = 
-	getrusage(RUSAGE_SELF, &r);
-	#ifdef debug
-		//printf("%i\n", rv);
-	#endif
-	double cpuUserS = (double)r.ru_utime.tv_sec + r.ru_utime.tv_usec / 1000000;
-	double cpuSystemS = (double)r.ru_stime.tv_sec + r.ru_stime.tv_usec / 1000000;
-	double cpuS = cpuUserS + cpuSystemS;
-	cpuus->setValue(cpuUserS, thisT);
-	cpuss->setValue(cpuSystemS, thisT);
-	cputs->setValue(cpuS, thisT);
-	static double prevCpuUserS, prevCpuSystemS, prevT;*/
 	if (_prevT){
 		double dt = thisT - _prevT;
-		//double cpuUserP = (cpuUserS - prevCpuUserS) / dt * 100;
-		//double cpuSystemP = (cpuSystemS - prevCpuSystemS) / dt * 100;
-		//double cpuTotalP = cpuUserP + cpuSystemP;
-		//cpuup->setValue(cpuUserP);
-		//cpusp->setValue(cpuSystemP);
-		//cputp->setValue(cpuTotalP);
 		totalruntime->setValue(totalruntime->getValue() + dt);}
-	//else{
-	//	cpuup->setValid(false);
-	//	cpusp->setValid(false);
-	//	cputp->setValid(false);}
 
 	// Raspberry pi 3 has a CPU temperature readout.
 	// JCE, 3-9-2018
@@ -492,24 +380,18 @@ void interface_host::getIns(){
 	if (commandExecutedOK) cpuFrequency->setValue( stod(result.substr(14)), thisT);
 	cpuFrequency->setValid(commandExecutedOK);
 
-
 	_prevT = thisT;
-		//totalruntime->setValue(totalruntime->getValue() + 10);
-	/*
-	maxrss->setValue(r.ru_maxrss, thisT);
-	ixrss->setValue(r.ru_ixrss, thisT);
-	idrss->setValue(r.ru_idrss, thisT);
-	isrss->setValue(r.ru_isrss, thisT);
-	minflt->setValue(r.ru_minflt, thisT);
-	majflt->setValue(r.ru_majflt, thisT);
-	nswap->setValue(r.ru_nswap, thisT);
-	inblock->setValue(r.ru_inblock, thisT);
-	oublock->setValue(r.ru_oublock, thisT);
-	nvcsw->setValue(r.ru_nvcsw, thisT);
-	nivcsw->setValue(r.ru_nivcsw, thisT);*/
-	//runtime
-	//uptime
-	
 	}
 
-
+void interface_host::add_disk(string path, string id, string name)
+{
+	disk_ins di;
+	di.path = path;
+	di.free = new in(id + "_free", name + " free", "byte");
+	di.used = new in(id + "_used", name + " used", "byte");
+	di.usedp = new in(id + "_usedp", name + " used p", "%", 7);
+	//di.free = new in(getDescriptor() + "_" + id + "f", getName() + " " + name + " free", "byte");
+	//di.used = new in(getDescriptor() + "_" + id + "u", getName() + " " + name + " used", "byte");
+	//di.usedp = new in(getDescriptor() + "_" + id + "p", getName() + " " + name + " used p", "%", 7);
+	disks.push_back(di);
+}

@@ -6,19 +6,21 @@
 #include "in.h"
 #include "stringStore.h"
 
-using namespace std;
-
+typedef struct disk_ins
+{
+	std::string path;
+	in *free;
+	in *used;
+	in *usedp;
+} disk_ins;
 
 class interface_host : public interface{
 	public:
 		interface_host(const string, const string, float); // descr, name, ip-as-string
 		~interface_host();
 		void getIns();
-		in *diskfree, *diskused, *diskusedp;
-		in *wd2diskfree, *wd2diskused, *wd2diskusedp;
-		in *wd4diskfree, *wd4diskused, *wd4diskusedp;
-		in *sdfree, *sdused, *sdusedp;
-		in *ksfree, *ksused, *ksusedp;
+		void add_disk(std::string, std::string, std::string);	// Adds a disk to monitor for storage space. Path, id, name.
+		std::list<disk_ins> disks;	
 		//in *fanspd, *requests, *resets, *scanrate, *uptime, *latency;
 		// program cpu ins
 		in *cpuus, *cpuss, *cpcus, *cpcss, *cputs, *cputp;
