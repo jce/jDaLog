@@ -34,8 +34,8 @@ string exec(const char* cmd)
     return result;
 }
 
-interface_macp::interface_macp(const string d, const string n, float i, const string macstr):interface(d, n, i), _macstr(macstr){
-
+interface_macp::interface_macp(const string d, const string n, float i, const string macstr, const string pr):interface(d, n, i), _macstr(macstr), pingrange(pr)
+{
 	searchtime = new in(getDescriptor() + "_st", getName() + " searchtime", "s", 3);
 	mac_present = new in(getDescriptor() + "_mp", getName() + " mac present", "", 0);
 
@@ -45,12 +45,12 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 		if (p.is_directory())
 		{
 			string stem = p.path().stem().string();
-			size_t pos = stem.find("mac_");
+			size_t pos = stem.find(getDescriptor() + "_");
 			if (pos != string::npos)
 			{
 				string mac(stem, pos+4);
 				//printf(mac.c_str()); printf("\n");
-				macs[mac] = new in("mac_" + mac, "mac " + mac, "", 0);
+				macs[mac] = new in(getDescriptor() + "_" + mac, getName() + " " + mac, "", 0);
 			}
 		}
 }
@@ -69,7 +69,7 @@ void interface_macp::getIns()
 	string command;
 	//command = "nmap -sP -n 10.0.0.0/24 > /dev/null; arp -an | grep ";
 	//command.append(_macstr);
-	command = "nmap -sP -n 10.0.0.0/24 > /dev/null; arp";
+	command = "nmap -sP -n " + pingrange + " > /dev/null; arp"; // Pingrange example 10.0.0.0/24
 	string result;
 	result = exec(command.c_str());
 	
@@ -90,7 +90,7 @@ void interface_macp::getIns()
 		
 		// Create in's for new mac addresses
 		if (macs.count(match_str) != 1)
-			macs[match_str] = new in("mac_" + match_str, "mac " + match_str, "", 0);
+			macs[match_str] = new in(getDescriptor() + "_" + match_str, getName()+ " " + match_str, "", 0);
 	}
 
 	// Update the status of known addresses.

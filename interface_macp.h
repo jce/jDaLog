@@ -12,7 +12,7 @@
 
 class interface_macp : public interface{
 	public:
-		interface_macp(const std::string, const std::string, float, const std::string); // descr, name, url
+		interface_macp(const std::string, const std::string, float, const std::string, const std::string); // descr, name, url, pingrange
 		void look_for_mac(const string&);
 		void track_all_macs();
 		~interface_macp();
@@ -22,6 +22,7 @@ class interface_macp : public interface{
 		void setOut(out*, float);
 	private:
 		const std::string _macstr;
+		const std::string pingrange = "";
 		bool _trackallmacs = false;
 	};
 

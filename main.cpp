@@ -79,7 +79,7 @@ void build_interfaces(json_t *arr)
 		return;
 	size_t index;
 	json_t *json, *jscan, *jlon, *jlat;
-	const char *type, *id, *name, *key, *address;
+	const char *type, *id, *name, *key, *address, *pingrange;
 	float scan, lon, lat;
 	json_array_foreach(arr, index, json)
 	{
@@ -93,6 +93,7 @@ void build_interfaces(json_t *arr)
 				name = 	json_string_value(json_object_get(json, "name"));
 				key = 	json_string_value(json_object_get(json, "key"));
 				address = json_string_value(json_object_get(json, "address"));
+				pingrange = json_string_value(json_object_get(json, "pingrange"));
 				jlon =  json_object_get(json, "lon");
 				lon = json_number_value(jlon);
 				jlat =  json_object_get(json, "lat");
@@ -145,10 +146,10 @@ void build_interfaces(json_t *arr)
 				}
 				if (strcmp(type, "macp") == 0)
 				{
-					if (id and name and json_is_number(jscan) and address)
-						new interface_macp(id, name, scan, address);
+					if (id and name and json_is_number(jscan) and address and pingrange)
+						new interface_macp(id, name, scan, address, pingrange);
 					else
-						printf("could not build interface_macp(%s, %s, %f, %s)\n", id, name, scan, address);
+						printf("could not build interface_macp(%s, %s, %f, %s, %s)\n", id, name, scan, address, pingrange);
 				}
 				if (strcmp(type, "host") == 0)
 				{
