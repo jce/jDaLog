@@ -50,7 +50,8 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 			{
 				string mac(stem, pos+4);
 				//printf(mac.c_str()); printf("\n");
-				macs[mac] = new in(getDescriptor() + "_" + mac, getName() + " " + mac, "", 0);
+				if (mac != "st" and mac != "mp")
+					macs[mac] = new in(getDescriptor() + "_" + mac, getName() + " " + mac, "", 0);
 			}
 		}
 }
