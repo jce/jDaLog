@@ -13,6 +13,7 @@
 #include <endian.h>
 #include <fcntl.h>
 #include <linux/i2c-dev.h>
+#include <math.h>
 #include <netinet/in.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
@@ -26,9 +27,9 @@ using namespace std;
 interface_sht3x::interface_sht3x(string d, string n, float i, string _dev_path, uint8_t _i2c_id):interface(d, n, i), dev_path(_dev_path), i2c_id(_i2c_id)
 {
 	temp = new in(getDescriptor() + "_temp", getName() + " temperature", "degC", 2);
-	rh = new in(getDescriptor() + "_rh", getName() + " humidity", "%", 2);
+	rh = new in(getDescriptor() + "_rh", getName() + " rel humidity", "%", 2);
 	dewp = new in(getDescriptor() + "_dewp", getName() + " dewpoint", "degC", 1);
-	ah = new in(getDescriptor() + "_ah", getName() + " humidity", "g/m3", 1);
+	ah = new in(getDescriptor() + "_ah", getName() + " abs humidity", "g/m3", 2);
 
 	i2c_device = open(dev_path.c_str(), O_RDWR);
 	if (i2c_device < 0)
@@ -56,16 +57,70 @@ void interface_sht3x::getIns()
 	data[1] = 0x06;
 	write(i2c_device, data, 2);
 
-	sleep(1);
+//	sleep(1);
 
-	if (read(i2c_device, data, 6) != 6)
+	bool ok = read(i2c_device, data, 6) == 6;
+	if (ok)
+		ok = generate_crc(data, 2) == data[2] && generate_crc(data+3, 2) == data[5];
+	if (ok)
 	{
-		printf("jeu\n");
+		float ft, frh, fah, fdp;
+		uint16_t st, srh;
+		float n, P, V, R, T, M, a, b, y;
+		st =  256 * data[0] + data[1];
+		srh = 256 * data[3] + data[4];
+		ft = -45.0 + 175.0 * st / 65535;
+		frh = 100.0 * srh / 65535;
+		temp->setValue(ft, t);
+		rh->setValue(frh, t);
 
+		// Theoretical water vapour pressure at given temperature, according to Clausius-Clapeyron
+		// and wikipedia: https://en.wikipedia.org/wiki/Vapour_pressure_of_water
+		// P: Vapour pressure of water [kPa]
+		// T: Temperature [degC]
+		T = ft;
+		P = 0.61094 * exp( (17.625 * T) / (T + 243.04) );
+		
+		// The actual vapour pressure is relative to this maximum.
+		P = P * frh / 100;
 
+		// And from kPa to Pa
+		P = P * 1000;
 
+		// Temperature translated to Kelvin
+		T = T + 273.15;
+
+		// With the ideal gas law we can now calculate to a concentration of particles.
+		// PV = nRT, where:
+		// P = vapour pressure [Pa]
+		// V = volume [m3]
+		// n = number of particles [mol]
+		// R = gas constant, 8.3145 [J / mol / K]
+		// T = temperature [K]
+		V = 1.0;
+		R = 8.3145;
+		n = P * V / (R * T);
+
+		// Calculate back to weight
+		// M = molar weight of water, 18.01528 [g]
+		M = 18.01528;
+		fah = n * M;
+		ah->setValue(fah, t);
+
+		// Dewpoint from wikipedia as well.
+		// nl.wikipedia.org/wiki/Dauwpunt
+		// ft = temperature [degC]
+		// frh = relative humidity [0-100%]
+		// y = intermediate value
+		// a, b = constantes from the formula
+		a = 17.27;
+		b = 237.7;
+		y = (a * ft) / (b + ft) + log(frh/100);
+		fdp = b * y / (a - y);
+		dewp->setValue(fdp, t);
 	}
-	else	// Read failed
+
+	if (not ok)
 	{
 		temp->setValid(false);
 		rh->setValid(false);

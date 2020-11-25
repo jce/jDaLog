@@ -39,6 +39,7 @@
 #include "in_from_dir.h"
 #include "logic_km.h"
 #include "interface_pi_gpio.h"
+#include "interface_sht3x.h"
 
 using namespace std;
 //#define debug
@@ -78,9 +79,10 @@ void build_interfaces(json_t *arr)
 	if (! json_is_array(arr))
 		return;
 	size_t index;
-	json_t *json, *jscan, *jlon, *jlat;
-	const char *type, *id, *name, *key, *address, *pingrange;
+	json_t *json, *jscan, *jlon, *jlat, *ji2c_id;
+	const char *type, *id, *name, *key, *address, *pingrange, *i2c_dev;
 	float scan, lon, lat;
+	uint8_t i2c_id;
 	json_array_foreach(arr, index, json)
 	{
 		if (json_is_object(json))
@@ -94,12 +96,15 @@ void build_interfaces(json_t *arr)
 				key = 	json_string_value(json_object_get(json, "key"));
 				address = json_string_value(json_object_get(json, "address"));
 				pingrange = json_string_value(json_object_get(json, "pingrange"));
+				i2c_dev = json_string_value(json_object_get(json, "i2c_dev"));
 				jlon =  json_object_get(json, "lon");
 				lon = json_number_value(jlon);
 				jlat =  json_object_get(json, "lat");
 				lat = json_number_value(jlat);
 				jscan =  json_object_get(json, "scan");
 				scan = json_number_value(jscan);
+				ji2c_id =  json_object_get(json, "i2c_id");
+				i2c_id = json_integer_value(ji2c_id);
 
 				// Build different types
 				if (strcmp(type, "darksky") == 0)
@@ -177,6 +182,13 @@ void build_interfaces(json_t *arr)
 					}
 					else
 						printf("could not build interface_pi_gpio(%s, %s, %f)\n", id, name, scan);
+				}
+				if (strcmp(type, "sht3x") == 0)
+				{
+					if (id and name and json_is_number(jscan) and i2c_dev and json_is_integer(ji2c_id))
+						new interface_sht3x(id, name, scan, i2c_dev, i2c_id);
+					else
+						printf("could not build interface_sht3x(%s, %s, %f, %s, %d)\n", id, name, scan, i2c_dev, i2c_id);
 				}
 				if (strcmp(type, "maria") == 0)
 				{
