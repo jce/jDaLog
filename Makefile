@@ -7,7 +7,7 @@
 CC=gcc
 CPP=g++
 #CFLAGS=-I. -ldl -O2 -W -Wall -pedantic -pthread -L snap7-full-1.4.0/release/Linux/i386/glibc_2.21 -l snap7 -l curl -l modbus #-m32
-CCFLAGS=-I. -W -Wall -std=c99 -g -O0 -Wno-psabi#-O3
+CCFLAGS=-I. -W -Wall -g -O0 -Wno-psabi#-O3
 CPPFLAGS=-I. -W -Wall -std=c++17 -g -O0 -Wno-psabi# -O3#-m32
 #CPPFLAGS=-I. -W -Wall -g -O0 -Wno-psabi# -O3#-m32
 #LFLAGS=-ldl -pthread -lcurl -lmodbus -lsnap7 -ljansson -lmicrohttpd -L/usr/lib/arm-linux-gnueabihf  -lmariadbclient 
