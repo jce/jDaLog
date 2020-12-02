@@ -10,49 +10,47 @@ extern "C" {
 
 // Job scheduler.
 
-// It consists of a number of threads, that perform jobs that can be given to them.
-// Primarily intended for handling scripts at triggering events while not delaying the primary
-// program logic. Quite some inspiration has been obtained from https://github.com/Pithikos/C-Thread-Pool
-// but this would not be exactly what is needed.
-// JCE, 22-10-2019
-// Targets for version 1:
-// - Fixed number of threads
-// - No timing, only "perform this job right now"
-// - No repeating constructs
-// - Lua interpreter (not in scope of this threadpool, but still waypoint for this version)
-// - In C because, i hate classes. And it is supposed to be simple and a building block for the rest of the program.
-
 // Allocation size for job items.
 #define JOS_BLOCK_SIZE		64
-#define JOS_CLOCK_SOURCE	CLOCK_MONOTONIC_COARSE
+
+// Clock source. Coarse monotonic recommended. See man clock_gettime for options.
+//#define JOS_CLOCK_SOURCE	CLOCK_MONOTONIC_COARSE 	// pthread_cond_timedwait seems to not wait on this ever.
+#define JOS_CLOCK_SOURCE	CLOCK_MONOTONIC			// works fine.
+//#define JOS_CLOCK_SOURCE	CLOCK_REALTIME_COARSE	// Works, but returns based on the normal clock? COARSE time is a bit behind, so like 200 wakeups result
+//#define JOS_CLOCK_SOURCE	CLOCK_REALTIME			// Works. Obviously not the best choice.
 
 // Opaque type for the host program: one pool. Each job scheduler operation requires a pool to perform on. 
-struct jos_pool;
+typedef struct jos_pool jos_pool;
 
 // tp_new_pool returns a threadpool of the specified number of threads or NULL if
 // for some reason construction did not succeed. It will never return a smaller pool.
 struct jos_pool* jos_new_pool(unsigned int num_threads);
 
-// Obvious, this deletes a pool. It waits for all jobs to be completed, then cleans up.
-void jos_delete_pool(struct jos_pool *pool);
+// Delete a pool. It waits for all jobs to be completed, then cleans up.
+void jos_delete_pool(jos_pool *pool);
 
-// Give a function to the pool to be run.
-// 1 - The pool (this is C, not C++ heh )
+// Give a function to the pool to be run right away.
+// 1 - The pool
 // 2 - The function (function pointer to function with one void* argument that returns nothing)
 // 3 - The void* argument that is given to the function
 // Returns int. 0 = Success, 1 = Failed (job memory allocation failed), 2 = Failed (Pool pointer was NULL)
-int jos_run(struct jos_pool*, void (*)(void*), void*);
+void jos_run(jos_pool*, void (*)(void*), void*);
 
-// Get the number of pending tasks
-//uint32_t tp_get_num_tasks(struct tp_pool *pool);
+// Run at a specific timestamp
+//void jos_run_at(struct jos_pool*, const struct timespec*, void (*)(void*), void*);
 
-// Get the number of pending jobs
-//uint32_t tp_get_num_jobs(struct tp_pool *pool);
+// Run after a given time [s]
+void jos_run_in(jos_pool*, float, void (*)(void*), void*);
 
+// Run repeatedly every given interval [s]
+void jos_run_every(jos_pool*, double, void (*)(void*), void*);
+
+// Debug
+void jos_print(jos_pool*);
 
 #ifdef __cplusplus
 }
 #endif
 
-#endif /* JOS_SCHED_H */
+#endif /* JOB_SCHED_H */
 

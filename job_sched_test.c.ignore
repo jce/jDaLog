@@ -1,0 +1,63 @@
+// build with
+// cc job_sched_test.c job_sched.c -lpthread -lm -o test
+
+#include "job_sched.h"
+
+#include "stdio.h"
+#include "unistd.h"
+
+#include <time.h>
+
+jos_pool *pool;
+
+void job_a(void *p)
+{
+	printf("job a\n");
+}
+void job_b(void *p)
+{
+	printf("job  b\n");
+	jos_run_in(pool, 1.0, job_b, NULL);
+}
+void job_c(void *p)
+{
+	printf("job   c\n");
+	sleep(1);
+	jos_run(pool, job_c, NULL);
+}
+
+void job_p(void *p)
+{
+	printf("job    p %d\n", p);
+}
+
+void job_x(void *p){}
+
+void printnow()
+{
+	struct timespec ts;
+    clock_gettime(JOS_CLOCK_SOURCE, &ts);
+    double time = (double) ts.tv_sec + (double) ts.tv_nsec / 1000000000;
+	printf("%f\n", time);
+}
+
+void main()
+{
+	printf("hello world\n");
+	pool = jos_new_pool(3);
+	jos_run_every(pool, 2.5, job_a, NULL);
+	jos_run_in(pool, 1.0, job_b, NULL);
+	jos_run(pool, job_c, NULL);
+
+	for( int i = 0; i < 20; i++)
+		jos_run_in(pool, 4+0.1 * i, job_p, (void*) i);
+	for( int i = 0; i < 5; i++)
+		jos_run_in(pool, 7 , job_p, (void*) i);
+
+	jos_print(pool);
+	//sleep(5);
+	//jos_print(pool);
+	sleep(10);
+	jos_delete_pool(pool);
+	printf("byebye\n");
+}

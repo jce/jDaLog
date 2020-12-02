@@ -4,29 +4,24 @@
 // - Preserves job order
 // JCE, 29-11-2020
 
-// Quite some inspiration has been obtained from https://github.com/Pithikos/C-Thread-Pool
-// but this would not be exactly what is needed.
+// Inspiration has been obtained from https://github.com/Pithikos/C-Thread-Pool
 // JCE, 22-10-2019
 
 #include "job_sched.h"
 
+#include <math.h>		// modff
 #include <pthread.h>	// mutex, condition variable
+#include <stdio.h>
 #include <stdlib.h>		// malloc()
 #include <time.h>		// clock source macro's
 #include <unistd.h>		// sleep
-
-#include <stdio.h>
-#include <time.h>
-#include <pthread.h>
-
-#include <stdio.h>
-#include <time.h>
 
 // Individually scheduled job item.
 typedef struct jos_job
 {
 	struct jos_job *next;
 	struct timespec at;
+	double interval;
 	void (*fnc)(void*);
 	void* arg;
 } jos_job;
@@ -58,8 +53,10 @@ typedef struct jos_pool
 	jos_thread thread[];
 } jos_pool;
 
-// Protoddtype(s)
+// Prototype(s)
 static void* jos_thread_func(void*);
+void next_multiple_of(struct timespec*, double);
+static void insert_job(jos_pool*, jos_job*);
 
 // Expands the number of available job items by addint new free items.
 static void jos_new_job_block(jos_pool *pool, uint32_t jobs)
@@ -84,19 +81,18 @@ static void jos_new_job_block(jos_pool *pool, uint32_t jobs)
 	pool->free = block->job;
 }
 
-// sched_new_pool returns a job scheduling threadpool of the specified number of threads or NULL if
+// jos_new_pool returns a job scheduling threadpool of the specified number of threads or NULL if
 // for some reason construction did not succeed. It will never return a smaller pool.
 jos_pool* jos_new_pool(unsigned int num_threads)
 {
-	jos_pool *pool = malloc(sizeof(jos_pool) + sizeof(jos_thread) * num_threads);
+	jos_pool *pool = (jos_pool*) malloc(sizeof(jos_pool) + sizeof(jos_thread) * num_threads);
 	if (pool)
 	{
 		pool->num_threads = num_threads;
 		pthread_mutex_init(& pool->mutex, NULL);
 		pthread_condattr_t attr;
-	//	pthread_condattr_init(&attr);
-	//	pthread_condattr_setclock(&attr, JOS_CLOCK_SOURCE);
-	//	pthread_condattr_setclock(&attr, CLOCK_MONOTONIC);
+		pthread_condattr_init(&attr);
+		pthread_condattr_setclock(&attr, JOS_CLOCK_SOURCE);
 		pthread_cond_init(& pool->new_job, &attr);
 		pool->first = NULL;
 		pool->free = NULL;
@@ -131,7 +127,11 @@ jos_pool* jos_new_pool(unsigned int num_threads)
 	return pool;
 };
 
-static void jos_stop_job(void *p) {(void)(p);};
+static void jos_stop_job(void *p) 
+{
+	(void)(p);
+	printf("running stop job\n");
+};
 
 // Deletes a pool.
 void jos_delete_pool(jos_pool* pool)
@@ -151,34 +151,21 @@ void jos_delete_pool(jos_pool* pool)
 		pool->block = b->next;
 		free(b);
 	}
-	
 	free(pool);
-	pool = NULL;
 };
 
-// Compares two timespecs: less than or equal, "<=".
-static int lte(const struct timespec *lhs, const struct timespec *rhs)
+// Compares two timespecs: less than, "<".
+static int lt_ts(const struct timespec *lhs, const struct timespec *rhs)
 {
-	if(lhs->tv_sec == rhs->tv_sec)
-		return lhs->tv_nsec <= rhs->tv_nsec;
-	else
-		return lhs->tv_sec < rhs->tv_sec;
-}
-
-// Subtracts timespecs 1 = 2 - 3
-void sub_ts(struct timespec *rv, const struct timespec *lhs, const struct timespec *rhs)
-{
-	rv->tv_sec = lhs->tv_sec - rhs->tv_sec;
-	rv->tv_nsec = lhs->tv_nsec - rhs->tv_nsec;
-	if (rv->tv_nsec < 0)
-	{
-		rv->tv_nsec += 1000000000;
-		rv->tv_sec -= 1;
-	}
+	if (lhs->tv_sec < rhs->tv_sec)
+		return 1;
+	if (lhs->tv_sec == rhs->tv_sec)
+		return lhs->tv_nsec < rhs->tv_nsec;
+	return 0;
 }
 
 // Internally each thread executes this function.
-// There is a bit messy locks: The whole function assumes ownership of pool.
+// The whole function assumes ownership of pool.
 // Only, during waiting on a new job and during execution of the job the
 // ownership is released. Intended side effect is that the thread is held during
 // construction of the pool. If construction is partially successful (not
@@ -189,7 +176,6 @@ static void* jos_thread_func(void* p)
 	jos_pool *pool = (jos_pool*) p;
 	jos_job* job = NULL;
 	struct timespec ts;
-	int rv;
 
 	pthread_mutex_lock(&pool->mutex);
 
@@ -201,20 +187,43 @@ static void* jos_thread_func(void* p)
 			pthread_cond_wait(&pool->new_job, &pool->mutex);
 			continue;
 		}
-		rv = clock_gettime(JOS_CLOCK_SOURCE, &ts);
-		if (! lte( & pool->first->at, & ts))
-		{
-			sub_ts(&ts, & pool->first->at, &ts);
-			//pthread_cond_time_asdf
-		}
 		job = pool->first;
+		clock_gettime(JOS_CLOCK_SOURCE, &ts);
+
+		if ( lt_ts( &ts, & job->at))
+		{
+			pthread_cond_timedwait(&pool->new_job, &pool->mutex, &job->at);
+			continue;
+		}
 		pool->first = job->next;
 
+		// To be able to process the next scheduled item while this job is not yet finished,
+		// push one other thread in the timedwait.
+		if (pool->first)
+			pthread_cond_signal(&pool->new_job);
+		
 		// Perform the job
 		pthread_mutex_unlock(&pool->mutex);
 		job->fnc(job->arg);
-		free(job);
 		pthread_mutex_lock(&pool->mutex);
+
+		// If the job is a regular job, reschedule it.
+		if (job->interval)
+		{
+			// Take the current time (so after running of the job) to prevent multiple jobs running
+			// at the same time, or programming errors to fill up the whole thread pool.
+			// This will result in skipping (an) interval(s), if execution of the previous interval took too long.
+			clock_gettime(JOS_CLOCK_SOURCE, &ts);
+			next_multiple_of(&ts, job->interval);
+			job->at = ts;
+			insert_job(pool, job);
+		}
+		else
+		{		
+			// The job is a one-shot job. Return the job struct to the free list.
+			job->next = pool->free;
+			pool->free = job;
+		}
 	}
 
 	pthread_mutex_unlock(&pool->mutex);
@@ -232,43 +241,90 @@ static jos_job* get_empty_job(jos_pool *pool)
 
 static void insert_job(jos_pool *pool, jos_job *job)
 {
-	// Goal is to insert the job based on the timespec, after all jobs of earlier or the same timespec,
+	// Insert the job based on the timespec, after all jobs of earlier or the same timespec,
 	// and before any jobs with a later timespec.
 	jos_job **i = & pool->first;
+	while ( (*i) && ! lt_ts( &job->at, &(*i)->at) )
+		i = & (*i) -> next;
+	job->next = (*i);
+	(*i) = job;
 }
 
-
-int jos_run(jos_pool* pool, void (*fnc)(void*), void* arg)
+void jos_run_at(jos_pool* pool, const struct timespec *ts, void (*fnc)(void*), void* arg)
 {
-	if(pool)
-	{
-		jos_job* job = (jos_job*) malloc(sizeof(job));
-		if(job)
-		{
-			job->fnc = fnc;
-			job->arg = arg;
-			job->next = NULL;
-
-			pthread_mutex_lock(&pool->mutex);
-			//if (pool->last)
-			//	pool->last->next = job;
-			//pool->last = job;
-			if (! pool->first )
-				pool->first = job;
-			//pool->num_jobs++;
-			pthread_mutex_unlock(&pool->mutex);
-			
-			pthread_cond_signal(&pool->new_job);
-			return 0;
-		}
-		return 1;
-	}
-	return 2;
+	pthread_mutex_lock(&pool->mutex);
+	jos_job* job = get_empty_job(pool);
+	job->at = *ts;
+	job->interval = 0;
+	job->fnc = fnc;
+	job->arg = arg;
+	insert_job(pool, job);
+	pthread_mutex_unlock(&pool->mutex);
+		
+	pthread_cond_signal(&pool->new_job);
 }
 
+void jos_run(jos_pool *pool, void (*fnc)(void*), void* arg)
+{
+	struct timespec ts;
+	clock_gettime(JOS_CLOCK_SOURCE, &ts);
+	jos_run_at(pool, &ts, fnc, arg);
+}
 
-//void sched_at(void (*)(void*), void*, double);		// Schedules at timestamp.
-//void sched_in(void (*)(void*), void*, float);		// Schedules after given time [s].
-//void sched_every(void (*)(void*), void*, float);	// Repeats every given time [s]. Will be aligned to timestamp.
-//void sched(int*);									// Scheduler's function. Returns when given run flag turns 0.
+void jos_run_in(jos_pool *pool, float t, void (*fnc)(void*), void* arg)
+{
+	struct timespec ts;
+	clock_gettime(JOS_CLOCK_SOURCE, &ts);
+	ts.tv_sec += t;
+	ts.tv_nsec += fmodf(t, 1) * 1000000000;
+	if (ts.tv_nsec >= 1000000000)
+	{
+		ts.tv_sec += 1;
+		ts.tv_nsec -= 1000000000;
+	}
+	jos_run_at(pool, &ts, fnc, arg);	
+}
 
+// Helper function, finds the next timespec that is multiple of interval.
+void next_multiple_of(struct timespec *ts, double interval)
+{
+	double time = (double) ts->tv_sec + (double) ts->tv_nsec / 1000000000;
+	modf(time / interval, &time);
+	time = (time + 1) * interval;
+	ts->tv_sec = time;
+	ts->tv_nsec = fmod(time, 1) * 1000000000; 
+}
+
+void jos_run_every(jos_pool* pool, double interval, void (*fnc)(void*), void* arg)
+{
+	struct timespec ts;
+	clock_gettime(JOS_CLOCK_SOURCE, &ts);
+	next_multiple_of(&ts, interval);
+
+	pthread_mutex_lock(&pool->mutex);
+	jos_job* job = get_empty_job(pool);
+	job->at = ts;
+	job->interval = interval;
+	job->fnc = fnc;
+	job->arg = arg;
+	insert_job(pool, job);
+	pthread_mutex_unlock(&pool->mutex);
+		
+	pthread_cond_signal(&pool->new_job);
+}
+
+// debug print function
+void jos_print(jos_pool *pool)
+{
+	pthread_mutex_lock(&pool->mutex);
+	double time;
+	jos_job *job = pool->first;
+	printf("     fnc      arg               at         interval\n");
+	while(job)
+	{
+		time = (double) job->at.tv_sec + (double) job->at.tv_nsec / 1000000000;
+		printf("%8d %8d %16f %16f\n", job->fnc, job->arg, time, job->interval);
+		job = job->next;
+	}
+	pthread_mutex_unlock(&pool->mutex);
+}
