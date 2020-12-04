@@ -50,9 +50,9 @@ class out: public in {	// Een out is een in, maar dan aangepast. Namelijk er moe
 		std::string expression;			// for reference
 		var_in_double *vars = NULL;		// Source data for the vars table
 		te_expr *expr = NULL;			// Tinyexpr equation
-		int nr_vars;					// Number of variables in vars_ins array.
-		int nr_ins;						// Number of ins the equation depends on.
-		int valid_ins;					// Valid source ins. Together with num_ins can disable evaluation of the equation.
+		int nr_vars = 0;				// Number of variables in vars_ins array.
+		int nr_ins = 0;					// Number of ins the equation depends on.
+		int valid_ins = 0;				// Valid source ins. Together with num_ins can disable evaluation of the equation.
 		bool have_default_val = false;	// If not all ins are valid, do we set a default output?
 		float default_val = 0;			// The default value if not all ins are valid.
 
