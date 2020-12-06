@@ -323,7 +323,7 @@ void jos_print(jos_pool *pool)
 	while(job)
 	{
 		time = (double) job->at.tv_sec + (double) job->at.tv_nsec / 1000000000;
-		printf("%8d %8d %16f %16f\n", job->fnc, job->arg, time, job->interval);
+		printf("%p %p %16f %16f\n", job->fnc, job->arg, time, job->interval);
 		job = job->next;
 	}
 	pthread_mutex_unlock(&pool->mutex);

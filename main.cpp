@@ -40,6 +40,8 @@
 #include "logic_km.h"
 #include "interface_pi_gpio.h"
 #include "interface_sht3x.h"
+#include "job_sched.h"
+
 
 using namespace std;
 //#define debug
@@ -368,6 +370,20 @@ void loopstoreio(){
 	deleteOldFiles(); // AKA segmentation fault... JCE, 5-7-13
 	}
 
+
+class greeter
+{
+private:
+	string name;
+public:
+	greeter(string n): name(n) {}
+	virtual ~greeter() {}
+	void hi() { printf("%s: hi\n", name.c_str());}
+	void hello() { printf("%s: hello\n", name.c_str());}
+	CC(greeter, hi);
+	CC(greeter, hello);
+};
+
 int main(){
 	// Signal handler
 	struct sigaction sa;
@@ -377,6 +393,14 @@ int main(){
 	sigaction(SIGHUP, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
+
+	// Test section for scheduler
+	jos_pool *pool = jos_new_pool(4);
+	greeter g1("x");
+	greeter g2("y");
+	jos_run_every(pool, 60.1, greeter::cc_hi, (void*) &g1);
+	jos_run_every(pool, 59.9, greeter::cc_hello, (void*) &g2);
+
 
 	// According to Curl docs:
 	// https://curl.haxx.se/libcurl/c/curl_global_init.html
