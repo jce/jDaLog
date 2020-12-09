@@ -50,6 +50,7 @@ using namespace std;
 
 bool run(true);
 bool globalControl(true);	// The inverse of isDevelopmentVersion heh. JCE, 25-9-13
+jos_pool *pool;
 
 in *buildNr, *version, *haveControl;
 logic *lfijnstof, *lrain;
@@ -395,11 +396,11 @@ int main(){
 	sigaction(SIGTERM, &sa, NULL);
 
 	// Test section for scheduler
-	jos_pool *pool = jos_new_pool(4);
-	greeter g1("x");
-	greeter g2("y");
-	jos_run_every(pool, 60.1, greeter::cc_hi, (void*) &g1);
-	jos_run_every(pool, 59.9, greeter::cc_hello, (void*) &g2);
+	//jos_pool *pool = jos_new_pool(4);
+	//greeter g1("x");
+	//greeter g2("y");
+	//jos_run_every(pool, 60.1, greeter::cc_hi, (void*) &g1);
+	//jos_run_every(pool, 59.9, greeter::cc_hello, (void*) &g2);
 
 
 	// According to Curl docs:
@@ -428,6 +429,18 @@ int main(){
         printf("interpreting config.json failed: %s at position %i (line %i, column %i)\n", error.text, error.position, error.line, error.column);
         return(0);
     }
+
+	// Build scheduler pool
+	int scheduler_threads = DEFAULT_SCHEDULER_NUM_THREADS;
+	json_t *scheduler_threads_j = json_object_get(json, "scheduler_threads");
+	if (json_is_integer(scheduler_threads_j))
+		scheduler_threads = json_integer_value(scheduler_threads_j);
+	pool = jos_new_pool(scheduler_threads);
+	if (!pool)
+	{
+		printf("Scheduler pool creation (%d threads) failed\n", scheduler_threads);
+		return 0;
+	}
 
 	build_interfaces(json_object_get(json, "interface"));
 	build_dir_to_ins(json_object_get(json, "dir_to_ins"));
