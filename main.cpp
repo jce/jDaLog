@@ -41,7 +41,7 @@
 #include "interface_pi_gpio.h"
 #include "interface_sht3x.h"
 #include "job_sched.h"
-
+#include "logic_compare.h"
 
 using namespace std;
 //#define debug
@@ -250,8 +250,8 @@ void build_logics(json_t *arr)
 		return;
 	size_t index;
 	json_t *json;
-	in *inp;
-	const char *type, *indescr, *name, *id;
+	in *inp, *in2p;
+	const char *type, *indescr, *in2descr, *name, *id;
 	json_array_foreach(arr, index, json)
 	{
 		if (json_is_object(json))
@@ -261,16 +261,27 @@ void build_logics(json_t *arr)
 			{
 				id = 	json_string_value(json_object_get(json, "id"));
 				name = 	json_string_value(json_object_get(json, "name"));
+				if (!name)
+					name = id;
 				indescr = json_string_value(json_object_get(json, "in"));
+				inp = get_in(indescr);
+				in2descr= json_string_value(json_object_get(json, "in2"));
+				in2p = get_in(in2descr);
 
 				// Build different types
 				if (strcmp(type, "km") == 0)
 				{
-					inp = get_in(indescr);
 					if (id and name and inp)
 						new logic_km(id, name, inp);
 					else
 						printf("could not build logic_km(%s, %s, get_in(%s))\n", id, name, indescr);
+				}
+				if (strcmp(type, "compare") == 0)
+				{
+					if (id and name and inp and in2p)
+						new logic_compare(id, name, inp, in2p);
+					else
+						printf("could not build logic_compare(%s, %s, get_in(%s), get_in(%s))\n", id, name, indescr, in2descr);
 				}
 			}
 		}
