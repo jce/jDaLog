@@ -67,16 +67,6 @@ void handle_signal(int signal){
 		};
 	};
 
-struct myThread{
-	pthread_t thread;
-	void (*func)();
-	float interval;
-	//in *scantime;
-	string name;
-	};
-
-list<myThread*> myThreadList;
-
 void build_interfaces(json_t *arr)
 {
 	if (! json_is_array(arr))
@@ -205,6 +195,37 @@ void build_interfaces(json_t *arr)
 	}	
 }
 
+void build_webins(json_t *arr)
+{
+	if (! json_is_array(arr))
+		return;
+	size_t index;
+	json_t *json, *jdecimals;
+	const char *id;
+	const char *name;
+	const char *unit;
+	int decimals;
+	json_array_foreach(arr, index, json)
+	{
+		if (json_is_object(json))
+		{
+			id = 	json_string_value(json_object_get(json, "id"));
+			name = 	json_string_value(json_object_get(json, "name"));
+			if (!name)
+				name = id;
+			unit =	json_string_value(json_object_get(json, "unit"));
+			if (!unit)
+				unit = "";
+			jdecimals = json_object_get(json, "decimals");
+			if (json_is_integer(jdecimals))
+				decimals = json_number_value(jdecimals);
+			else
+				decimals = 0;
+			new webin(id, name, unit, decimals);
+		}
+	}
+}
+
 void build_dir_to_ins(json_t *arr)
 {
 	if (! json_is_array(arr))
@@ -256,68 +277,6 @@ void build_logics(json_t *arr)
 	}
 }
 
-void* myThreadFunc(void* blah){
-	struct myThread* data = (myThread*) blah;
-	printf("%f second loop has started\n", data->interval);
-	double start, end;
-	char sname[101], lname[101];
-	if (data->name != "")
-	{
-		snprintf(sname, 100,  "scant%s_%fs", data->name.c_str(), data->interval);
-		snprintf(lname, 100, "Scantime %s %f second scan", data->name.c_str(), data->interval);
-	}
-	else
-	{
-		snprintf(sname, 100,  "scant%fs", data->interval);
-		snprintf(lname, 100, "Scantime %f second scan", data->interval);
-	}
-	in scantime(sname, lname, "s", 6);
-	double ttni = 0;
-	while (run){
-		if (ttni == 0){
-			start = now();	// set start time
-			#ifdef debug
-				printf("<%f s loop: %f s", data->interval, start);
-			#endif
-			data->func();
-			end = now();
-			#ifdef debug
-				printf("%f s loop>\n", data->interval);
-			#endif
-			scantime.setValue(end-start);}
-		#ifdef debug
-			//printf("<%u thinking how long to sleep>\n", data->interval);
-		#endif
-		ttni = data->interval - fmod(now(), data->interval);
-		if (ttni > 0.1){
-			#ifdef debug
-				//printf("<%usleep0.1s>\n", data->interval);
-			#endif
-			usleep(100000);
-			ttni -= 0.1;}
-		else{
-			#ifdef debug
-				//printf("<%usleep%fs>\n", data->interval, ttni);
-			#endif
-			usleep(ttni * 1000000);
-			ttni = 0;}
-		#ifdef debug
-			//printf("<%uwoke>\n", data->interval);
-		#endif
-		}
-	printf("%f second loop has stopped\n", data->interval);
-	return NULL;}
-
-void callFuncOnInterval(void(*func)(), float interval, string name = ""){
-	myThread *t = new myThread;
-	t->func = func;
-	t->interval = interval;
-	t->name = name;	
-
-	pthread_create(&(t->thread), NULL, &myThreadFunc, (void*) t);
-	myThreadList.push_back(t);
-	}
-
 void loop1s(){
 
 	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
@@ -354,9 +313,6 @@ void loop60s(){
 	version->setValue(tcProgramVersion);
 	haveControl->setValue(globalControl);
 	touchAllWebins();
-	// scan_xiaomi->getIns();
-	//xmrstak_main->getIns();
-	//scan_xiaomi->getIns();
 }
 
 void loopstoreio(){
@@ -371,20 +327,6 @@ void loopstoreio(){
 	deleteOldFiles(); // AKA segmentation fault... JCE, 5-7-13
 	}
 
-
-class greeter
-{
-private:
-	string name;
-public:
-	greeter(string n): name(n) {}
-	virtual ~greeter() {}
-	void hi() { printf("%s: hi\n", name.c_str());}
-	void hello() { printf("%s: hello\n", name.c_str());}
-	CC(greeter, hi);
-	CC(greeter, hello);
-};
-
 int main(){
 	// Signal handler
 	struct sigaction sa;
@@ -394,14 +336,6 @@ int main(){
 	sigaction(SIGHUP, &sa, NULL);
 	sigaction(SIGINT, &sa, NULL);
 	sigaction(SIGTERM, &sa, NULL);
-
-	// Test section for scheduler
-	//jos_pool *pool = jos_new_pool(4);
-	//greeter g1("x");
-	//greeter g2("y");
-	//jos_run_every(pool, 60.1, greeter::cc_hi, (void*) &g1);
-	//jos_run_every(pool, 59.9, greeter::cc_hello, (void*) &g2);
-
 
 	// According to Curl docs:
 	// https://curl.haxx.se/libcurl/c/curl_global_init.html
@@ -443,6 +377,7 @@ int main(){
 	}
 
 	build_interfaces(json_object_get(json, "interface"));
+	build_webins(json_object_get(json, "webin"));
 	build_dir_to_ins(json_object_get(json, "dir_to_ins"));
 	build_logics(json_object_get(json, "logic"));
 	out_conf(json_object_get(json, "out"));
@@ -479,9 +414,10 @@ int main(){
 	
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->start();
-	callFuncOnInterval(loop1s, 1);
-	callFuncOnInterval(loop60s, 60); // only this: keeps running	
-	callFuncOnInterval(loopstoreio, 1*3600); // only this: keeps running
+	
+	jos_run_every(pool, 1, 		(void (*)(void*)) loop1s, NULL);
+	jos_run_every(pool, 60, 	(void (*)(void*)) loop60s, NULL);
+	jos_run_every(pool, 3600, 	(void (*)(void*)) loopstoreio, NULL);
 
 	usleep(100000);
 	printf("running... (press control+C to stop)\n");
@@ -490,19 +426,9 @@ int main(){
 	while(run){sleep(1000);}
 	printf("shuttind down...\n");
 	run = false;
-	//webGuiStop();
 
-	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
-		i->second->stop();
-	
-	// for all threads, join
-	list<myThread*>::iterator i;
-	if (myThreadList.size())
-		for (i = myThreadList.begin(); i != myThreadList.end(); i++)
-			pthread_join((*i)->thread, NULL);
-
-	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
-		i->second->join();
+	// Stops all jobs, including those from interfaces.
+	jos_delete_pool(pool);
 
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		delete i->second;
