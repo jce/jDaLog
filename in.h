@@ -68,5 +68,6 @@ class in{
 
 extern mutex inmap_mutex; // JCE, 9-10-2018
 extern map<string, in*> inmap;
+in* get_in(const char*); // JCE, 9-12-2020
 in* get_in(string); // JCE, 19-6-2019
 #endif // HAVE_IN_H

@@ -211,6 +211,13 @@ void in::importData(){
 
 void in::touch(){setValue(getValue());}
 
+in* get_in(const char *s)
+{
+	if (!s)
+		return NULL;
+	return get_in(string(s));
+}
+
 in* get_in(string name)
 {
 	in* rv = 0;
