@@ -223,11 +223,9 @@ double floatLog::getLastTime(){
 	return 0;}
 
 void floatLog::writeToFile() {
-	//printf("writing to file\n");
 	list<record>::iterator i;
 	record r;
 	FILE *fp;
-	//printf("opening file for appending");
 	pthread_mutex_lock(&_fileMutex);
 	pthread_mutex_lock(&_memMutex);
 		fp = fopen(_pathAndName.c_str(), "a");
@@ -240,12 +238,7 @@ void floatLog::writeToFile() {
 			unsigned int rlen = sizeof(record);
 			unsigned int overshoot_on_multiple_of_records = pos % rlen;
 			if (overshoot_on_multiple_of_records)
-			{
-				int padding_required = rlen - overshoot_on_multiple_of_records;
-				printf("%s is not record aligned, adding %i bytes.\n", _pathAndName.c_str(), padding_required);
-				for (int i = 0; i < padding_required; i++)
-					fputc('\0' , fp);
-			}
+				fseek(fp, pos-overshoot_on_multiple_of_records, SEEK_SET);	// Trim the end if the lengt is not a multiple of record. JCE, 10-12-2020
 			for (i = _recordsToFile.begin(); i != _recordsToFile.end(); i++){
 				r = *i;
 				fwrite(&r, sizeof(record), 1, fp);}
