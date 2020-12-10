@@ -250,8 +250,8 @@ void build_logics(json_t *arr)
 		return;
 	size_t index;
 	json_t *json;
-	in *inp, *in2p;
-	const char *type, *indescr, *in2descr, *name, *id;
+	in *inp;
+	const char *type, *indescr, *name, *id;
 	json_array_foreach(arr, index, json)
 	{
 		if (json_is_object(json))
@@ -263,14 +263,12 @@ void build_logics(json_t *arr)
 				name = 	json_string_value(json_object_get(json, "name"));
 				if (!name)
 					name = id;
-				indescr = json_string_value(json_object_get(json, "in"));
-				inp = get_in(indescr);
-				in2descr= json_string_value(json_object_get(json, "in2"));
-				in2p = get_in(in2descr);
 
 				// Build different types
 				if (strcmp(type, "km") == 0)
 				{
+					indescr = json_string_value(json_object_get(json, "in"));
+					inp = get_in(indescr);
 					if (id and name and inp)
 						new logic_km(id, name, inp);
 					else
@@ -278,10 +276,30 @@ void build_logics(json_t *arr)
 				}
 				if (strcmp(type, "compare") == 0)
 				{
-					if (id and name and inp and in2p)
-						new logic_compare(id, name, inp, in2p);
+					int i;
+					json_t *j;
+					list<in*> inlist;
+					json_array_foreach(json_object_get(json, "in"), i, j)
+					{
+						const char *ins = json_string_value(j);
+						in *inp = get_in(ins);
+						if (inp)
+							inlist.push_back(inp);
+						else
+							printf("Compare %s: in %s not found\n", id, ins);
+					}
+					if (id and name and inlist.size())
+					{
+						logic_compare *lp = new logic_compare(id, name, inlist);
+						json_t *w = json_object_get(json, "w");
+						if (json_is_integer(w))
+							lp->gw = json_integer_value(w);
+						json_t *h = json_object_get(json, "h");
+						if (json_is_integer(h))
+							lp->gh = json_integer_value(h);
+					}
 					else
-						printf("could not build logic_compare(%s, %s, get_in(%s), get_in(%s))\n", id, name, indescr, in2descr);
+						printf("could not build logic_compare(%s, %s, list of %d ins)\n", id, name, inlist.size());
 				}
 			}
 		}

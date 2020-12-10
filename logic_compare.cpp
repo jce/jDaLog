@@ -15,7 +15,9 @@
 #include "float.h"
 #include "webgui.h"
 
-logic_compare::logic_compare(const std::string d, const std::string n, in *_in_a, in *_in_b) : logic(d, n), in_a(_in_a), in_b(_in_b)
+using namespace std;
+
+logic_compare::logic_compare(const std::string d, const std::string n, list<in*>_il) : logic(d, n), inlist(_il)
 {
 }
 
@@ -25,19 +27,25 @@ logic_compare::~logic_compare()
 
 int logic_compare::make_page(struct mg_connection *conn)
 {
+	unsigned int w = gw;
+	if (!w)
+		w = def_w;
+	unsigned int h = gh;
+	if (!h)
+		h = def_h;
+
 	string line;
 	mg_printf(conn, "comparing:<br>\n" );
-	mg_printf(conn, make_in_link(in_a).c_str());
-	mg_printf(conn, " and ");
-	mg_printf(conn, make_in_link(in_b).c_str());
+	for (auto i = inlist.begin(); i != inlist.end(); i++)
+		mg_printf(conn, "%s ", make_in_link(*i).c_str());
 	mg_printf(conn, "<br><hr>\n");
-	line = make_image_line(plotLines(in_a, in_b, now() - 3600, now(), def_w, def_h, ""));
+	line = make_image_line(plotLines(inlist, now() - 3600, now(), w, h, ""));
 	mg_printf(conn, line.c_str());
-	line = make_image_line(plotLines(in_a, in_b, now() - 24*3600, now(), def_w, def_h, ""));
+	line = make_image_line(plotLines(inlist, now() - 24*3600, now(), w, h, ""));
 	mg_printf(conn, line.c_str());
-	line = make_image_line(plotLines(in_a, in_b, now() - 7*24*3600, now(), def_w, def_h, ""));
+	line = make_image_line(plotLines(inlist, now() - 7*24*3600, now(), w, h, ""));
 	mg_printf(conn, line.c_str());
-	line = make_image_line(plotLines(in_a, in_b, now() - 4*7*24*3600, now(), def_w, def_h, ""));
+	line = make_image_line(plotLines(inlist, now() - 4*7*24*3600, now(), w, h, ""));
 	mg_printf(conn, line.c_str());
 	return 1;
 }
