@@ -45,6 +45,12 @@ void jos_run_in(jos_pool*, float, void (*)(void*), void*);
 // Run repeatedly every given interval [s]
 void jos_run_every(jos_pool*, double, void (*)(void*), void*);
 
+// Remove all scheduled actions for a function
+// void jos_remove_fnc(jos_pool*, void (*)(void*));
+
+// Remove all scheduled actions for a function with parameter
+void jos_remove(jos_pool*, void (*)(void*), void*);
+
 // Debug
 void jos_print(jos_pool*);
 

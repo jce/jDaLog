@@ -1,0 +1,118 @@
+#include "stdio.h"
+#include <string>
+#include "string.h"
+#include "floatLog.h"
+#include "logic_modulator.h"
+#include "main.h"
+#include "sys/stat.h" 	// mkdir
+#include "sys/time.h" 	// gettimeofday(()
+#include "out.h"
+#include "unistd.h" 	// usleep
+#include "math.h"		// pow
+#include "webin.h"
+#include "webgui.h"		// plotlines
+#include "float.h"		// FLT_MIN
+
+using namespace std;
+
+
+
+logic_modulator::logic_modulator(const string d, const string n, out *o) : logic(d, n), out_mod(o) 
+{
+	out_sp = new out(d + "_sp", n + " setpoint", out_mod->getUnits(), 4, (void*) this, 0, FLT_MIN, 1);
+}
+
+logic_modulator::~logic_modulator()
+{
+	if(out_sp)
+		delete out_sp;
+}
+
+void logic_modulator::run()
+{
+	// The on-off switch thing
+/*	double out = _out->getValue();
+	double sp = _sp->getValue();
+	double error = _in->getValue() - sp;
+	_e->setValue(error);
+	if (_dir == "-"){
+		if (_in->getValue() > sp+_high->getValue())
+			out = 1;
+		if (_in->getValue() < sp+_low->getValue())
+			out = 0;
+		}
+	else{ // _dir is most likely "+", but catch all 
+		if (_in->getValue() > sp+_high->getValue())
+			out = 0;
+		if (_in->getValue() < sp+_low->getValue())
+			out = 1;
+		}
+	_out->setOut(out);*/
+}
+
+void logic_modulator::setOut(out *o, float val)
+{
+}
+
+int logic_modulator::make_page(struct mg_connection *conn)
+{
+/*
+	mg_printf(conn, "on/off regulator page. This page displays the current state as well as configured values for this on-off regulator<br>\n");
+	mg_printf(conn, "Lower treshold: %.*f %s<br>\n", _low->getDecimals(), _low->getValue(), _low->getUnits().c_str());
+	mg_printf(conn, "Higher treshold: %.*f %s<br>\n", _high->getDecimals(), _high->getValue(), _high->getUnits().c_str());
+	mg_printf(conn, "Error value: %.*f %s<br>\n", _e->getDecimals(), _e->getValue(), _e->getUnits().c_str());
+	mg_printf(conn, "Output value: %.*f %s<br>\n", _out->getDecimals(), _out->getValue(), _out->getUnits().c_str());
+
+	string line;
+ 	line = make_image_line(plotLines(_low, _high, _e, _out, now() - 3600, now(), 1280, 300, "low, high, error and output"));
+	mg_printf(conn, line.c_str());
+ 	//line = make_image_line(plotLines(_low, _high, _e, _out, now() - 24*3600, now(), 1280, 300, "low, high, error and output"));
+	//mg_printf(conn, line.c_str());
+	return 1;
+	*/	
+}
+
+// helper functions
+
+void bool_in_double_from_json(bool_in_double &bid, json_t *json)
+{
+	if(json_is_number(json))
+	{
+		bid.have = true;
+		bid.d = json_number_value(json);
+		return;
+	}
+	const char *s = json_string_value(json);
+	in *i = get_in(s);
+	if (i)
+	{
+		bid.have = true;
+		bid.i = i;
+	}
+}
+
+void logic_modulator_from_json(const char *id, const char *name, json_t *json)
+{
+	if (!id)
+	{
+		printf("logic_modulator: no id given.\n");
+		return;
+	}	
+	if (!name)
+		name = id;
+	const char *out_mod_s = json_string_value(json_object_get(json, "out"));
+	out *mod_out = get_out(out_mod_s);
+	if (!mod_out)
+	{
+		printf("logic_modulator %s: no (valid) out specified: %s\n", id, out_mod_s);
+		return;
+	}
+	logic_modulator *m = new logic_modulator(id, name, mod_out);
+	bool_in_double_from_json(m->error_sum_limit_low,	json_object_get(json, "error_sum_limit_low"));
+	bool_in_double_from_json(m->error_sum_limit_high, 	json_object_get(json, "error_sum_limit_high"));
+	bool_in_double_from_json(m->time_off_min, 			json_object_get(json, "time_off_min"));
+	bool_in_double_from_json(m->time_off_max, 			json_object_get(json, "time_off_max"));
+	bool_in_double_from_json(m->time_on_min, 			json_object_get(json, "time_on_min"));
+	bool_in_double_from_json(m->time_on_max, 			json_object_get(json, "time_on_max"));
+}
+

@@ -313,6 +313,34 @@ void jos_run_every(jos_pool* pool, double interval, void (*fnc)(void*), void* ar
 	pthread_cond_signal(&pool->new_job);
 }
 
+// Remove all scheduled actions for a function with parameter
+void jos_remove(jos_pool *pool, void (*fnc)(void*), void *arg)
+{
+	pthread_mutex_lock(&pool->mutex);
+	
+	// Iterates over all jobs
+	jos_job **i = & pool->first;
+	while (*i)
+	{
+		// If this is the job + parameter that we look for
+		if ( (*i)->fnc == fnc && (*i)->arg == arg)
+		{
+			// Remember the next job
+			jos_job *j_next = (*i)->next;
+			// Change this job's next pointer to the first free
+			(*i)->next = pool->free;
+			// Change the pool's free pointer to this job
+			pool->free = (*i);
+			// Change the previous job's next to the remembered next
+			(*i) = j_next;
+		}
+		else
+			i = & (*i) -> next;
+	}
+
+	pthread_mutex_unlock(&pool->mutex);
+}
+
 // debug print function
 void jos_print(jos_pool *pool)
 {

@@ -42,6 +42,7 @@
 #include "interface_sht3x.h"
 #include "job_sched.h"
 #include "logic_compare.h"
+#include "logic_modulator.h"
 
 using namespace std;
 //#define debug
@@ -274,6 +275,7 @@ void build_logics(json_t *arr)
 					else
 						printf("could not build logic_km(%s, %s, get_in(%s))\n", id, name, indescr);
 				}
+
 				if (strcmp(type, "compare") == 0)
 				{
 					int i;
@@ -300,6 +302,21 @@ void build_logics(json_t *arr)
 					}
 					else
 						printf("could not build logic_compare(%s, %s, list of %d ins)\n", id, name, inlist.size());
+				}
+
+				if (strcmp(type, "modulator") == 0)
+				{
+					logic_modulator_from_json(id, name, json);
+					/*
+					out *mod_out = get_out(json_string_value(json_object_get(json, "out")));
+					if (id and name and mod_out)
+					{
+						logic_modulator *m = new logic_modulator(id, name, mod_out);
+						if (json_is_integer(json_object_get(json, "input_limit_low")))
+						{
+						//	m->input_limit_low
+						}
+					}	*/			
 				}
 			}
 		}
@@ -356,6 +373,11 @@ void loopstoreio(){
 	deleteOldFiles(); // AKA segmentation fault... JCE, 5-7-13
 	}
 
+void print_ptr(void *p)
+{
+	printf("print_ptr(%p)\n", p);
+}
+
 int main(){
 	// Signal handler
 	struct sigaction sa;
@@ -404,6 +426,21 @@ int main(){
 		printf("Scheduler pool creation (%d threads) failed\n", scheduler_threads);
 		return 0;
 	}
+
+	/* Test for removing of jobs
+	jos_run_every(pool, 1, print_ptr, (void*) 1);
+	jos_run_every(pool, 1, print_ptr, (void*) 2);
+	jos_run_every(pool, 1, print_ptr, (void*) 3);
+	jos_run_every(pool, 1, print_ptr, (void*) 4);
+	sleep(1);
+	jos_remove(pool, print_ptr, (void*) 2);
+	sleep(1);
+	jos_remove(pool, print_ptr, (void*) 4);
+	sleep(1);
+	jos_remove(pool, print_ptr, (void*) 1);
+	jos_remove(pool, print_ptr, (void*) 3);
+	jos_remove(pool, print_ptr, (void*) 4);
+	*/
 
 	build_interfaces(json_object_get(json, "interface"));
 	build_webins(json_object_get(json, "webin"));

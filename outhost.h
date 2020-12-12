@@ -2,7 +2,6 @@
 #define HAVE_OUTHOST_H
 
 #include "out.h"
-using namespace std;
 
 // base class to inherit from, if the class has to have a setOut(out*, float)
 
