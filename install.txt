@@ -3,6 +3,7 @@ you need these packages:
 Required packages:
 sudo apt install
 libmariadbclient-dev
+libmariadb-dev-compat
 libjansson-dev 
 p7zip p7zip-full
 libmodbus-dev
@@ -13,6 +14,9 @@ nmap
 Optional packages:
 matchbox (on screen keyboard)
 
+Clone the repo:
+git clone ssh://jeindhoven@10.0.0.33/home/jeindhoven/tcFarmControl
+
 
 And manually install: libsnap7 (1.4.2)
 wget https://sourceforge.net/projects/snap7/files/1.4.2/
@@ -20,6 +24,14 @@ wget https://sourceforge.net/projects/snap7/files/1.4.2/
 cd snap7-full-1.4.2/build/unix
 make -f arm_v7_linux.mk all
 sudo make -f arm_v7_linux.mk install
+
+Or 64 bit raspbian:
+https://sourceforge.net/projects/snap7/files/Snap7-IoT/snap7-iot-arm/
+tar xvzf snap7-iot-arm-1.4.2.tar.gz
+cd snap7-iot-arm-1.4.2/build/unix
+make -f arm_v7_x64_linux.mk
+sudo make -f arm_v7_x64_linux.mk install
+
 
 Building farmcontrol
 mkdir obj
