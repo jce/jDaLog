@@ -43,6 +43,7 @@
 #include "job_sched.h"
 #include "logic_compare.h"
 #include "logic_modulator.h"
+#include "interface_mb.h"
 
 using namespace std;
 //#define debug
@@ -99,6 +100,8 @@ void build_interfaces(json_t *arr)
 				scan = json_number_value(jscan);
 				ji2c_id =  json_object_get(json, "i2c_id");
 				i2c_id = json_integer_value(ji2c_id);
+
+				if (!name) name = id;
 
 				// Build different types
 				if (strcmp(type, "darksky") == 0)
@@ -190,6 +193,14 @@ void build_interfaces(json_t *arr)
 						new interface_maria(id, name, scan);
 					else
 						printf("could not build interface_maria(%s, %s, %f)\n", id, name, scan);
+				}
+				if (strcmp(type, "mb") == 0)
+				{
+					if (id and name and address)
+						interface_mb_from_json(id, name, json);
+						//new interface_maria(id, name, address);
+					else
+						printf("could not build interface_mb(%s, %s, %s)\n", id, name, address);
 				}
 			}
 		}	

@@ -98,6 +98,13 @@ int findIntAfter(const char* str, const char* cue, int& i){
 int findIntAfter(string str, const char* cue, int& i){
 	return findIntAfter(str.c_str(), cue, i);}
 
+double now_mt()
+{
+	struct timespec ts;
+	clock_gettime(CLOCK_MONOTONIC, &ts);
+	return (double) ts.tv_sec + (double) ts.tv_nsec / 1000000000;
+}
+
 /*double now(){
 	timeval tv;
 	gettimeofday(&tv, NULL);

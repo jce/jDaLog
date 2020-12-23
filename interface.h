@@ -23,7 +23,7 @@ void findFloatAfter(std::string, const char*, in*, double); // Same as above
 //int findDoubleAfter(std::string, const char*, double&); // Same as above
 int findIntAfter(const char*, const char*, int&); // Finds the float in string param1, directly after param2. Returns succes
 int findIntAfter(std::string, const char*, int&); // Same as above
-
+double now_mt();	// Fetches now on a the monotonic clock.
 
 double now(); // returns the current timestamp, with us resolution as a double.
 
