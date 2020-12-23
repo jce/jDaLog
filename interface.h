@@ -42,13 +42,14 @@ class interface: public outhost{
 		void start();	// Start the thread.  JCE, 28-10-2020
 		void stop();	// Signals the thread(s) to stop. JCE, 28-10-2020
 		void join();	// Joins the thread (waits untill it is really stopped). JCE, 28-10-2020
-		void run();		// Override in derived class.
+		virtual void run();		// Override in derived class.
+	protected:
+		bool run_flg;
 	private:
 		const std::string _descr;
 		stringStore *_name, *_note; // JCE, 20-6-13
 		pthread_t thread = 0;
 		float interval; // [s] time between getIns calls.
-		bool run_flg;
 	};
 
 extern std::map<std::string, interface*> interfaces;

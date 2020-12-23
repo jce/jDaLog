@@ -106,9 +106,34 @@ void interface_mb::setOut(out* o, float v)
 void interface_mb::start()
 {
 	build_outreg();
-	build_timereg();
+	//build_timereg();
+	init_schedule();
 	interface::start();
 }
+
+
+void interface_mb::run()
+{
+/*	float ttni = 0;
+	while(run_flg)
+	{	
+		if (ttni <= 1)
+		{
+			getIns();
+			ttni = 1000000.0 * (interval - fmod(now(), interval));
+		}
+		else if (ttni > 100000 )
+		{
+			ttni -= 100000;
+			usleep(100000);
+		}
+		else
+		{
+			usleep(ttni);
+			ttni = 0;
+		}
+	}*/
+} 
 
 double interface_mb::next_multiple(double val, double interval)
 {
@@ -133,7 +158,7 @@ void interface_mb::build_outreg()
 
 }
 
-void interface_mb::build_timereg()
+/*void interface_mb::build_timereg()
 {
 	for( auto id = reg.begin(); id != reg.end(); id++)
 		for (auto regtype = id->second.begin(); regtype != id->second.end(); regtype++)
@@ -147,6 +172,38 @@ void interface_mb::build_timereg()
 				timereg[t][_id][_regtype][_offset].i = offset->second.i;
 				timereg[t][_id][_regtype][_offset].interval = interval;
 			}
+}*/
+
+void interface_mb::init_schedule()
+{
+	for( auto id = reg.rbegin(); id != reg.rend(); id++)
+		for (auto regtype = id->second.rbegin(); regtype != id->second.rend(); regtype++)
+			for( auto offset = regtype->second.rbegin(); offset != regtype->second.rend(); offset++)
+			{
+				schedule_item *si = &offset->second.si;
+				si->next = schedule;
+				schedule = si;
+				si->time = 0.0;
+				si->id = id->first;
+				si->regtype = regtype->first;
+				si->offset = offset->first;
+			}
+}
+
+void interface_mb::reschedule(schedule_item *si)
+{
+	// Remove the item from where it is in the list.
+	schedule_item **i = &schedule;
+	while (*i != si)
+		i = & (*i)->next;
+	i = &si->next;
+
+	// Add the item at the appropriate place
+	i = &schedule;
+	while ( (*i) && (*i)->time <= si->time)
+		i = & (*i)->next;
+	si->next = (*i);
+	(*i) = si;
 }
 
 void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
