@@ -1,20 +1,28 @@
-#include "stdio.h"
-#include <string>
-#include "string.h"
 #include "floatLog.h"
 #include "interface.h"
 #include "interface_mb.h"
 #include "main.h"
-#include "sys/stat.h" // mkdir
-#include "sys/time.h" // gettimeofday(()
-#include "stringStore.h"
 #include "math.h" // pow()
 #include "modbus/modbus.h"
 #include "out.h"
+#include "stdio.h"
+#include <string>
+#include "string.h"
+#include "stringStore.h"
+#include "sys/stat.h" // mkdir
+#include "sys/time.h" // gettimeofday(()
+#include <unistd.h>		// sleep
 
 //#define debug
 
 using namespace std;
+
+bool operator<(const mb_key& l, const mb_key& r)
+{
+	return  (l.id <  r.id) || \
+			(l.id == r.id && l.regtype <  r.regtype) || \
+			(l.id == r.id && l.regtype == r.regtype && l.offset <  r.offset);
+}
 
 interface_mb::interface_mb(const string d, const string n, const string ipstr):interface(d, n, 1), _ipstr(ipstr), _ctx(NULL)
 {
@@ -83,7 +91,6 @@ void interface_mb::getIns()
 		}*/
 }
 
-// out setter, JCE, 23-7-13
 void interface_mb::setOut(out* o, float v)
 {
 	/*
@@ -106,14 +113,64 @@ void interface_mb::setOut(out* o, float v)
 void interface_mb::start()
 {
 	build_outreg();
-	//build_timereg();
+	link_adj_reg_contexts();
 	init_schedule();
 	interface::start();
 }
 
-
 void interface_mb::run()
 {
+	printf("hi\n");
+
+	// Pick off the first register from the queue. Then trace back and forwards if other registers are also eligible to be fetched.
+	#define MAX_BITS 2000
+	#define MAX_REGS 125
+	#define ACCEPT_EARLY 0.001
+
+	uint8_t bits[MAX_BITS];
+	uint16_t regs[MAX_REGS];
+	double now;
+	mb_key key;
+	mb_offset num;
+	mb_offset max_fetch;
+	reg_context *start;	// Scheduled item, first item this fetch
+
+	run_flg = false;
+	while(run_flg)
+	{
+		now = now_mt();
+		start = schedule->context;
+		
+		if (now < start->time)
+			sleep(start->time - now);
+
+		key = schedule->key;
+		if (key.regtype == mb_coil || key.regtype == mb_status)
+			max_fetch = MAX_BITS;
+		else
+			max_fetch = MAX_REGS;
+
+		num = 1;
+		now = now_mt();
+		while (num < max_fetch && start->adj_before && (start->adj_before->si.time + ACCEPT_EARLY) > now)
+		{
+			num++;
+			start = start->adj_before;
+		}
+		
+		// Continue here
+		// Maybe fuse reg_context and schedule_item, so the program can jump from the scheduled item to the context
+		// without intermediate step. Only, the key would then be double?
+		// It seem schedule's context is also not filled yet...
+
+		// Trace back, then forwards. Execute the modbus fetch. Translate back to the io's and set their' respective value.
+		// Maybe on timeout reschedule all items atleast timeout in the future of the same modbus id.
+		//
+		//
+		//
+		run_flg = false;
+
+	}
 /*	float ttni = 0;
 	while(run_flg)
 	{	
@@ -143,51 +200,41 @@ double interface_mb::next_multiple(double val, double interval)
 
 void interface_mb::build_outreg()
 {
-	for( auto id = reg.begin(); id != reg.end(); id++)
-		for (auto regtype = id->second.begin(); regtype != id->second.end(); regtype++)
-			for( auto offset = regtype->second.begin(); offset != regtype->second.end(); offset++)
-				{
-					out *o = offset->second.o;
-					if (o)
-						{
-							outreg[o].id = id->first;
-							outreg[o].regtype = regtype->first;
-							outreg[o].offset = offset->first;
-						}
-				}
-
+	for( auto key = reg.begin(); key != reg.end(); key++)
+	{
+		out *o = key->second.o;
+		if (o)
+			outreg[o] = key->first;
+	}
 }
 
-/*void interface_mb::build_timereg()
+void interface_mb::link_adj_reg_contexts()
 {
-	for( auto id = reg.begin(); id != reg.end(); id++)
-		for (auto regtype = id->second.begin(); regtype != id->second.end(); regtype++)
-			for( auto offset = regtype->second.begin(); offset != regtype->second.end(); offset++)
-			{
-				float interval = offset->second.interval;
-				double t = next_multiple(now_mt(), interval);
-				mb_id _id = id->first;
-				mb_regtype _regtype = regtype->first;
-				mb_offset _offset = offset->first;
-				timereg[t][_id][_regtype][_offset].i = offset->second.i;
-				timereg[t][_id][_regtype][_offset].interval = interval;
-			}
-}*/
+	// l and r from left and right in the comparison.
+	auto l = reg.begin();
+	for (auto r = reg.begin(); r != reg.end(); r++)
+	{
+		if ( (l->first.id == r->first.id) && (l->first.regtype == r->first.regtype) && (l->first.offset + 1 == r->first.offset) )
+		{
+			// These two are adjacent.
+			l->second.adj_after = & r->second;
+			r->second.adj_before = & l->second;
+		}
+	l = r;	
+	}
+}
 
 void interface_mb::init_schedule()
 {
-	for( auto id = reg.rbegin(); id != reg.rend(); id++)
-		for (auto regtype = id->second.rbegin(); regtype != id->second.rend(); regtype++)
-			for( auto offset = regtype->second.rbegin(); offset != regtype->second.rend(); offset++)
-			{
-				schedule_item *si = &offset->second.si;
-				si->next = schedule;
-				schedule = si;
-				si->time = 0.0;
-				si->id = id->first;
-				si->regtype = regtype->first;
-				si->offset = offset->first;
-			}
+	for( auto key = reg.rbegin(); key != reg.rend(); key++)
+	{
+		schedule_item *si = &key->second.si;
+		si->next = schedule;
+		schedule = si;
+		si->time = 0.0;
+		si->key = key->first;
+		si->context = &key->second;
+	}
 }
 
 void interface_mb::reschedule(schedule_item *si)
@@ -311,9 +358,10 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 				i = new in(descr, name, unit);			
 			}
 
-			mb->reg[id][regtype][offset].i = i;
-			mb->reg[id][regtype][offset].o = o;
-			mb->reg[id][regtype][offset].interval = scan;
+			mb_key key = {id, regtype, offset};
+			mb->reg[key].i = i;
+			mb->reg[key].o = o;
+			mb->reg[key].interval = scan;
 		}
 	}
 
