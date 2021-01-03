@@ -24,71 +24,19 @@ bool operator<(const mb_key& l, const mb_key& r)
 			(l.id == r.id && l.regtype == r.regtype && l.offset <  r.offset);
 }
 
-interface_mb::interface_mb(const string d, const string n, const string ipstr):interface(d, n, 1), _ipstr(ipstr), _ctx(NULL)
-{
-	makeModbusContext(); 	
-}
+const char* mb_regtype_str[mb_regtype_num] = {"none", "coil", "status", "input", "holding"};
 
-void interface_mb::makeModbusContext()
+interface_mb::interface_mb(const string d, const string n, const string ipstr, uint16_t _port):interface(d, n, 1), _ipstr(ipstr), port(_port)
 {
-	if (!_ctx)
-	{
-		_ctx = modbus_new_tcp(_ipstr.c_str(), MODBUS_TCP_DEFAULT_PORT);
-		modbus_set_response_timeout(_ctx, 1, 0);
-	}
 }
 
 interface_mb::~interface_mb()
 {
-	if (_ctx)
-		modbus_free(_ctx);
 }
 
 void interface_mb::getIns()
 {
-/*
-	makeModbusContext();
-
-	bool dataOk = false;
-	uint8_t incoils[8];
-	uint8_t outcoils[8];
-	uint16_t regs[48];
-	double t = now();
-	if(_ctx){
-		#ifdef debug
-			printf("modbus context is ok\n");
-		#endif
-		double start = now();
-		if (modbus_connect(_ctx) != -1){
-			//printf("modbus connect has succes\n");
-			if (modbus_read_input_registers(_ctx, 0, 48, regs) == 48 and modbus_read_bits(_ctx, 0, 8, incoils) == 8 and modbus_read_bits(_ctx, 16, 8, outcoils) == 8){
-				// alle data is er, set present van alles
-				#ifdef debug
-					printf("modbus has data\n");
-				#endif
-				dataOk = true;
-				}
-			modbus_close(_ctx);
-			}
-		double end = now();
-		t = (start + end) / 2;
-		if (dataOk){
-			latency->setValue((end-start)*1000, t);
-			for (uint16_t i = 0; i<8; i++){
-				DI[i]->setValue(incoils[i], t);
-				DO[i]->setValue(outcoils[i], t);;
-				CI[i]->setValue(regs[2*i] + 65535 * regs[2*i + 1], t);
-				}
-			}
-		}
-	if (not _ctx or not dataOk){	// added not dataOK. JCE, 21-8-13
-		if (not _ctx) latency->setValid(false); // latency stays valid, just at timeout. JCE, 21-8-13
-		for (uint16_t i = 0; i<8; i++){
-			DI[i]->setValid(false);
-			DO[i]->setValid(false);
-			CI[i]->setValid(false); // DI -> CI, JCE, 21-8-13
-			}
-		}*/
+	printf("should not happen!\n");
 }
 
 void interface_mb::setOut(out* o, float v)
@@ -98,13 +46,13 @@ void interface_mb::setOut(out* o, float v)
 	makeModbusContext();
 	bool newState = true;
 	if (v < 0.5) newState = false;
-	if(_ctx)
+	if(ctx)
 		for (uint16_t i = 0; i<8; i++)
 			if (o == DO[i] and newState != DO[i]->getValue())
-				if(modbus_connect(_ctx) != -1)
+				if(modbus_connect(ctx) != -1)
 					{
-					modbus_write_bit(_ctx, 16+i, newState);
-					modbus_close(_ctx); 
+					modbus_write_bit(ctx, 16+i, newState);
+					modbus_close(ctx); 
 					getIns();
 					}
 	*/
@@ -120,8 +68,6 @@ void interface_mb::start()
 
 void interface_mb::run()
 {
-	printf("hi\n");
-
 	// Pick off the first register from the queue. Then trace back and forwards if other registers are also eligible to be fetched.
 	#define MAX_BITS 2000
 	#define MAX_REGS 125
@@ -129,20 +75,30 @@ void interface_mb::run()
 
 	uint8_t bits[MAX_BITS];
 	uint16_t regs[MAX_REGS];
-	double now;
+	double t;
 	mb_key key;
 	mb_offset num;
 	mb_offset max_fetch;
-	reg_context *start;	// Scheduled item, first item this fetch
-
-	run_flg = false;
+	reg_context *start, *end, *reg;	// first item this fetch, last item this fetch, some loop temp value.
+	int rv;
+	
+	modbus_t *ctx = modbus_new_tcp(_ipstr.c_str(), port);
+	modbus_set_response_timeout(ctx, 1, 0);
+	run_flg =  (modbus_connect(ctx) != -1);
+	if (!run_flg)
+		printf("Modbus connection to %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno));
 	while(run_flg)
 	{
-		now = now_mt();
-		start = schedule->context;
-		
-		if (now < start->time)
-			sleep(start->time - now);
+		t = now_mt();
+		start = schedule;
+		end = schedule;
+		num = 1;
+
+		if (t < schedule->time)
+		{
+			printf("sleeping %f\n", schedule->time - t);
+			usleep((schedule->time - t) * 1000000);
+		}
 
 		key = schedule->key;
 		if (key.regtype == mb_coil || key.regtype == mb_status)
@@ -150,46 +106,83 @@ void interface_mb::run()
 		else
 			max_fetch = MAX_REGS;
 
-		num = 1;
-		now = now_mt();
-		while (num < max_fetch && start->adj_before && (start->adj_before->si.time + ACCEPT_EARLY) > now)
+		t = now_mt() + ACCEPT_EARLY;
+		// Find the first item
+		while (num < max_fetch && start->adj_before && t > start->adj_before->time)
 		{
 			num++;
 			start = start->adj_before;
 		}
-		
-		// Continue here
-		// Maybe fuse reg_context and schedule_item, so the program can jump from the scheduled item to the context
-		// without intermediate step. Only, the key would then be double?
-		// It seem schedule's context is also not filled yet...
-
-		// Trace back, then forwards. Execute the modbus fetch. Translate back to the io's and set their' respective value.
-		// Maybe on timeout reschedule all items atleast timeout in the future of the same modbus id.
-		//
-		//
-		//
-		run_flg = false;
-
-	}
-/*	float ttni = 0;
-	while(run_flg)
-	{	
-		if (ttni <= 1)
+		// Find the last item
+		while (num < max_fetch && end->adj_after && t > end->adj_after->time)
 		{
-			getIns();
-			ttni = 1000000.0 * (interval - fmod(now(), interval));
+			num++;
+			end = end->adj_after;
 		}
-		else if (ttni > 100000 )
+
+		// Read
+		printf("Reading id-type-offset num %d %s %d %d\n", key.id, mb_regtype_str[start->key.regtype], key.offset, num);
+		modbus_set_slave(ctx, key.id);
+		switch(key.regtype)
 		{
-			ttni -= 100000;
-			usleep(100000);
+			case mb_coil:
+				rv = modbus_read_bits(ctx, start->key.offset, num, bits);
+				break;
+			case mb_status:
+				rv = modbus_read_input_bits(ctx, start->key.offset, num, bits);
+				break;
+			case mb_input:
+				rv = modbus_read_input_registers(ctx, start->key.offset, num, regs);
+				break;
+			case mb_holding:
+				rv = modbus_read_registers(ctx, start->key.offset, num, regs);
+				break;
+			case mb_none:
+			default:
+				rv = 0;
+				break;
+		}
+		printf("rv: %d\n", rv);
+
+		// To in.
+		int i;
+		reg = start;
+		if (rv == num)
+		{
+			t = now();
+			if (key.regtype == mb_coil || key.regtype == mb_status)
+				for (i = 0; i != num; i++)
+				{
+					reg->i->setValue(bits[i], t);
+					reg = reg->adj_after;
+				}
+			if (key.regtype == mb_input || key.regtype == mb_holding)
+				for (i = 0; i != num; i++)
+				{
+					reg->i->setValue(regs[i], t);
+					reg = reg->adj_after;
+				}
 		}
 		else
 		{
-			usleep(ttni);
-			ttni = 0;
+			for (i = 0; i != num; i++)
+			{
+				reg->i->setValid(false);
+				reg = reg->adj_after;
+			}
+			printf("Modbus communication with %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno));
 		}
-	}*/
+				
+		// Reschedule
+		t = now_mt();
+		for (i = 0; i != num; i++)
+		{
+			start->time = next_multiple(t, start->interval);
+			reschedule(start);
+			start = start->adj_after;
+		}
+	}
+	modbus_free(ctx);
 } 
 
 double interface_mb::next_multiple(double val, double interval)
@@ -228,28 +221,39 @@ void interface_mb::init_schedule()
 {
 	for( auto key = reg.rbegin(); key != reg.rend(); key++)
 	{
-		schedule_item *si = &key->second.si;
+		reg_context *si = &key->second;
 		si->next = schedule;
 		schedule = si;
 		si->time = 0.0;
-		si->key = key->first;
-		si->context = &key->second;
 	}
 }
 
-void interface_mb::reschedule(schedule_item *si)
+void printsch(reg_context **x)
+{
+	while (*x)
+	{
+		printf("%p -> %p\n", *x, (*x)->next);
+		x = & (*x)->next;
+	}
+}
+
+void interface_mb::reschedule(reg_context *si)
 {
 	// Remove the item from where it is in the list.
-	schedule_item **i = &schedule;
+	reg_context **i = &schedule;
 	while (*i != si)
+	{
 		i = & (*i)->next;
-	i = &si->next;
+	}
+	*i = si->next;
 
 	// Add the item at the appropriate place
 	i = &schedule;
 	while ( (*i) && (*i)->time <= si->time)
+	{
 		i = & (*i)->next;
-	si->next = (*i);
+	}
+	si->next = (*i); 
 	(*i) = si;
 }
 
@@ -275,13 +279,18 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 		return;
 	}
 
+	uint16_t port = MODBUS_TCP_DEFAULT_PORT;
+	json_t *jport = json_object_get(json, "port");
+	if (json_is_integer(jport))
+		port = json_integer_value(jport);
+
 	json_t *main_scan_j;
 	float main_scan;
 	main_scan_j = json_object_get(json, "scan");
 	if (main_scan_j)
 		main_scan = json_number_value(main_scan_j);	
 	
-	interface_mb *mb = new interface_mb(ifid, ifname, ipstr);
+	interface_mb *mb = new interface_mb(ifid, ifname, ipstr, port);
 
 	// Reading the individual registers
 	// "device":{
@@ -362,6 +371,7 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			mb->reg[key].i = i;
 			mb->reg[key].o = o;
 			mb->reg[key].interval = scan;
+			mb->reg[key].key = key;
 		}
 	}
 

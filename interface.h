@@ -39,9 +39,9 @@ class interface: public outhost{
 		const std::string getDescriptor();
 		const std::string getName();		// JCE, 20-6-13
 		const std::string getNote();		// JCE, 20-6-13
-		void start();	// Start the thread.  JCE, 28-10-2020
-		void stop();	// Signals the thread(s) to stop. JCE, 28-10-2020
-		void join();	// Joins the thread (waits untill it is really stopped). JCE, 28-10-2020
+		virtual void start();	// Start the thread.  JCE, 28-10-2020
+		virtual void stop();	// Signals the thread(s) to stop. JCE, 28-10-2020
+		virtual void join();	// Joins the thread (waits untill it is really stopped). JCE, 28-10-2020
 		virtual void run();		// Override in derived class.
 	protected:
 		bool run_flg;
