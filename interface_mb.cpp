@@ -34,7 +34,13 @@ const char* mb_regtype_str[mb_regtype_num] = {"none", "coil", "status", "input",
 const char* mb_datatype_str[mbd_num] = {"none", "bool", "uint16", "int16", "uint32", "int32", "uint64", "int64", "float16", "float32", "float64"};
 const uint8_t mb_datatype_len[mbd_num] = { 1,	1,		1,		  1,		2,		 2,		  4,		4,		 1,			2,		   4};
 
-interface_mb::interface_mb(const string d, const string n, const string ipstr, uint16_t _port):interface(d, n, 1), _ipstr(ipstr), port(_port)
+interface_mb::interface_mb(const string d, const string n, const string ipstr, uint16_t _port):interface(d, n, 1), 
+	_ipstr(ipstr), port(_port), comtype(mbc_tcp)
+{
+}
+
+interface_mb::interface_mb(const string d, const string n, string _device, int _baud, char _parity, int _data_bit, int _stop_bit):interface(d, n, 1), 
+	device(_device), baud(_baud), data_bit(_data_bit), stop_bit(_stop_bit), parity(_parity), comtype(mbc_rtu)
 {
 }
 
@@ -74,6 +80,14 @@ void interface_mb::start()
 	interface::start();
 }
 
+#define PRINT_ERROR()\
+{	\
+	if (comtype == mbc_tcp) \
+		printf("Modbus connection to %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno)); \
+	if (comtype == mbc_rtu) \
+		printf("Modbus connection to %s %d%c%d %d Baud failed. Errno %d: %s\n", device.c_str(), data_bit, parity, stop_bit, baud, errno, strerror(errno)); \
+}
+
 void interface_mb::run()
 {
 	// Pick off the first register from the queue. Then trace back and forwards if other registers are also eligible to be fetched.
@@ -89,7 +103,13 @@ void interface_mb::run()
 	mb_offset max_fetch;
 	reg_context *start, *end, *reg;	// first item this fetch, last item this fetch, some loop temp value.
 	int rv;
-	modbus_t *ctx = modbus_new_tcp(_ipstr.c_str(), port);
+	modbus_t *ctx;
+	if (comtype == mbc_tcp)
+		ctx = modbus_new_tcp(_ipstr.c_str(), port);
+	if (comtype == mbc_rtu)
+		ctx = modbus_new_rtu(device.c_str(), baud, parity, data_bit, stop_bit);
+	// Too bad, the library does not have modbus ascii.
+
 	modbus_set_response_timeout(ctx, 1, 0);
 	bool conmem = 1;	// To display errors only once.
 	run_flg = true;
@@ -99,12 +119,17 @@ void interface_mb::run()
 	{
 		if (conmem)
 		{
-			printf("Modbus connection to %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno));
+			PRINT_ERROR();
 			conmem = 0;
 		}
 		sleep(1);
 	}
-	conmem = 1;
+
+	if (!conmem)
+	{
+		printf("Modbus connection restored.\n");
+		conmem = 1;
+	}
 
 	while(run_flg)
 	{
@@ -196,9 +221,17 @@ void interface_mb::run()
 			}
 			if (conmem)
 			{
-				printf("Modbus communication with %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno));
+				PRINT_ERROR();
 				conmem = 0;
 			}
+		}
+
+		// There is a failure mode for modbus rtu, in which the usb rs485 adapter is temporarily disconnected.
+		// Libmodbus' auto reconnect does not catch this.
+		if (conmem == 0 && comtype == mbc_rtu)
+		{
+			sleep(1);
+			modbus_connect(ctx);
 		}
 				
 		// Reschedule
@@ -288,14 +321,6 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 		printf("interface_mb: no id given.\n");
 		return;
 	}	
-	if (!ifname)
-		ifname = ifid;
-	const char* ipstr = json_string_value(json_object_get(json, "address"));
-	if (!ipstr)
-	{
-		printf("interface_mb: no address given.\n");
-		return;
-	}
 	json_t *devices_j = json_object_get(json, "device");
 	if (!devices_j)
 	{
@@ -303,18 +328,69 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 		return;
 	}
 
-	uint16_t port = MODBUS_TCP_DEFAULT_PORT;
-	json_t *jport = json_object_get(json, "port");
-	if (json_is_integer(jport))
-		port = json_integer_value(jport);
-
 	json_t *main_scan_j;
 	float main_scan;
 	main_scan_j = json_object_get(json, "scan");
 	if (main_scan_j)
 		main_scan = json_number_value(main_scan_j);	
+
+	const char *typestr = json_string_value(json_object_get(json, "type"));
+	const char *ipstr = json_string_value(json_object_get(json, "address"));
+	const char *fstr = json_string_value(json_object_get(json, "file"));
+	interface_mb *mb;
+
+	if (!ifname)
+		ifname = ifid;
 	
-	interface_mb *mb = new interface_mb(ifid, ifname, ipstr, port);
+	// TCP
+	if ((strcmp(typestr, "mb_tcp") == 0) || (ipstr && !fstr) )
+	{
+		if (!ipstr)
+		{
+			printf("interface_mb: no address given.\n");
+			return;
+		}
+
+		uint16_t port = MODBUS_TCP_DEFAULT_PORT;
+		json_t *jport = json_object_get(json, "port");
+		if (json_is_integer(jport))
+			port = json_integer_value(jport);
+	
+		mb = new interface_mb(ifid, ifname, ipstr, port);
+	}
+	// RTU
+	else if ((strcmp(typestr, "mb_rtu") == 0) || (!ipstr && fstr) )
+	{
+		if (!fstr)
+		{
+			printf("interface_mb: no device given.\n");
+			return;
+		}
+
+		int baud = 9600;
+		char parity = 'N';
+		int data_bit = 8;
+		int stop_bit = 1;
+		json_t *jbaud  = json_object_get(json, "baud");
+		json_t *jparity  = json_object_get(json, "parity");
+		json_t *jdata_bit  = json_object_get(json, "data_bit");
+		json_t *jstop_bit  = json_object_get(json, "stop_bit");
+		if (json_is_integer(jbaud))
+			baud = json_integer_value(jbaud);
+		if (json_is_string(jparity))
+			parity = json_string_value(jparity)[0];
+		if (json_is_integer(jdata_bit))
+			data_bit = json_integer_value(jdata_bit);
+		if (json_is_integer(jstop_bit))
+			stop_bit = json_integer_value(jstop_bit);
+	
+		mb = new interface_mb(ifid, ifname, fstr, baud, parity, data_bit, stop_bit);
+	}
+	else
+	{
+		printf("interface_mb: modbus type (tcp or rtu) could not be determined\n");
+		return;
+	}
 
 	// Reading the individual registers
 	// "device":{

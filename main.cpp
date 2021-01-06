@@ -196,11 +196,10 @@ void build_interfaces(json_t *arr)
 				}
 				if (strcmp(type, "mb") == 0)
 				{
-					if (id and name and address)
+					if (id and name)
 						interface_mb_from_json(id, name, json);
-						//new interface_maria(id, name, address);
 					else
-						printf("could not build interface_mb(%s, %s, %s)\n", id, name, address);
+						printf("could not build interface_mb(%s, %s)\n", id, name);
 				}
 			}
 		}	
@@ -507,6 +506,10 @@ int main(){
 	// Stops all jobs, including those from interfaces.
 	jos_delete_pool(pool);
 
+	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
+		i->second->stop();
+	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
+		i->second->join();
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		delete i->second;
 	

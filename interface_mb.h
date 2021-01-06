@@ -13,6 +13,7 @@ extern const char* mb_regtype_str[mb_regtype_num];
 typedef enum mb_datatype {mbd_none, mbd_bool, mbd_uint16, mbd_int16, mbd_uint32, mbd_int32, mbd_uint64, mbd_int64, mbd_float16, mbd_float32, mbd_float64, mbd_num} mb_datatype;
 extern const char* mb_datatype_str[mbd_num];
 extern const uint8_t mb_datatype_len[mbd_num];
+typedef enum mb_comtype{ mbc_none, mbc_tcp, mbc_rtu, mbc_num } mb_comtype;
 typedef uint8_t mb_id;
 typedef uint16_t mb_offset;
 typedef struct mb_key
@@ -40,15 +41,19 @@ typedef struct reg_context
 
 class interface_mb : public interface{
 	public:
-		interface_mb(const string, const string, const string, uint16_t); // descr, name, ip-as-string, port
+		interface_mb(string, string, string, uint16_t); // descr, name, ip-as-string, port
+		interface_mb(string, string, string, int, char, int, int); // descr, name, device, baud, parity, data_bit, stop_bit
 		~interface_mb();
 		void getIns();
 		void setOut(out*, float);
 		void start();
 		void run();
 	private:
-		const string _ipstr;
-		uint16_t port = MODBUS_TCP_DEFAULT_PORT;	
+		const string _ipstr;	
+		uint16_t port;	
+		const string device;
+		int baud, data_bit, stop_bit;
+		char parity;
 		// based on register:
 		map<mb_key, reg_context> reg;
 		void link_adj_reg_contexts();
@@ -60,6 +65,7 @@ class interface_mb : public interface{
 		void init_schedule();
 		void reschedule(reg_context*);
 		static double next_multiple(double val, double interval);	// Get the next multiple;
+		const mb_comtype comtype;
 
 	friend void interface_mb_from_json(const char*, const char*, json_t*);
 	};
