@@ -10,6 +10,9 @@
 
 typedef enum mb_regtype	{mb_none, mb_coil, mb_status, mb_input, mb_holding, mb_regtype_num } mb_regtype;
 extern const char* mb_regtype_str[mb_regtype_num];
+typedef enum mb_datatype {mbd_none, mbd_bool, mbd_uint16, mbd_int16, mbd_uint32, mbd_int32, mbd_uint64, mbd_int64, mbd_float16, mbd_float32, mbd_float64, mbd_num} mb_datatype;
+extern const char* mb_datatype_str[mbd_num];
+extern const uint8_t mb_datatype_len[mbd_num];
 typedef uint8_t mb_id;
 typedef uint16_t mb_offset;
 typedef struct mb_key
@@ -22,14 +25,17 @@ bool operator<(const mb_key& l, const mb_key& r);
 
 typedef struct reg_context
 {
-	struct reg_context *next; 	// Next scheduled item
-	mb_key key;			// Register address
-	in *i = NULL;			// In pointer
-	out *o = NULL;			// Out pointer
-	float interval = 0.0;		// Interval that the register should be requested
-	double time = 0.0;		// Next scheduled request.
-	reg_context *adj_before = NULL;	// If there is an adjacent register before, this is the pointer to its context.
-	reg_context *adj_after = NULL;	// If there is an adjacent register after, this is the pointer to its context.
+	struct reg_context *next; 			// Next scheduled item
+	mb_key key;							// Register address
+	in *i = NULL;						// In pointer
+	out *o = NULL;						// Out pointer
+	float interval = 0.0;				// Interval that the register should be requested
+	double time = 0.0;					// Next scheduled request.
+	reg_context *adj_before = NULL;		// If there is an adjacent register before, this is the pointer to its context.
+	reg_context *adj_after = NULL;		// If there is an adjacent register after, this is the pointer to its context.
+	mb_datatype datatype = mbd_none;	// Datatype of the represented field (only in case of registers)
+	uint8_t len = 1;					// Length of the datatype in modbusregisters (only in case of registers)
+	~reg_context();
 } reg_context;
 
 class interface_mb : public interface{
@@ -43,18 +49,13 @@ class interface_mb : public interface{
 	private:
 		const string _ipstr;
 		uint16_t port = MODBUS_TCP_DEFAULT_PORT;	
-		// Data is constructed ordered in different trees, depending on the way of use. The root tree would be
 		// based on register:
 		map<mb_key, reg_context> reg;
 		void link_adj_reg_contexts();
 		// Based on outpointer, for out callbacks
 		map<out*, mb_key> outreg;
 		void build_outreg();
-		// Based on time of next fetch
-		//map<double, map<mb_id, map<mb_regtype, map<mb_offset,time_context>>>> timereg;
-		//void build_timereg();
-		// Lets do that different. The first register to fetch comes from one queue. Then it follows the "reg" struct to find additional
-		// registers that can be fetched in the same request.
+		// Based on time of next fetch. Linked list based on the "next" member.
 		reg_context *schedule = NULL;
 		void init_schedule();
 		void reschedule(reg_context*);

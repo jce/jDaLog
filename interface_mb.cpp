@@ -24,7 +24,15 @@ bool operator<(const mb_key& l, const mb_key& r)
 			(l.id == r.id && l.regtype == r.regtype && l.offset <  r.offset);
 }
 
+reg_context::~reg_context()
+{
+	if (i)
+		delete i;
+}
+
 const char* mb_regtype_str[mb_regtype_num] = {"none", "coil", "status", "input", "holding"};
+const char* mb_datatype_str[mbd_num] = {"none", "bool", "uint16", "int16", "uint32", "int32", "uint64", "int64", "float16", "float32", "float64"};
+const uint8_t mb_datatype_len[mbd_num] = { 1,	1,		1,		  1,		2,		 2,		  4,		4,		 1,			2,		   4};
 
 interface_mb::interface_mb(const string d, const string n, const string ipstr, uint16_t _port):interface(d, n, 1), _ipstr(ipstr), port(_port)
 {
@@ -81,12 +89,23 @@ void interface_mb::run()
 	mb_offset max_fetch;
 	reg_context *start, *end, *reg;	// first item this fetch, last item this fetch, some loop temp value.
 	int rv;
-	
 	modbus_t *ctx = modbus_new_tcp(_ipstr.c_str(), port);
 	modbus_set_response_timeout(ctx, 1, 0);
-	run_flg =  (modbus_connect(ctx) != -1);
-	if (!run_flg)
-		printf("Modbus connection to %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno));
+	bool conmem = 1;	// To display errors only once.
+	run_flg = true;
+	
+	// Initial connection loop. Try every second.
+	while (run_flg && modbus_connect(ctx) != 0)
+	{
+		if (conmem)
+		{
+			printf("Modbus connection to %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno));
+			conmem = 0;
+		}
+		sleep(1);
+	}
+	conmem = 1;
+
 	while(run_flg)
 	{
 		t = now_mt();
@@ -96,7 +115,7 @@ void interface_mb::run()
 
 		if (t < schedule->time)
 		{
-			printf("sleeping %f\n", schedule->time - t);
+			//printf("sleeping %f\n", schedule->time - t);
 			usleep((schedule->time - t) * 1000000);
 		}
 
@@ -121,7 +140,7 @@ void interface_mb::run()
 		}
 
 		// Read
-		printf("Reading id-type-offset num %d %s %d %d\n", key.id, mb_regtype_str[start->key.regtype], key.offset, num);
+		//printf("Reading id-type-offset num %d %s %d %d\n", key.id, mb_regtype_str[start->key.regtype], key.offset, num);
 		modbus_set_slave(ctx, key.id);
 		switch(key.regtype)
 		{
@@ -142,7 +161,7 @@ void interface_mb::run()
 				rv = 0;
 				break;
 		}
-		printf("rv: %d\n", rv);
+		//printf("rv: %d\n", rv);
 
 		// To in.
 		int i;
@@ -162,6 +181,11 @@ void interface_mb::run()
 					reg->i->setValue(regs[i], t);
 					reg = reg->adj_after;
 				}
+			if (!conmem)
+			{
+				printf("Modbus connection restored.\n");
+				conmem = 1;
+			}
 		}
 		else
 		{
@@ -170,7 +194,11 @@ void interface_mb::run()
 				reg->i->setValid(false);
 				reg = reg->adj_after;
 			}
-			printf("Modbus communication with %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno));
+			if (conmem)
+			{
+				printf("Modbus communication with %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno));
+				conmem = 0;
+			}
 		}
 				
 		// Reschedule
@@ -242,17 +270,13 @@ void interface_mb::reschedule(reg_context *si)
 	// Remove the item from where it is in the list.
 	reg_context **i = &schedule;
 	while (*i != si)
-	{
 		i = & (*i)->next;
-	}
 	*i = si->next;
 
 	// Add the item at the appropriate place
 	i = &schedule;
 	while ( (*i) && (*i)->time <= si->time)
-	{
 		i = & (*i)->next;
-	}
 	si->next = (*i); 
 	(*i) = si;
 }
@@ -297,7 +321,7 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 	//	"1":{
 	//   "hr0004":
 	//	  {}, optionally name, id, scan
-	const char *device, *reg;
+	const char *device, *reg, *did, *dname, *rid, *rname;
 	json_t *device_j, *reg_j;
 	json_object_foreach(devices_j, device, device_j)
 	{
@@ -306,6 +330,14 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 		dev_scan_j = json_object_get(device_j, "scan");
 		if (dev_scan_j)
 			dev_scan = json_number_value(dev_scan_j);	
+
+		did = json_string_value(json_object_get(device_j, "id"));
+		if (!did)
+			did = device;
+
+		dname = json_string_value(json_object_get(device_j, "name"));
+		if (!dname)
+			dname = did;
 
 		json_object_foreach(device_j, reg, reg_j)
 		{
@@ -336,19 +368,36 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			if (reg_scan_j) scan = reg_scan;
 
 			string descr, name;
-			if (json_string_value(json_object_get(reg_j, "id")))
-				descr = json_string_value(json_object_get(reg_j, "id"));
-			else
-				descr = (string) ifid + "_" + device + "_" + reg;
 
-			if (json_string_value(json_object_get(reg_j, "name")))
-				name = json_string_value(json_object_get(reg_j, "name"));
-			else
-				name = (string) ifname + " " + device + " " + reg;
+			rid = json_string_value(json_object_get(reg_j, "id"));
+			if (!rid)
+				rid = reg;
+
+			rname = json_string_value(json_object_get(reg_j, "name"));
+			if (!rname)
+				rname = rid;
+
+			descr = (string) ifid + "_" + did + "_" + rid;
+			name = (string) ifname + " " + dname + " " + rname;
 
 			string unit = "";
 			if (json_string_value(json_object_get(reg_j, "unit")))
 				unit = json_string_value(json_object_get(reg_j, "unit"));
+
+			mb_datatype datatype = mbd_none;
+			if (regtype == mb_coil or regtype == mb_status)
+				datatype = mbd_bool;
+			if (regtype == mb_input or regtype == mb_holding)
+			{
+				const char *dt_str = json_string_value(json_object_get(reg_j, "datatype"));
+				if (dt_str)
+				{
+					for (int i = 0; i < mbd_num; i++)
+						if (strcmp(mb_datatype_str[i], dt_str) == 0)
+							datatype = (mb_datatype) i;
+				}
+			}
+			uint8_t len = mb_datatype_len[datatype];
 
 			in *i;
 			out *o;
@@ -372,6 +421,9 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			mb->reg[key].o = o;
 			mb->reg[key].interval = scan;
 			mb->reg[key].key = key;
+			mb->reg[key].datatype = datatype;
+			mb->reg[key].len = len;
+			
 		}
 	}
 
