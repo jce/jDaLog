@@ -83,9 +83,17 @@ void interface_mb::start()
 #define PRINT_ERROR()\
 {	\
 	if (comtype == mbc_tcp) \
-		printf("Modbus connection to %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, strerror(errno)); \
+		printf("Modbus connection to %s:%d failed. Errno %d: %s\n", _ipstr.c_str(), port, errno, modbus_strerror(errno)); \
 	if (comtype == mbc_rtu) \
-		printf("Modbus connection to %s %d%c%d %d Baud failed. Errno %d: %s\n", device.c_str(), data_bit, parity, stop_bit, baud, errno, strerror(errno)); \
+		printf("Modbus connection to %s %d%c%d %d Baud failed. Errno %d: %s\n", device.c_str(), data_bit, parity, stop_bit, baud, errno, modbus_strerror(errno)); \
+}
+
+#define PRINT_RESTORED() \
+{ \
+	if (comtype == mbc_tcp) \
+		printf("Modbus connection to %s:%d restored.\n", _ipstr.c_str(), port); \
+	if (comtype == mbc_rtu) \
+		printf("Modbus connection to %s %d%c%d %d Baud Restored.\n", device.c_str(), data_bit, parity, stop_bit, baud); \
 }
 
 void interface_mb::run()
@@ -127,7 +135,7 @@ void interface_mb::run()
 
 	if (!conmem)
 	{
-		printf("Modbus connection restored.\n");
+		PRINT_RESTORED();
 		conmem = 1;
 	}
 
@@ -208,7 +216,7 @@ void interface_mb::run()
 				}
 			if (!conmem)
 			{
-				printf("Modbus connection restored.\n");
+				PRINT_RESTORED();
 				conmem = 1;
 			}
 		}
@@ -230,8 +238,14 @@ void interface_mb::run()
 		// Libmodbus' auto reconnect does not catch this.
 		if (conmem == 0 && comtype == mbc_rtu)
 		{
-			sleep(1);
-			modbus_connect(ctx);
+			modbus_close(ctx);
+			while (run_flg && ! modbus_connect(ctx) == 0 )
+			{
+				modbus_close(ctx);
+				sleep(1);
+			}
+			conmem = 1;
+			PRINT_RESTORED();
 		}
 				
 		// Reschedule
