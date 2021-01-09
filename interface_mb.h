@@ -10,7 +10,7 @@
 
 typedef enum mb_regtype	{mb_none, mb_coil, mb_status, mb_input, mb_holding, mb_regtype_num } mb_regtype;
 extern const char* mb_regtype_str[mb_regtype_num];
-typedef enum mb_datatype {mbd_none, mbd_bool, mbd_uint16, mbd_int16, mbd_uint32, mbd_int32, mbd_uint64, mbd_int64, mbd_float16, mbd_float32, mbd_float64, mbd_num} mb_datatype;
+typedef enum mb_datatype {mbd_none, mbd_bool, mbd_uint16, mbd_int16, mbd_uint32r, mbd_int32r, mbd_uint32, mbd_int32, mbd_uint64, mbd_int64, mbd_float16, mbd_float32, mbd_float64, mbd_num} mb_datatype;
 extern const char* mb_datatype_str[mbd_num];
 extern const uint8_t mb_datatype_len[mbd_num];
 typedef enum mb_comtype{ mbc_none, mbc_tcp, mbc_rtu, mbc_num } mb_comtype;
@@ -24,11 +24,16 @@ typedef struct mb_key
 }mb_key;
 bool operator<(const mb_key& l, const mb_key& r);
 
+typedef double (*mb_dt_read)(uint16_t*);			// Reads the modbus input data into a double
+typedef void (*mb_dt_write)(double, uint16_t*);		// Writes the modbus out data based on the double.
+
 typedef struct reg_context
 {
 	struct reg_context *next; 			// Next scheduled item
 	mb_key key;							// Register address
+	mb_dt_read readconv = NULL;			// Read dataconversion function
 	in *i = NULL;						// In pointer
+	mb_dt_write writeconv = NULL;		// Write dataconversion function
 	out *o = NULL;						// Out pointer
 	float interval = 0.0;				// Interval that the register should be requested
 	double time = 0.0;					// Next scheduled request.
@@ -44,7 +49,6 @@ class interface_mb : public interface{
 		interface_mb(string, string, string, uint16_t); // descr, name, ip-as-string, port
 		interface_mb(string, string, string, int, char, int, int); // descr, name, device, baud, parity, data_bit, stop_bit
 		~interface_mb();
-		void getIns();
 		void setOut(out*, float);
 		void start();
 		void run();

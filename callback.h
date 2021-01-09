@@ -1,6 +1,8 @@
 // Simple C callback list
 // JCE, 9-11-2020
 
+#ifndef HAVE_CALLBACK_H
+#define HAVE_CALLBACK_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,3 +26,4 @@ void cb_call(callback_list *cbl);
 }
 #endif // __cplusplus
 
+#endif // HAVE_CALLBACK_H

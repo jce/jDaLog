@@ -1,7 +1,9 @@
+#include "endian.h"
 #include "floatLog.h"
 #include "interface.h"
 #include "interface_mb.h"
 #include "main.h"
+#include "tcmath.h"
 #include "math.h" // pow()
 #include "modbus/modbus.h"
 #include "out.h"
@@ -31,8 +33,9 @@ reg_context::~reg_context()
 }
 
 const char* mb_regtype_str[mb_regtype_num] = {"none", "coil", "status", "input", "holding"};
-const char* mb_datatype_str[mbd_num] = {"none", "bool", "uint16", "int16", "uint32", "int32", "uint64", "int64", "float16", "float32", "float64"};
-const uint8_t mb_datatype_len[mbd_num] = { 1,	1,		1,		  1,		2,		 2,		  4,		4,		 1,			2,		   4};
+const char* mb_datatype_str[mbd_num] = {"none", "bool", "uint16", "int16", "uint32r", "int32r", "uint32", "int32", "uint64", "int64", "float16", "float32", "float64"};
+const uint8_t mb_datatype_len[mbd_num] = { 1,	1,		1,		  1,		2,		  2,        2,        2,       4,        4,       1,         2,         4};
+void printsch(reg_context **);
 
 interface_mb::interface_mb(const string d, const string n, const string ipstr, uint16_t _port):interface(d, n, 1), 
 	_ipstr(ipstr), port(_port), comtype(mbc_tcp)
@@ -48,12 +51,7 @@ interface_mb::~interface_mb()
 {
 }
 
-void interface_mb::getIns()
-{
-	printf("should not happen!\n");
-}
-
-void interface_mb::setOut(out* o, float v)
+void interface_mb::setOut(out*, float)
 {
 	/*
 	if (!globalControl) return;
@@ -144,7 +142,7 @@ void interface_mb::run()
 		t = now_mt();
 		start = schedule;
 		end = schedule;
-		num = 1;
+		num = start->len;
 
 		if (t < schedule->time)
 		{
@@ -160,16 +158,16 @@ void interface_mb::run()
 
 		t = now_mt() + ACCEPT_EARLY;
 		// Find the first item
-		while (num < max_fetch && start->adj_before && t > start->adj_before->time)
+		while (start->adj_before && t > start->adj_before->time && num + start->adj_before->len <= max_fetch)
 		{
-			num++;
 			start = start->adj_before;
+			num += start->len;
 		}
 		// Find the last item
-		while (num < max_fetch && end->adj_after && t > end->adj_after->time)
+		while ( end->adj_after && t > end->adj_after->time && num + end->adj_after->len <= max_fetch)
 		{
-			num++;
 			end = end->adj_after;
+			num += end->len;
 		}
 
 		// Read
@@ -194,24 +192,32 @@ void interface_mb::run()
 				rv = 0;
 				break;
 		}
-		//printf("rv: %d\n", rv);
+		printf("rv: %d\n", rv);
+		printsch(&schedule);
 
 		// To in.
-		int i;
 		reg = start;
 		if (rv == num)
 		{
+			num = 0;	// Is now offset in received message.
 			t = now();
 			if (key.regtype == mb_coil || key.regtype == mb_status)
-				for (i = 0; i != num; i++)
+				while (true)
 				{
-					reg->i->setValue(bits[i], t);
+					reg->i->setValue(bits[num], t);
+					num += reg->len;
+					if (reg == end)
+						break;
 					reg = reg->adj_after;
 				}
 			if (key.regtype == mb_input || key.regtype == mb_holding)
-				for (i = 0; i != num; i++)
+				while (true)
 				{
-					reg->i->setValue(regs[i], t);
+					//reg->i->setValue(regs[num], t);
+					reg->i->setValue(reg->readconv(& regs[num]), t);
+					num += reg->len;
+					if (reg == end)
+						break;
 					reg = reg->adj_after;
 				}
 			if (!conmem)
@@ -222,9 +228,11 @@ void interface_mb::run()
 		}
 		else
 		{
-			for (i = 0; i != num; i++)
+			while (true)
 			{
 				reg->i->setValid(false);
+				if (reg == end)
+					break;
 				reg = reg->adj_after;
 			}
 			if (conmem)
@@ -249,12 +257,15 @@ void interface_mb::run()
 		}
 				
 		// Reschedule
+		reg = start;
 		t = now_mt();
-		for (i = 0; i != num; i++)
+		while (true)
 		{
-			start->time = next_multiple(t, start->interval);
-			reschedule(start);
-			start = start->adj_after;
+			reg->time = next_multiple(t, reg->interval);
+			reschedule(reg);
+			if (reg == end)
+				break;
+			reg = reg->adj_after;
 		}
 	}
 	modbus_free(ctx);
@@ -282,7 +293,7 @@ void interface_mb::link_adj_reg_contexts()
 	auto l = reg.begin();
 	for (auto r = reg.begin(); r != reg.end(); r++)
 	{
-		if ( (l->first.id == r->first.id) && (l->first.regtype == r->first.regtype) && (l->first.offset + 1 == r->first.offset) )
+		if ( (l->first.id == r->first.id) && (l->first.regtype == r->first.regtype) && (l->first.offset + l->second.len == r->first.offset) )
 		{
 			// These two are adjacent.
 			l->second.adj_after = & r->second;
@@ -307,7 +318,7 @@ void printsch(reg_context **x)
 {
 	while (*x)
 	{
-		printf("%p -> %p\n", *x, (*x)->next);
+		printf("%p -> %p	%f	%d.%d.%d\n", *x, (*x)->next, (*x)->time, (*x)->key.id, (*x)->key.regtype, (*x)->key.offset);
 		x = & (*x)->next;
 	}
 }
@@ -328,6 +339,35 @@ void interface_mb::reschedule(reg_context *si)
 	(*i) = si;
 }
 
+// Dont get scared now, here follows some casting and conversion magic.
+double read_none(uint16_t*)				{ return 0; };
+double read_uint16(uint16_t *m)			{ return *m; };
+double read_int16(uint16_t *m)			{ return *((int16_t*) &m); };
+double read_uint32(uint16_t *m)			{ uint32_t x = ((uint32_t) (*m) << 16) + (* (m+1)); return x; };
+double read_int32(uint16_t *m)			{ uint32_t x = ((uint32_t) (*m) << 16) + (* (m+1)); return * (int32_t*) &x; };
+double read_uint32r(uint16_t *m)		{ uint32_t x = ((uint32_t) (*(m+1)) << 16) + (* m); return x; };
+double read_int32r(uint16_t *m)			{ uint32_t x = ((uint32_t) (*(m+1)) << 16) + (* m); return * (int32_t*) &x; };
+double read_uint64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return x; };
+double read_int64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return * (int64_t*) x; };
+double read_float16(uint16_t *m)		{ return float16_to_double((float16_t) *m); }; 
+double read_float32(uint16_t *m)		{ uint32_t x = ((uint32_t) (*m) << 16) + (* m+1); return * (float*) &x; };
+double read_float64(uint16_t *m)		{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return * (double*) x; };
+
+// Todo: big endian translation should be left to the modbus library. To be removed. JCE, 9-1-2020
+void write_none(double, uint16_t*)			{ return; }
+void write_uint16(double d, uint16_t *m)	{ *m = htobe16(d); };
+void write_int16(double d, uint16_t *m)		{ int16_t x = d; *m = htobe16(* (uint16_t*) &x ); };
+void write_uint32(double d, uint16_t *m)	{ *m = htobe32(d); };
+void write_int32(double d, uint16_t *m)		{ int32_t x = d; *m = htobe32(* (uint32_t*) &x); };
+void write_uint32r(double d, uint16_t *m)	{ *m = htobe32(d); }; //todo
+void write_int32r(double d, uint16_t *m)	{ int32_t x = d; *m = htobe32(* (uint32_t*) &x); }; // todo
+void write_uint64(double d, uint16_t *m)	{ *m = htobe64(d); };
+void write_int64(double d, uint16_t *m)		{ int64_t x = d; *m = htobe64(* (uint64_t*) &x); };
+void write_float16(double d, uint16_t *m)	{ *m = htobe16( double_to_float16(d) ); }
+void write_float32(double d, uint16_t *m)	{ uint32_t x = * (uint32_t*) &d; * (uint32_t*) m = htobe32(x); };
+void write_float64(double d, uint16_t *m)	{ uint64_t x = * (uint64_t*) &d; * (uint64_t*) m = htobe64(x); };
+
+// Factory for interface_mb.
 void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 {
 	if (!ifid)
@@ -479,6 +519,7 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 				datatype = mbd_bool;
 			if (regtype == mb_input or regtype == mb_holding)
 			{
+				datatype = mbd_uint16;
 				const char *dt_str = json_string_value(json_object_get(reg_j, "datatype"));
 				if (dt_str)
 				{
@@ -507,16 +548,68 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			}
 
 			mb_key key = {id, regtype, offset};
-			mb->reg[key].i = i;
-			mb->reg[key].o = o;
-			mb->reg[key].interval = scan;
-			mb->reg[key].key = key;
-			mb->reg[key].datatype = datatype;
-			mb->reg[key].len = len;
-			
+			reg_context *reg = &mb->reg[key];
+			reg->i = i;
+			reg->o = o;
+			reg->interval = scan;
+			reg->key = key;
+			reg->datatype = datatype;
+			reg->len = len;
+			switch(datatype)
+			{
+				case mbd_none:
+				case mbd_bool:
+				case mbd_num:
+					reg->readconv = read_none;
+					reg->writeconv = write_none;
+					break;
+				case mbd_uint16:
+					reg->readconv = read_uint16;
+					reg->writeconv = write_uint16;
+					break;
+				case mbd_int16:
+					reg->readconv = read_int16;
+					reg->writeconv = write_int16;
+					break;
+				case mbd_uint32:
+					reg->readconv = read_uint32;
+					reg->writeconv = write_uint32;
+					break;
+				case mbd_int32:
+					reg->readconv = read_int32;
+					reg->writeconv = write_int32;
+					break;
+				case mbd_uint32r:
+					reg->readconv = read_uint32r;
+					reg->writeconv = write_uint32r;
+					break;
+				case mbd_int32r:
+					reg->readconv = read_int32r;
+					reg->writeconv = write_int32r;
+					break;
+				case mbd_uint64:
+					reg->readconv = read_uint64;
+					reg->writeconv = write_uint64;
+					break;
+				case mbd_int64:
+					reg->readconv = read_int64;
+					reg->writeconv = write_int64;
+					break;
+				case mbd_float16:
+					reg->readconv = read_float16;
+					reg->writeconv = write_float16;
+					break;
+				case mbd_float32:
+					reg->readconv = read_float32;
+					reg->writeconv = write_float32;
+					break;
+				case mbd_float64:
+					reg->readconv = read_float64;
+					reg->writeconv = write_float64;
+					break;
+			}
 		}
 	}
-
 }
 
 
