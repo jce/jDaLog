@@ -50,11 +50,11 @@ void logic_modulator::run()
 	_out->setOut(out);*/
 }
 
-void logic_modulator::setOut(out *o, float val)
+void logic_modulator::setOut(out*, float)
 {
 }
 
-int logic_modulator::make_page(struct mg_connection *conn)
+int logic_modulator::make_page(struct mg_connection*)
 {
 /*
 	mg_printf(conn, "on/off regulator page. This page displays the current state as well as configured values for this on-off regulator<br>\n");
@@ -70,6 +70,7 @@ int logic_modulator::make_page(struct mg_connection *conn)
 	//mg_printf(conn, line.c_str());
 	return 1;
 	*/	
+	return 1;
 }
 
 // helper functions

@@ -9,6 +9,7 @@ extern "C" {
 #endif // __cplusplus
 
 struct callback_list;
+typedef struct callback_list callback_list;
 
 // Add a callback to the list
 // ** cbl = pointer to the pointer to the first element. Double pointer is needed to write the first element.
