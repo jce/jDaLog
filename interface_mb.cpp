@@ -192,8 +192,8 @@ void interface_mb::run()
 				rv = 0;
 				break;
 		}
-		printf("rv: %d\n", rv);
-		printsch(&schedule);
+		//printf("rv: %d\n", rv);
+		//printsch(&schedule);
 
 		// To in.
 		reg = start;
@@ -343,10 +343,10 @@ void interface_mb::reschedule(reg_context *si)
 double read_none(uint16_t*)				{ return 0; };
 double read_uint16(uint16_t *m)			{ return *m; };
 double read_int16(uint16_t *m)			{ return *((int16_t*) &m); };
-double read_uint32(uint16_t *m)			{ uint32_t x = ((uint32_t) (*m) << 16) + (* (m+1)); return x; };
-double read_int32(uint16_t *m)			{ uint32_t x = ((uint32_t) (*m) << 16) + (* (m+1)); return * (int32_t*) &x; };
-double read_uint32r(uint16_t *m)		{ uint32_t x = ((uint32_t) (*(m+1)) << 16) + (* m); return x; };
-double read_int32r(uint16_t *m)			{ uint32_t x = ((uint32_t) (*(m+1)) << 16) + (* m); return * (int32_t*) &x; };
+double read_uint32(uint16_t *m)			{ uint32_t x = (((uint32_t) (*m)) << 16) + (* (m+1)); return x; };
+double read_int32(uint16_t *m)			{ uint32_t x = (((uint32_t) (*m)) << 16) + (* (m+1)); return * (int32_t*) &x; };
+double read_uint32r(uint16_t *m)		{ uint32_t x = (((uint32_t) (*(m+1))) << 16) + (* m); return x; };
+double read_int32r(uint16_t *m)			{ uint32_t x = (((uint32_t) (*(m+1))) << 16) + (* m); return * (int32_t*) &x; };
 double read_uint64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return x; };
 double read_int64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return * (int64_t*) x; };
 double read_float16(uint16_t *m)		{ return float16_to_double((float16_t) *m); }; 
