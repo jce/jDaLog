@@ -131,7 +131,7 @@ void interface_mb::run()
 		sleep(1);
 	}
 
-	if (!conmem)
+	if (!conmem && run_flg)
 	{
 		PRINT_RESTORED();
 		conmem = 1;
@@ -220,7 +220,7 @@ void interface_mb::run()
 						break;
 					reg = reg->adj_after;
 				}
-			if (!conmem)
+			if (!conmem && run_flg)
 			{
 				PRINT_RESTORED();
 				conmem = 1;
@@ -349,7 +349,7 @@ double read_uint32r(uint16_t *m)		{ uint32_t x = (((uint32_t) (*(m+1))) << 16) +
 double read_int32r(uint16_t *m)			{ uint32_t x = (((uint32_t) (*(m+1))) << 16) + (* m); return * (int32_t*) &x; };
 double read_uint64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return x; };
 double read_int64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return * (int64_t*) x; };
-double read_float16(uint16_t *m)		{ return float16_to_double((float16_t) *m); }; 
+double read_float16(uint16_t *m)		{ return float16_to_double(*m); }; 
 double read_float32(uint16_t *m)		{ uint32_t x = ((uint32_t) (*m) << 16) + (* m+1); return * (float*) &x; };
 double read_float64(uint16_t *m)		{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return * (double*) x; };
 
@@ -520,7 +520,7 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			if (regtype == mb_input or regtype == mb_holding)
 			{
 				datatype = mbd_uint16;
-				const char *dt_str = json_string_value(json_object_get(reg_j, "datatype"));
+				const char *dt_str = json_string_value(json_object_get(reg_j, "type"));
 				if (dt_str)
 				{
 					for (int i = 0; i < mbd_num; i++)
