@@ -489,7 +489,7 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			json_t *reg_scan_j;
 			float reg_scan;
 			reg_scan_j = json_object_get(reg_j, "scan");
-			if (reg_scan_j)
+			if (json_is_number(reg_scan_j))
 				reg_scan = json_number_value(reg_scan_j);	
 
 			float scan = 1;
@@ -500,11 +500,17 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			double a = 1.0, b = 0.0;
 			json_t *a_j, *b_j;
 			a_j = json_object_get(reg_j, "a");
-			if (a_j)
+			if (json_is_number(a_j))
 				a = json_number_value(a_j);	
 			b_j = json_object_get(reg_j, "b");
-			if (b_j)
+			if (json_is_number(b_j))
 				b = json_number_value(b_j);	
+
+			int decimals = 0;
+			json_t *decimals_j;
+			decimals_j = json_object_get(reg_j, "decimals");
+			if (json_is_number(decimals_j))
+				decimals = json_number_value(decimals_j);	
 
 			string descr, name;
 
@@ -545,15 +551,15 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			if (regtype == mb_coil or regtype == mb_holding)
 			{
 				if (regtype == mb_coil)
-					o = new out(descr, name, unit, 0, (void*) mb, 0, 1, 1);
+					o = new out(descr, name, unit, decimals, (void*) mb, b, a, a+b);
 				if (regtype == mb_holding)
-					o = new out(descr, name, unit, 0, (void*) mb, 0, 1, 65535);
+					o = new out(descr, name, unit, decimals, (void*) mb, 0, 1, 65535);
 				i = o;
 			}		
 			else
 			{
 				o = NULL;
-				i = new in(descr, name, unit);			
+				i = new in(descr, name, unit, decimals);			
 			}
 
 			mb_key key = {id, regtype, offset};
