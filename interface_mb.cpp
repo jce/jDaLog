@@ -204,7 +204,7 @@ void interface_mb::run()
 			if (key.regtype == mb_coil || key.regtype == mb_status)
 				while (true)
 				{
-					reg->i->setValue(bits[num], t);
+					reg->i->setValue(reg->a * bits[num] + reg->b, t);
 					num += reg->len;
 					if (reg == end)
 						break;
@@ -214,7 +214,7 @@ void interface_mb::run()
 				while (true)
 				{
 					//reg->i->setValue(regs[num], t);
-					reg->i->setValue(reg->readconv(& regs[num]), t);
+					reg->i->setValue(reg->a * reg->readconv(& regs[num]) + reg->b, t);
 					num += reg->len;
 					if (reg == end)
 						break;
@@ -497,6 +497,15 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			if (dev_scan_j) scan = dev_scan;
 			if (reg_scan_j) scan = reg_scan;
 
+			double a = 1.0, b = 0.0;
+			json_t *a_j, *b_j;
+			a_j = json_object_get(reg_j, "a");
+			if (a_j)
+				a = json_number_value(a_j);	
+			b_j = json_object_get(reg_j, "b");
+			if (b_j)
+				b = json_number_value(b_j);	
+
 			string descr, name;
 
 			rid = json_string_value(json_object_get(reg_j, "id"));
@@ -555,6 +564,8 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 			reg->key = key;
 			reg->datatype = datatype;
 			reg->len = len;
+			reg->a = a;
+			reg->b = b;
 			switch(datatype)
 			{
 				case mbd_none:

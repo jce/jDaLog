@@ -37,6 +37,8 @@ typedef struct reg_context
 	out *o = NULL;						// Out pointer
 	float interval = 0.0;				// Interval that the register should be requested
 	double time = 0.0;					// Next scheduled request.
+	double a = 1.0;						// Scaling of readout to real value: real_value = a * readout_value + b
+	double b = 0.0;
 	reg_context *adj_before = NULL;		// If there is an adjacent register before, this is the pointer to its context.
 	reg_context *adj_after = NULL;		// If there is an adjacent register after, this is the pointer to its context.
 	mb_datatype datatype = mbd_none;	// Datatype of the represented field (only in case of registers)
