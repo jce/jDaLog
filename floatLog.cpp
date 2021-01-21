@@ -228,23 +228,30 @@ void floatLog::writeToFile() {
 	FILE *fp;
 	pthread_mutex_lock(&_fileMutex);
 	pthread_mutex_lock(&_memMutex);
-		fp = fopen(_pathAndName.c_str(), "a");
+	fp = fopen(_pathAndName.c_str(), "r+");
+	if (!fp && errno == ENOENT)
+		fp = fopen(_pathAndName.c_str(), "w+"); // Apparently there is no fopen with create, read, write, and not append.
 
-		if(fp)
+	if(fp)
+    { 
+        // Align to a multiple of records. Opened for appending always writes at the back so no seeking back.
+        // JCE, 29-8-2019
+        fseek(fp, 0, SEEK_END);
+        long unsigned int pos = ftell(fp);
+        unsigned int rlen = sizeof(record);
+        unsigned int overshoot_on_multiple_of_records = pos % rlen;
+        if (overshoot_on_multiple_of_records)
+            printf("%s: Length (%ld) is not a multiple of record length(%d). Overshoot: %ld. Starting from %ld\n", _pathAndName.c_str(), pos, rlen, pos %  rlen, pos-overshoot_on_multiple_of_records);
+        fseek(fp, pos-overshoot_on_multiple_of_records, SEEK_SET);  // Overwrite the end if the length is not a multiple of record. JCE, 10-12-2020
+
+        for (i = _recordsToFile.begin(); i != _recordsToFile.end(); i++)
 		{
-			// Align to a multiple of records. Opened for appending always writes at the back so no seeking back.
-			// JCE, 29-8-2019
-			long int pos = ftell(fp);
-			unsigned int rlen = sizeof(record);
-			unsigned int overshoot_on_multiple_of_records = pos % rlen;
-			if (overshoot_on_multiple_of_records)
-				fseek(fp, pos-overshoot_on_multiple_of_records, SEEK_SET);	// Trim the end if the lengt is not a multiple of record. JCE, 10-12-2020
-			for (i = _recordsToFile.begin(); i != _recordsToFile.end(); i++){
-				r = *i;
-				fwrite(&r, sizeof(record), 1, fp);}
-			fclose(fp);
+            r = *i;
+            fwrite(&r, sizeof(record), 1, fp);
 		}
-		_recordsToFile.clear();
+        fclose(fp);
+    }
+	_recordsToFile.clear();
 	pthread_mutex_unlock(&_fileMutex);
 	pthread_mutex_unlock(&_memMutex);}
 
