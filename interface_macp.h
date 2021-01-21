@@ -12,7 +12,7 @@
 
 class interface_macp : public interface{
 	public:
-		interface_macp(const std::string, const std::string, float, const std::string, const std::string); // descr, name, url, pingrange
+		interface_macp(const std::string, const std::string, float, const std::string, const std::string, bool); // descr, name, url, pingrange, hidden_ins
 		void look_for_mac(const string&);
 		void track_all_macs();
 		~interface_macp();
@@ -24,6 +24,7 @@ class interface_macp : public interface{
 		const std::string _macstr;
 		const std::string pingrange = "";
 		bool _trackallmacs = false;
+		bool hidden_ins = false;
 	};
 
 #endif // HAVE_INTERFACE_JCEM_H

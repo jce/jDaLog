@@ -521,6 +521,8 @@ int make_in_list_page(struct mg_connection *conn){
 		#ifdef debug
 			printf("in iteration started, constructing link\n");
 		#endif
+		if (i->second->hidden)
+			continue;
 		string link = "/in/" + i->second->getDescriptor();
 		#ifdef debug
 			printf("The inmap entry is: %s, The link is: %s, constructing link html\n", i->first.c_str(), link.c_str());

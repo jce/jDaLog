@@ -149,7 +149,10 @@ void build_interfaces(json_t *arr)
 				if (strcmp(type, "macp") == 0)
 				{
 					if (id and name and json_is_number(jscan) and address and pingrange)
-						new interface_macp(id, name, scan, address, pingrange);
+					{
+						bool hidden_ins = json_is_true(json_object_get(json, "hidden_ins"));
+						new interface_macp(id, name, scan, address, pingrange, hidden_ins);
+					}
 					else
 						printf("could not build interface_macp(%s, %s, %f, %s, %s)\n", id, name, scan, address, pingrange);
 				}

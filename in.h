@@ -20,6 +20,7 @@ class in{
 		in(const string, const string name = "", const string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
 		in(uint8_t, const char *dir, const string descr, const string prefix); // bogus item as hack, storage location, descr, prefix for name.
 		~in();
+		bool hidden = false;
 		void setValue(float, double = 0);
 		void setVal(float, double = 0);
 		float getValue();

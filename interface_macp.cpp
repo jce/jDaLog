@@ -34,11 +34,11 @@ string exec(const char* cmd)
     return result;
 }
 
-interface_macp::interface_macp(const string d, const string n, float i, const string macstr, const string pr):interface(d, n, i), _macstr(macstr), pingrange(pr)
+interface_macp::interface_macp(const string d, const string n, float i, const string macstr, const string pr, bool h):interface(d, n, i), _macstr(macstr), pingrange(pr)
 {
 	searchtime = new in(getDescriptor() + "_st", getName() + " searchtime", "s", 3);
 	mac_present = new in(getDescriptor() + "_mp", getName() + " mac present", "", 0);
-
+	hidden_ins = h;
 	// Data is stored in #define tcDataDir + /in/ then in a dir.
 	// Try and reconstruct any mac_ to in's 
 	for( auto& p: filesystem::directory_iterator(tcDataDir "in/"))
@@ -51,7 +51,10 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 				string mac(stem, pos+4);
 				//printf(mac.c_str()); printf("\n");
 				if (mac != "st" and mac != "mp")
+				{
 					macs[mac] = new in(getDescriptor() + "_" + mac, getName() + " " + mac, "", 0);
+					macs[mac]->hidden = h;
+				}
 			}
 		}
 }
@@ -91,7 +94,10 @@ void interface_macp::getIns()
 		
 		// Create in's for new mac addresses
 		if (macs.count(match_str) != 1)
+		{
 			macs[match_str] = new in(getDescriptor() + "_" + match_str, getName()+ " " + match_str, "", 0);
+			macs[match_str] -> hidden = hidden_ins;
+		}
 	}
 
 	// Update the status of known addresses.
