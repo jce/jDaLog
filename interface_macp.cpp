@@ -34,35 +34,37 @@ string exec(const char* cmd)
     return result;
 }
 
-interface_macp::interface_macp(const string d, const string n, float i, const string macstr, const string pr, bool h):interface(d, n, i), _macstr(macstr), pingrange(pr)
+interface_macp::interface_macp(const string d, const string n, float i, const string pr, bool h, bool t):interface(d, n, i), pingrange(pr), hidden_ins(h), _trackallmacs(t)
 {
 	searchtime = new in(getDescriptor() + "_st", getName() + " searchtime", "s", 3);
-	mac_present = new in(getDescriptor() + "_mp", getName() + " mac present", "", 0);
-	hidden_ins = h;
-	// Data is stored in #define tcDataDir + /in/ then in a dir.
-	// Try and reconstruct any mac_ to in's 
-	for( auto& p: filesystem::directory_iterator(tcDataDir "in/"))
-		if (p.is_directory())
-		{
-			string stem = p.path().stem().string();
-			size_t pos = stem.find(getDescriptor() + "_");
-			if (pos != string::npos)
+	if (_trackallmacs)
+	{
+		// Data is stored in #define tcDataDir + /in/ then in a dir.
+		// Try and reconstruct any mac_ to in's 
+		for( auto& p: filesystem::directory_iterator(tcDataDir "in/"))
+			if (p.is_directory())
 			{
-				string mac(stem, pos+4);
-				//printf(mac.c_str()); printf("\n");
-				if (mac != "st" and mac != "mp")
+				string stem = p.path().stem().string();
+				size_t pos = stem.find(getDescriptor() + "_");
+				if (pos != string::npos)
 				{
-					macs[mac] = new in(getDescriptor() + "_" + mac, getName() + " " + mac, "", 0);
-					macs[mac]->hidden = h;
+					string mac(stem, pos+4);
+					//printf(mac.c_str()); printf("\n");
+					if (mac != "st" and mac != "mp")
+					{
+						macs_auto[mac] = new in(getDescriptor() + "_" + mac, getName() + " " + mac, "", 0);
+						macs_auto[mac]->hidden = h;
+					}
 				}
 			}
-		}
+	}
 }
 
 interface_macp::~interface_macp()
 {
-	delete mac_present;
 	delete searchtime;
+	for (auto mac = macs_auto.begin(); mac != macs_auto.end(); mac++)
+		delete mac->second;
 	for (auto mac = macs.begin(); mac != macs.end(); mac++)
 		delete mac->second;
 }
@@ -81,32 +83,51 @@ void interface_macp::getIns()
 	double t = (start + end) / 2;
 	searchtime->setValue((end-start), t); 
 
-	// Find all mac addresses, add an entry in macs for new addresses.
-	// Ooh i had one problem, then i tought to fix it with an regex. Now i have two problems...
-	regex mac_regex("([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})");
-	auto macs_begin = sregex_iterator(result.begin(), result.end(), mac_regex);
-	auto macs_end = sregex_iterator();
-	for (sregex_iterator i = macs_begin; i != macs_end; i++)
+	if (_trackallmacs)
 	{
-		smatch match = *i;
-		string match_str = match.str();
-		//printf(match_str.c_str());
-		
-		// Create in's for new mac addresses
-		if (macs.count(match_str) != 1)
+		// Find all mac addresses, add an entry in macs for new addresses.
+		// Ooh i had one problem, then i tought to fix it with an regex. Now i have two problems...
+		regex mac_regex("([0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2}:[0-9a-f]{2})");
+		auto macs_begin = sregex_iterator(result.begin(), result.end(), mac_regex);
+		auto macs_end = sregex_iterator();
+		for (sregex_iterator i = macs_begin; i != macs_end; i++)
 		{
-			macs[match_str] = new in(getDescriptor() + "_" + match_str, getName()+ " " + match_str, "", 0);
-			macs[match_str] -> hidden = hidden_ins;
+			smatch match = *i;
+			string match_str = match.str();
+			//printf(match_str.c_str());
+			
+			// Create in's for new mac addresses
+			if (macs_auto.count(match_str) != 1)
+			{
+				macs_auto[match_str] = new in(getDescriptor() + "_" + match_str, getName()+ " " + match_str, "", 0);
+				macs_auto[match_str] -> hidden = hidden_ins;
+			}
 		}
 	}
 
 	// Update the status of known addresses.
-	for (auto mac = macs.begin(); mac != macs.end(); mac++)
+	for (auto mac = macs_auto.begin(); mac != macs_auto.end(); mac++)
 		mac->second->setValue(result.find(mac->first) != string::npos, t);
 
-	// Separately scan also for this one mac.
-	mac_present->setValue(result.find(_macstr) != string::npos, t);
+	for (auto mac = macs.begin(); mac != macs.end(); mac++)
+		mac->second->setValue(result.find(mac->first) != string::npos, t);
 }
 
-void interface_macp::setOut(out*, float){
+void interface_macp::setOut(out*, float)
+{
+}
+
+void interface_macp::add_mac(const char *macstr, const char *macdescr, const char *macname)
+{
+	if (!macstr)
+	{
+		printf("interface_macp %s (%s): No mac string given, mac not added\n", getDescriptor().c_str(), getName().c_str());
+		return;
 	}
+	if (!macdescr)
+		macdescr = macstr;
+	if (!macname)
+		macname = macdescr;
+	macs[macstr] = new in(getDescriptor() + "_" + macdescr, getName()+ " " + macname, "", 0);
+}
+

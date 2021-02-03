@@ -4,6 +4,7 @@
 #include "stdio.h"
 #include <string>
 #include "in.h"
+#include "jansson.h"
 #include "out.h"
 #include "stringStore.h"
 #include <map>
@@ -12,19 +13,22 @@
 
 class interface_macp : public interface{
 	public:
-		interface_macp(const std::string, const std::string, float, const std::string, const std::string, bool); // descr, name, url, pingrange, hidden_ins
+		interface_macp(const std::string, const std::string, float, const std::string, bool, bool); // descr, name, interval, pingrange, hidden_ins, track_all
 		void look_for_mac(const string&);
 		void track_all_macs();
 		~interface_macp();
 		void getIns();
-		in *searchtime, *mac_present;
-		std::map<std::string, in*> macs;
+		in *searchtime;
 		void setOut(out*, float);
+		void add_mac(const char*, const char*, const char*);
 	private:
-		const std::string _macstr;
+		std::map<std::string, in*> macs;
+		std::map<std::string, in*> macs_auto;
 		const std::string pingrange = "";
-		bool _trackallmacs = false;
 		bool hidden_ins = false;
+		bool _trackallmacs = false;
 	};
+
+void add_macs_from_array(interface_macp&, json_t*);
 
 #endif // HAVE_INTERFACE_JCEM_H

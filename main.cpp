@@ -148,10 +148,22 @@ void build_interfaces(json_t *arr)
 				}
 				if (strcmp(type, "macp") == 0)
 				{
-					if (id and name and json_is_number(jscan) and address and pingrange)
+					if (id and name and json_is_number(jscan) and pingrange)
 					{
 						bool hidden_ins = json_is_true(json_object_get(json, "hidden_ins"));
-						new interface_macp(id, name, scan, address, pingrange, hidden_ins);
+						bool track_all = json_is_true(json_object_get(json, "track_all"));
+						interface_macp *macp = new interface_macp(id, name, scan, pingrange, hidden_ins, track_all);
+						json_t *item_j;
+						const char *macstr, *macdesc, *macname;
+						json_object_foreach(json_object_get(json, "list"), macstr, item_j)
+						{
+							macdesc = json_string_value(json_object_get(item_j, "id"));
+							macname = json_string_value(json_object_get(item_j, "name"));
+							if (!macname)
+								macname = macdesc;
+							if (macdesc)
+								macp->add_mac(macstr, macdesc, macname);
+						}
 					}
 					else
 						printf("could not build interface_macp(%s, %s, %f, %s, %s)\n", id, name, scan, address, pingrange);
