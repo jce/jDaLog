@@ -62,10 +62,12 @@ int logic_km::make_page(struct mg_connection *conn){
 			struct tm from = {};
 			from.tm_year = year;
 			from.tm_mon = month;
+			from.tm_mday = 1;
 			time_t from_ts = mktime(&from);
 			struct tm to = {};
 			to.tm_year = year;
 			to.tm_mon = month + 1;
+			to.tm_mday = 1;
 			time_t to_ts = mktime(&to);
 
 			line = make_image_line(plotLines(inp, from_ts, to_ts, 1280, 300, month_str[month]));
