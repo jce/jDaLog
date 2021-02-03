@@ -50,8 +50,10 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 				{
 					string mac(stem, pos+4);
 					//printf(mac.c_str()); printf("\n");
-					if (mac != "st" and mac != "mp")
+					int x;
+					if (sscanf(mac.c_str(), "%*2x:%*2x:%*2x:%*2x:%*2x:%2x", &x) == 1)
 					{
+						//printf("match\n");
 						macs_auto[mac] = new in(getDescriptor() + "_" + mac, getName() + " " + mac, "", 0);
 						macs_auto[mac]->hidden = h;
 					}
