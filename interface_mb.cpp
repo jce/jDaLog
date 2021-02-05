@@ -342,7 +342,7 @@ void interface_mb::reschedule(reg_context *si)
 // Dont get scared now, here follows some casting and conversion magic.
 double read_none(uint16_t*)				{ return 0; };
 double read_uint16(uint16_t *m)			{ return *m; };
-double read_int16(uint16_t *m)			{ return *((int16_t*) &m); };
+double read_int16(uint16_t *m)			{ return *((int16_t*) m); };
 double read_uint32(uint16_t *m)			{ uint32_t x = (((uint32_t) (*m)) << 16) + (* (m+1)); return x; };
 double read_int32(uint16_t *m)			{ uint32_t x = (((uint32_t) (*m)) << 16) + (* (m+1)); return * (int32_t*) &x; };
 double read_uint32r(uint16_t *m)		{ uint32_t x = (((uint32_t) (*(m+1))) << 16) + (* m); return x; };
