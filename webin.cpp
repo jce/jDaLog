@@ -17,14 +17,27 @@ using namespace std;
 
 map<string, webin*> webinmap;
 
-webin::webin(const string d, const string n, const string u, const unsigned int de) : in(d, n, u, de){
+webin::webin(const string d, const string n, const string u, const unsigned int de) : in(d, n, u, de)
+{
 	setValid(true);	// there is no such thing as an invalid web-in. It is like a configuration value.
-	webinmap[getDescriptor()] = this ;}
+	webinmap[getDescriptor()] = this;
+}
 
-webin::~webin(){}
+webin::~webin()
+{
+}
 
-void touchAllWebins(){
+void webin::setValue(float v, double t)
+{
+	if (t == 0) 
+		t = now();
+	in::setValue(_value, t-0.001);
+	in::setValue(v, t);
+}
+
+void touchAllWebins()
+{
 	map<string, webin*>::iterator i;
 	for (i = webinmap.begin(); i!= webinmap.end(); i++)
 		i->second->touch();
-	}
+}

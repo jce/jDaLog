@@ -14,6 +14,7 @@ using namespace std;
 class webin: public in{
 	public:
 		webin(const string, const string name = "", const string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
+		void setValue(float, double = 0.0);
 		~webin();
 	};
 

@@ -232,6 +232,8 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 				nr_ins += (bool) vars[i].i;
 			o->nr_ins = nr_ins;
 			o->valid_ins = 0;
+			for (int i = 0; i < nr_vars; i++)
+				o->valid_ins += vars[i].i->isValid(); 
 			o->have_default_val = have_default_val;
 			o->default_val = default_val;
 
@@ -239,15 +241,23 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 			for (int i = 0; i < nr_vars; i++)
 				if(vars[i].i)
 				{
+					vars[i].i->register_callback_on_update(			out_cb_in_updated, (void*) o);
 					vars[i].i->register_callback_on_change(			out_cb_in_changed, (void*) o);
         			vars[i].i->register_callback_on_turn_invalid(	out_cb_in_invalid, (void*) o);
         			vars[i].i->register_callback_on_turn_valid(		out_cb_in_valid, (void*) o);
 				}
+			o->eval_expr();
 		}
 	}
 }
 
 // Callbacks on in events
+void out_cb_in_updated(void *p)
+{
+	out *o = (out*) p;
+	o->_setout();
+}
+
 void out_cb_in_changed(void *p)
 {
 	out *o = (out*) p;

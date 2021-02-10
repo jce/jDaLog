@@ -4,6 +4,7 @@
 #include <list>
 #include <string>
 #include "in.h"
+#include "out.h"
 
 // helper functions for building a page outside of webgui.cpp
 
@@ -12,7 +13,8 @@ string make_image_line(string);
 
 // make an htm l link. String 1 is the linked url, string 2 the visible tekst. Returns the html code for the link.
 string make_link(string, string text = "");
-string make_in_link(in* i);
+string make_in_link(in*);
+string make_out_link(out*);
 
 // in*, tmin, tmax, x-pixels, y-pixels
 string plotLine(in*, unsigned long, unsigned long, unsigned int, unsigned int);

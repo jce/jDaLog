@@ -398,6 +398,31 @@ void loopstoreio(){
 	deleteOldFiles(); // AKA segmentation fault... JCE, 5-7-13
 	}
 
+void debug_plot_stuff()
+{
+	in *i = get_in("S1200_rmc");
+	in *j = get_in("S1200_rmt");
+	// list<in*>, tmin, tmax, x-pixels, y-pixels, title
+	plotLines(i, j, now()-28*24*3600, now(), 1200, 400, "test");
+	jos_run(pool, (void (*)(void*)) debug_plot_stuff, NULL);
+}
+void debug_plot_stuff2()
+{
+	in *i = get_in("host_disk_usedp");
+	in *j = get_in("hs110_wp_whr");
+	// list<in*>, tmin, tmax, x-pixels, y-pixels, title
+	plotLines(i, j, now()-28*24*3600, now(), 1200, 400, "test");
+	jos_run(pool, (void (*)(void*)) debug_plot_stuff2, NULL);
+}
+void debug_plot_stuff3()
+{
+	in *i = get_in("mac_jce_phone");
+	in *j = get_in("mac_jce_desktop");
+	// list<in*>, tmin, tmax, x-pixels, y-pixels, title
+	plotLines(i, j, now()-28*24*3600, now(), 1200, 400, "test");
+	jos_run(pool, (void (*)(void*)) debug_plot_stuff3, NULL);
+}
+
 void print_ptr(void *p)
 {
 	printf("print_ptr(%p)\n", p);
@@ -509,6 +534,9 @@ int main(){
 	jos_run_every(pool, 1, 		(void (*)(void*)) loop1s, NULL);
 	jos_run_every(pool, 60, 	(void (*)(void*)) loop60s, NULL);
 	jos_run_every(pool, 3600, 	(void (*)(void*)) loopstoreio, NULL);
+	//jos_run(pool, (void (*)(void*)) debug_plot_stuff, NULL);
+	//jos_run(pool, (void (*)(void*)) debug_plot_stuff2, NULL);
+	//jos_run(pool, (void (*)(void*)) debug_plot_stuff3, NULL);
 
 	usleep(100000);
 	printf("running... (press control+C to stop)\n");
@@ -538,6 +566,9 @@ int main(){
 	delete buildNr;
 	delete version;
 	delete haveControl;
+
+	for (auto wi = webinmap.begin(); wi != webinmap.end(); wi++)
+		delete(wi->second);
 
 	mysql_library_end();
 

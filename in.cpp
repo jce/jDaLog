@@ -209,7 +209,10 @@ void in::importData(){
 	_logger->importFromBinFile((string) tcDataDir + "/in/" + _descr + "/import.bin");
 	}
 
-void in::touch(){setValue(getValue());}
+void in::touch()
+{
+	setValue(getValue());
+}
 
 in* get_in(const char *s)
 {

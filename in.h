@@ -19,9 +19,9 @@ class in{
 		//in(const string); // descr
 		in(const string, const string name = "", const string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
 		in(uint8_t, const char *dir, const string descr, const string prefix); // bogus item as hack, storage location, descr, prefix for name.
-		~in();
+		virtual ~in();
 		bool hidden = false;
-		void setValue(float, double = 0);
+		virtual void setValue(float, double = 0);
 		void setVal(float, double = 0);
 		float getValue();
 		bool get_value_at(double, float&, double&);	// When, returned value, returned time. JCE, 19-6-2019
@@ -51,7 +51,7 @@ class in{
 		void register_callback_on_turn_invalid(void (*)(void*), void*);
 		void register_callback_on_turn_valid(void (*)(void*), void*);
 		
-	private:
+	protected:
 		const unsigned int _decimals;
 		float _value;
 		double _time;			// JCE, 4-7-13

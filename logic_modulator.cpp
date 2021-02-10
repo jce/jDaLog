@@ -15,18 +15,31 @@
 
 using namespace std;
 
-
+void test(void *v)
+{
+	printf("test %p\n", v);
+}
 
 logic_modulator::logic_modulator(const string d, const string n, out *o) : logic(d, n), out_mod(o) 
 {
 	out_sp = new out(d + "_sp", n + " setpoint", out_mod->getUnits(), 4, (void*) this, 0, FLT_MIN, 1);
+	out_sp->register_callback_on_update( (void(*)(void*)) cc_run, (void*) this);
+
+/*
+	out_sp->register_callback_on_update( test, (void*) 1 );
+	out_sp->register_callback_on_change( test, (void*) 2);
+	out_sp->register_callback_on_turn_invalid( test, (void*) 3);
+	out_sp->register_callback_on_turn_valid( test, (void*) 4 );
+*/
 }
+
 
 logic_modulator::~logic_modulator()
 {
 	if(out_sp)
 		delete out_sp;
 }
+
 
 void logic_modulator::run()
 {
@@ -50,12 +63,17 @@ void logic_modulator::run()
 	_out->setOut(out);*/
 }
 
-void logic_modulator::setOut(out*, float)
+void logic_modulator::setOut(out *o, float f)
 {
+	if (o == out_sp)	
+		out_sp->setValue(f);
 }
 
-int logic_modulator::make_page(struct mg_connection*)
+int logic_modulator::make_page(struct mg_connection *conn)
 {
+	string s;
+	s += make_out_link(out_sp);
+	mg_printf(conn, s.c_str());
 /*
 	mg_printf(conn, "on/off regulator page. This page displays the current state as well as configured values for this on-off regulator<br>\n");
 	mg_printf(conn, "Lower treshold: %.*f %s<br>\n", _low->getDecimals(), _low->getValue(), _low->getUnits().c_str());

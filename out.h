@@ -62,7 +62,7 @@ class out: public in {	// Een out is een in, maar dan aangepast. Namelijk er moe
 		float _min, _step, _max, _out, _manOut; // control minimum, step size and maximum. Memory for out setpoint, and manual out setpoint.
 		void _setout();
 		pthread_mutex_t _mutex;
-
+	friend void out_cb_in_updated(void*);
 };
 
 extern map<string, out*> outmap;
@@ -76,6 +76,7 @@ void out_conf(json_t*);	// Modifies outs defaults by given json.
 // Supply the "out" object from the json, First members should be out's descriptors
 
 // Callbacks: in change, in invalid and in valid.
+void out_cb_in_updated(void*);
 void out_cb_in_changed(void*);
 void out_cb_in_invalid(void*);
 void out_cb_in_valid(void*);

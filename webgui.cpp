@@ -144,7 +144,14 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 				iwd.inp->getDataSummary(iwd.stats, iwd.statLen, tmin, tmax);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
-				y_ax y = {units, iwdl, -1, 2, 1, false};
+				y_ax y;
+				y.units = units;
+				y.iwdl = iwdl;
+				y.ymin =  -1;
+				y.yrange = 2;
+				y.ymax = 1;
+				y.haveData = false;
+				// = {units, iwdl, -1, 2, 1, false};
 				y_axes.push_back(y);}
 			}
 		// Nu is er een lijst met y-assen. Per y-as moet de ymin, yrange en ymax berekend worden.
@@ -409,6 +416,11 @@ string make_link(string url, string text){
 string make_in_link(in* i)
 {
 	return make_link("/in/" + i->getDescriptor(), i->getName());
+}
+
+string make_out_link(out* o)
+{
+	return make_link("/out/" + o->getDescriptor(), o->getName());
 }
 
 string make_in_link_or_constant(in* i)
