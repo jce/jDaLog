@@ -233,7 +233,8 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 			o->nr_ins = nr_ins;
 			o->valid_ins = 0;
 			for (int i = 0; i < nr_vars; i++)
-				o->valid_ins += vars[i].i->isValid(); 
+				if(vars[i].i)
+					o->valid_ins += vars[i].i->isValid(); 
 			o->have_default_val = have_default_val;
 			o->default_val = default_val;
 
