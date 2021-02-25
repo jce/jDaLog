@@ -250,7 +250,7 @@ static void insert_job(jos_pool *pool, jos_job *job)
 	(*i) = job;
 }
 
-void jos_run_at(jos_pool* pool, const struct timespec *ts, void (*fnc)(void*), void* arg)
+void jos_run_at_ts(jos_pool* pool, const struct timespec *ts, void (*fnc)(void*), void* arg)
 {
 	pthread_mutex_lock(&pool->mutex);
 	jos_job* job = get_empty_job(pool);
@@ -268,7 +268,7 @@ void jos_run(jos_pool *pool, void (*fnc)(void*), void* arg)
 {
 	struct timespec ts;
 	clock_gettime(JOS_CLOCK_SOURCE, &ts);
-	jos_run_at(pool, &ts, fnc, arg);
+	jos_run_at_ts(pool, &ts, fnc, arg);
 }
 
 void jos_run_in(jos_pool *pool, float t, void (*fnc)(void*), void* arg)
@@ -282,7 +282,15 @@ void jos_run_in(jos_pool *pool, float t, void (*fnc)(void*), void* arg)
 		ts.tv_sec += 1;
 		ts.tv_nsec -= 1000000000;
 	}
-	jos_run_at(pool, &ts, fnc, arg);	
+	jos_run_at_ts(pool, &ts, fnc, arg);	
+}
+
+void jos_run_at(jos_pool *pool, double t, void (*fnc)(void*), void* arg)
+{
+	struct timespec ts;
+	ts.tv_sec = t;
+	ts.tv_nsec = fmod(t, 1) * 1000000000; 
+	jos_run_at_ts(pool, &ts, fnc, arg);	
 }
 
 // Helper function, finds the next timespec that is multiple of interval.

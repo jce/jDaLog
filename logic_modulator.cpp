@@ -5,7 +5,7 @@
 #include "logic_modulator.h"
 #include "main.h"
 #include "sys/stat.h" 	// mkdir
-#include "sys/time.h" 	// gettimeofday(()
+#include "timefunc.h"
 #include "out.h"
 #include "unistd.h" 	// usleep
 #include "math.h"		// pow
@@ -23,7 +23,8 @@ void test(void *v)
 logic_modulator::logic_modulator(const string d, const string n, out *o) : logic(d, n), out_mod(o) 
 {
 	out_sp = new out(d + "_sp", n + " setpoint", out_mod->getUnits(), 4, (void*) this, 0, FLT_MIN, 1);
-	out_sp->register_callback_on_update( (void(*)(void*)) cc_run, (void*) this);
+	//out_sp->register_callback_on_update( (void(*)(void*)) cc_run, (void*) this);
+	t = get_time_monotonic();
 
 /*
 	out_sp->register_callback_on_update( test, (void*) 1 );
@@ -40,33 +41,66 @@ logic_modulator::~logic_modulator()
 		delete out_sp;
 }
 
+double logic_modulator::time_to_next(double sp, double out, double e)
+{
+	if (sp == out)
+		return 60.0;
+	double rv = e / (sp - out);
+	if (rv < 0.0)
+		rv = 0.0;
+	if (sp > out) // Approaching an on transition
+		if (bid_value(time_off_min))
+			if (rv < time_off_min.d)
+				rv = time_off_min.d;
+	if (sp < out) // Approaching an off transition
+		if (bid_value(time_on_min))
+			if (rv < time_on_min.d)
+				rv = time_on_min.d;
+	// Keep a regular call.
+	//if (rv > 1.0)
+	//	rv = 1.0;
+	return rv;
+}
 
 void logic_modulator::run()
 {
-	// The on-off switch thing
-/*	double out = _out->getValue();
-	double sp = _sp->getValue();
-	double error = _in->getValue() - sp;
-	_e->setValue(error);
-	if (_dir == "-"){
-		if (_in->getValue() > sp+_high->getValue())
-			out = 1;
-		if (_in->getValue() < sp+_low->getValue())
-			out = 0;
-		}
-	else{ // _dir is most likely "+", but catch all 
-		if (_in->getValue() > sp+_high->getValue())
-			out = 0;
-		if (_in->getValue() < sp+_low->getValue())
-			out = 1;
-		}
-	_out->setOut(out);*/
+	// Time and time delta.
+	double tnew = get_time_monotonic();
+	double dt = tnew - t;
+	t = tnew;
+
+	// Setpoint.
+	sp_val = sp_val_new;
+	sp_val_new = out_sp->getValue();
+
+	// Error integration.
+	e += dt * (out_val - sp_val);
+
+	// Comparator.
+	out_val_new = e <= 0;
+	printf("%f %f %f \n", sp_val_new, out_val_new, e); 
+	
+	// Next time
+	double tnext = t + time_to_next(sp_val_new, out_val_new, e);
+	jos_remove(pool, cc_run, this);
+	jos_run_at(pool, tnext, cc_run, this);
+		
+	// No switch.
+	if (out_val == out_val_new)
+		return;
+
+	// Switch.
+	out_mod->setOut(out_val_new);
+	out_val = out_val_new;
+	last_transition = t;
 }
 
 void logic_modulator::setOut(out *o, float f)
 {
 	if (o == out_sp)	
 		out_sp->setValue(f);
+	jos_remove(pool, cc_run, this);
+	jos_run(pool, cc_run, this);
 }
 
 int logic_modulator::make_page(struct mg_connection *conn)
@@ -110,6 +144,14 @@ void bool_in_double_from_json(bool_in_double &bid, json_t *json)
 	}
 }
 
+bool bid_value(bool_in_double &bid)
+{
+	if (bid.have)
+		if (bid.i)
+			bid.d = bid.i->getValue();
+	return bid.have;
+}
+
 void logic_modulator_from_json(const char *id, const char *name, json_t *json)
 {
 	if (!id)
@@ -127,11 +169,11 @@ void logic_modulator_from_json(const char *id, const char *name, json_t *json)
 		return;
 	}
 	logic_modulator *m = new logic_modulator(id, name, mod_out);
-	bool_in_double_from_json(m->error_sum_limit_low,	json_object_get(json, "error_sum_limit_low"));
-	bool_in_double_from_json(m->error_sum_limit_high, 	json_object_get(json, "error_sum_limit_high"));
+	//bool_in_double_from_json(m->error_sum_limit_low,	json_object_get(json, "error_sum_limit_low"));
+	//bool_in_double_from_json(m->error_sum_limit_high, 	json_object_get(json, "error_sum_limit_high"));
 	bool_in_double_from_json(m->time_off_min, 			json_object_get(json, "time_off_min"));
-	bool_in_double_from_json(m->time_off_max, 			json_object_get(json, "time_off_max"));
+	//bool_in_double_from_json(m->time_off_max, 			json_object_get(json, "time_off_max"));
 	bool_in_double_from_json(m->time_on_min, 			json_object_get(json, "time_on_min"));
-	bool_in_double_from_json(m->time_on_max, 			json_object_get(json, "time_on_max"));
+	//bool_in_double_from_json(m->time_on_max, 			json_object_get(json, "time_on_max"));
 }
 

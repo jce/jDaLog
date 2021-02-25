@@ -115,7 +115,10 @@ void interface_pi_gpio::conf_gpio(int gpio, gpio_mode mode, pull_state pull, int
 void interface_pi_gpio::setOut(out *o, float v)
 {
 	if ( outputs.count(o) )
-		gpioWrite(outputs[o], v >= 0.5);		
+	{
+		gpioWrite(outputs[o], v >= 0.5);
+		o->setValue(gpioRead(outputs[o]));
+	}		
 } 
 
 // Inspiration derived (copied) from http://abyz.me.uk/rpi/pigpio/examples.html#Misc_minimal_gpio

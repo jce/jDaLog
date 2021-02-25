@@ -42,6 +42,9 @@ void jos_run(jos_pool*, void (*)(void*), void*);
 // Run after a given time [s]
 void jos_run_in(jos_pool*, float, void (*)(void*), void*);
 
+// Run at a given time [s] on the JOS_CLOCK_SOURCE clock.
+void jos_run_at(jos_pool*, double, void (*)(void*), void*);
+
 // Run repeatedly every given interval [s]
 void jos_run_every(jos_pool*, double, void (*)(void*), void*);
 
