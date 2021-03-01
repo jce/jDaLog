@@ -326,7 +326,7 @@ void build_logics(json_t *arr)
 							lp->gh = json_integer_value(h);
 					}
 					else
-						printf("could not build logic_compare(%s, %s, list of %ld ins)\n", id, name, inlist.size());
+						printf("could not build logic_compare(%s, %s, list of %zd ins)\n", id, name, inlist.size());
 				}
 
 				if (strcmp(type, "modulator") == 0)

@@ -189,7 +189,7 @@ void floatLog::writeToFile()
         long unsigned int pos = ftell(fp);
         unsigned int overshoot_on_multiple_of_records = pos % RSIZE;
         if (overshoot_on_multiple_of_records)
-            printf("%s: Length (%ld) is not a multiple of record length(%ld). Overshoot: %ld. Starting from %ld\n", pathAndName.c_str(), pos, RSIZE, pos %  RSIZE, pos-overshoot_on_multiple_of_records);
+            printf("%s: Length (%ld) is not a multiple of record length(%zd). Overshoot: %ld. Starting from %ld\n", pathAndName.c_str(), pos, RSIZE, pos %  RSIZE, pos-overshoot_on_multiple_of_records);
         fseek(fp, pos-overshoot_on_multiple_of_records, SEEK_SET);  // Overwrite the end if the length is not a multiple of record. JCE, 10-12-2020
 
         for (i = recordsToFile.begin(); i != recordsToFile.end(); i++)
