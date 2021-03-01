@@ -8,11 +8,11 @@
 #include <string>
 #include <vector>
 
-struct record 
+typedef struct record
 {
 	double t;
 	float v;
-} __attribute__((__packed__));
+} record;
 
 struct flStat
 {
@@ -29,22 +29,29 @@ class floatLog
 		floatLog(std::string);
 		~floatLog();
 
+		// Data feeder
 		void append(double, float);
-		void append(record &);
 
-		void read(std::list<record> &, double, double);
+		// Read single
+		record getLast();	// Gets last from disk.
+		bool get_value_at(double, float&, double&);	// When, returned value, returned time.
+
+		// Read series
+		void readFromTo(std::map<double, float> &, double, double);		 // return map, first record time, last record time
+		void getRecords(std::map<double, float> &m, size_t s, size_t l); // return map, first record number, last record number
+
+		// Read all
 		void readBinary(std::map<double, float> &);
 
+		// Fancy read series
+		void summaryFromTo(std::vector<flStat> &, unsigned, double, double);
+
+		// Maintenance
 		void writeToFile();
 		void importFromTextFile(std::string);
-		void importFromBinFile(std::string); // JCE, 19-7-13
-		float getLastValue();
-		double getLastTime(); 	// JCE, 4-7-13
-		bool get_value_at(double, float&, double&);	// When, returned value, returned time. JCE, 19-6-2019
-		void readFromTo(std::map<double, float> &, double, double);	// JCE, 5-7-13
-		void summaryFromTo(std::vector<flStat> &, unsigned, double, double);	// JCE, 30-12-13
+		void importFromBinFile(std::string);
+
 		size_t getNumRecords();
-		void getRecords(std::map<double, float> &m, size_t s, size_t l);
 
 	private:
 		void addDataToFloatLog(std::map<double, float> &);

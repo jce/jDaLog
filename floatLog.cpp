@@ -11,6 +11,44 @@
 
 using namespace std;
 
+#define FOR_ALL_IN_FILE_UNM(...) \
+{ \
+	FILE *fp; \
+	double t; \
+	float v; \
+    fp = fopen(pathAndName.c_str(), "r"); \
+    if (fp) \
+    { \
+        while ( fread(&t, sizeof(t), 1, fp) && fread(&v, sizeof(v), 1, fp) ) \
+		{ \
+			__VA_ARGS__ \
+        } \
+        fclose(fp); \
+    } \
+}
+
+#define FOR_ALL_IN_FILE(...) \
+	pthread_mutex_lock(&fileMutex); \
+	FOR_ALL_IN_FILE_UNM(__VA_ARGS__) \
+    pthread_mutex_unlock(&fileMutex); \
+
+#define FOR_ALL_IN_MEM(...) \
+{ \
+	double t; \
+	float v; \
+	list<record>::iterator i; \
+	pthread_mutex_lock(&memMutex); \
+		for (i = recordsToFile.begin(); i != recordsToFile.end(); i++) \
+		{ \
+			t = i->t; \
+			v = i->v; \
+			__VA_ARGS__ \
+		} \
+	pthread_mutex_unlock(&memMutex); \
+}
+
+#define FOR_ALL(...) FOR_ALL_IN_FILE(__VA_ARGS__); FOR_ALL_IN_MEM(__VA_ARGS__)
+#define RSIZE ( sizeof(double) + sizeof(float) )
 
 floatLog::floatLog(string pan):pathAndName(pan) {}
 
@@ -19,135 +57,29 @@ floatLog::~floatLog()
 	writeToFile(); 
 }
 
-void floatLog::append(record &r) 
-{
-	pthread_mutex_lock(&memMutex);
-		recordsToFile.insert(recordsToFile.end(), r);
-	pthread_mutex_unlock(&memMutex);
-}
-
 void floatLog::append(double t, float v)
 {
-	record r = {t, v};
-	append(r);
-}
-
-void floatLog::read(list<record> &records, double start, double end) 
-{
-	FILE *fp;
-	record r;
-	pthread_mutex_lock(&fileMutex);
-		fp = fopen(pathAndName.c_str(), "r");
-		if (fp)
-		{
-			while (fread(&r, sizeof(record), 1, fp))
-			{
-				if (r.t >= start and r.t <= end)
-					records.insert(records.end(), r);
-			}
-			fclose(fp);
-		}
-	pthread_mutex_unlock(&fileMutex);
-	list<record>::iterator i;
 	pthread_mutex_lock(&memMutex);
-		for (i = recordsToFile.begin(); i != recordsToFile.end(); i++)
-		{
-			r = *i;
-			if (r.t >= start and r.t <= end)
-				records.insert(records.end(), r);
-		}
+		recordsToFile.insert(recordsToFile.end(), {t,v});
 	pthread_mutex_unlock(&memMutex);
 }
 
 void floatLog::readBinary(map<double, float> &data)
 {
-	FILE *fp;
-	record r;
-	pthread_mutex_lock(&fileMutex);
-	fp = fopen(pathAndName.c_str(), "r");
-		if (fp)
-		{
-			while (fread(&r, sizeof(record), 1, fp))
-			{
-				data[r.t] = r.v;
-			}
-			fclose(fp);
-		}
-	pthread_mutex_unlock(&fileMutex);
-	list<record>::iterator i;
-	pthread_mutex_lock(&memMutex);
-		for (i = recordsToFile.begin(); i != recordsToFile.end(); i++)
-		{
-			r = *i;
-			data[r.t] = r.v;
-		}
-	pthread_mutex_unlock(&memMutex);
+	FOR_ALL(data[t] = v; );
 }	
 
 void floatLog::readFromTo(map<double, float> &data, double from, double to)
 {
-	FILE *fp;
-	record r;
-	pthread_mutex_lock(&fileMutex);
-	fp = fopen(pathAndName.c_str(), "r");
-		if (fp)
-		{
-			while (fread(&r, sizeof(record), 1, fp))
-			{
-				if (r.t >= from and r.t <= to)
-					data[r.t] = r.v;
-			}
-			fclose(fp);
-		}
-	pthread_mutex_unlock(&fileMutex);
-	list<record>::iterator i;
-	pthread_mutex_lock(&memMutex);
-		for (i = recordsToFile.begin(); i != recordsToFile.end(); i++)
-		{
-			r = *i;
-			if (r.t >= from and r.t <= to)
-				data[r.t] = r.v;
-		}
-	pthread_mutex_unlock(&memMutex);
+	FOR_ALL( if (t >= from and t <= to) data[t] = v; );
 }	
 
 // Read one value at a specific time. Take the last previous for this value. JCE, 19-6-2019
 bool floatLog::get_value_at(double time, float &value, double &valtime)
 {
 	bool found = false;
-	FILE *fp;
 	double _valtime;
-	record r;
-	pthread_mutex_lock(&fileMutex);
-	fp = fopen(pathAndName.c_str(), "r");
-		if (fp)
-		{
-			while (fread(&r, sizeof(record), 1, fp))
-			{
-				if (r.t <= time and r.t > _valtime)
-				{
-					found = true;
-					_valtime = r.t;
-					value = r.v;
-				}
-			}
-			fclose(fp);
-		}
-	pthread_mutex_unlock(&fileMutex);
-	list<record>::iterator i;
-	pthread_mutex_lock(&memMutex);
-		for (i = recordsToFile.begin(); i != recordsToFile.end(); i++)
-		{
-			r = *i;
-			if (r.t <= time)
-			{
-				found = true;
-				_valtime = i->t;
-				value = i->v;
-			}
-			else
-				break;
-		}
+	FOR_ALL( if (t <= time and t > _valtime) { found = true; _valtime = t; value = v; } );
 	pthread_mutex_unlock(&memMutex);
 	valtime = _valtime;
 	return found;
@@ -171,37 +103,16 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
 
 	// This fills the stats.avg as the sum of stats.nr measurement values.
 	// And fills stats.min, stats.max.
-	FILE *fp;
-	record r;
-	pthread_mutex_lock(&fileMutex);
-	fp = fopen(pathAndName.c_str(), "r");
-		if (fp){
-			while (fread(&r, sizeof(record), 1, fp))
-				if (r.t >= from and r.t <= to and isfinite(r.v)){ // Added the value is not NaN check. JCE, 23-11-14 // isfinite JCE 21-1-2015
-					stats[bin(r.t)].avg += r.v;
-					stats[bin(r.t)].nr ++;
-					if (r.v < stats[bin(r.t)].min or stats[bin(r.t)].nr == 1)
-						stats[bin(r.t)].min = r.v;					
-					if (r.v > stats[bin(r.t)].max or stats[bin(r.t)].nr == 1)
-						stats[bin(r.t)].max = r.v;					
-					}
-			fclose(fp);
-			}
-	pthread_mutex_unlock(&fileMutex);
-	list<record>::iterator i;
-	pthread_mutex_lock(&memMutex);
-		for (i = recordsToFile.begin(); i != recordsToFile.end(); i++){
-			r = *i;
-			if (r.t >= from and r.t <= to and isfinite(r.v)){ // Added the value is not NaN check. JCE, 23-11-14
-				stats[bin(r.t)].avg += r.v;
-				stats[bin(r.t)].nr ++;					
-				if (r.v < stats[bin(r.t)].min or stats[bin(r.t)].nr == 1)
-					stats[bin(r.t)].min = r.v;					
-				if (r.v > stats[bin(r.t)].max or stats[bin(r.t)].nr == 1)
-					stats[bin(r.t)].max = r.v;					
-				}
-			}
-	pthread_mutex_unlock(&memMutex);
+
+	FOR_ALL(	if (t >= from and t <= to and isfinite(v)) \
+				{ \
+					stats[bin(t)].avg += v; \
+					stats[bin(t)].nr ++; \
+					if (v < stats[bin(t)].min or stats[bin(t)].nr == 1) \
+						stats[bin(t)].min = v; \
+					if (v > stats[bin(t)].max or stats[bin(t)].nr == 1) \
+						stats[bin(t)].max = v; \
+					} );
 
 	// Calculate the average
 	for(unsigned i = 0; i<bins; i++)
@@ -209,50 +120,32 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
 			stats[i].avg = stats[i].avg / stats[i].nr;
 }
 
-float floatLog::getLastValue()
+record floatLog::getLast()
 {
 	FILE *fp;
-	record r;
+	record r = {0, 0};
 	pthread_mutex_lock(&fileMutex);
-	int rv(0);
 	fp = fopen(pathAndName.c_str(), "r");
 		if (fp)
 		{
 			// seek 1 record before end
-			fseek(fp, -sizeof(record), SEEK_END);
+			fseek(fp, - RSIZE, SEEK_END);
 			// read record
-			rv = fread(&r, sizeof(record), 1, fp);
+			fread(&r.t, sizeof(r.t), 1, fp);
+			fread(&r.v, sizeof(r.v), 1, fp) ;
 			fclose(fp);
 		}
 	pthread_mutex_unlock(&fileMutex);
-	if (rv == 1)
-		return r.v;
-	return 0;
-}
-
-double floatLog::getLastTime()
-{
-	FILE *fp;
-	record r;
-	pthread_mutex_lock(&fileMutex);
-	int rv(0);
-	fp = fopen(pathAndName.c_str(), "r");
-		if (fp){
-			fseek(fp, -sizeof(record), SEEK_END);
-			rv = fread(&r, sizeof(record), 1, fp);
-			fclose(fp);}
-	pthread_mutex_unlock(&fileMutex);
-	if (rv == 1) return r.t;
-	return 0;
+	return r;
 }
 
 void floatLog::writeToFile() 
 {
 	list<record>::iterator i;
-	record r;
 	FILE *fp;
 	pthread_mutex_lock(&fileMutex);
 	pthread_mutex_lock(&memMutex);
+
 	fp = fopen(pathAndName.c_str(), "r+");
 	if (!fp && errno == ENOENT)
 		fp = fopen(pathAndName.c_str(), "w+"); // Apparently there is no fopen with create, read, write, and not append.
@@ -263,16 +156,15 @@ void floatLog::writeToFile()
         // JCE, 29-8-2019
         fseek(fp, 0, SEEK_END);
         long unsigned int pos = ftell(fp);
-        unsigned int rlen = sizeof(record);
-        unsigned int overshoot_on_multiple_of_records = pos % rlen;
+        unsigned int overshoot_on_multiple_of_records = pos % RSIZE;
         if (overshoot_on_multiple_of_records)
-            printf("%s: Length (%ld) is not a multiple of record length(%d). Overshoot: %ld. Starting from %ld\n", pathAndName.c_str(), pos, rlen, pos %  rlen, pos-overshoot_on_multiple_of_records);
+            printf("%s: Length (%ld) is not a multiple of record length(%ld). Overshoot: %ld. Starting from %ld\n", pathAndName.c_str(), pos, RSIZE, pos %  RSIZE, pos-overshoot_on_multiple_of_records);
         fseek(fp, pos-overshoot_on_multiple_of_records, SEEK_SET);  // Overwrite the end if the length is not a multiple of record. JCE, 10-12-2020
 
         for (i = recordsToFile.begin(); i != recordsToFile.end(); i++)
 		{
-            r = *i;
-            fwrite(&r, sizeof(record), 1, fp);
+            fwrite(& (*i).t, sizeof(double), 1, fp);
+            fwrite(& (*i).v, sizeof(float), 1, fp);
 		}
         fclose(fp);
     }
@@ -283,45 +175,19 @@ void floatLog::writeToFile()
 
 void floatLog::addDataToFloatLog(map<double, float> &data)
 {
-	FILE *fp;
-	record r;
-	// lock memory / buffer
-	pthread_mutex_lock(&memMutex);
-		// Read to local buffer
-		for (list<record>::iterator i = recordsToFile.begin(); i != recordsToFile.end(); i++)
-		{
-			r = *i;
-			data[r.t] = r.v;
-		}
-		// clear memory / buffer
-		recordsToFile.clear();
-	// release memory / buffer lock
-	pthread_mutex_unlock(&memMutex);
-
-	// lock file mutex	
+	FOR_ALL_IN_MEM( data[t] = v; );
 	pthread_mutex_lock(&fileMutex);
-		// Read the file to data
-		fp = fopen(pathAndName.c_str(), "r");
-		if (fp)
+	FOR_ALL_IN_FILE_UNM( data[t] = v; );
+	FILE *fp = fopen(pathAndName.c_str(), "w");
+	if (fp)
+	{
+		for (map<double, float>::iterator i = data.begin(); i!= data.end(); ++i)
 		{
-			while (fread(&r, sizeof(record), 1, fp))
-			{
-				data[r.t] = r.v;
-			}
-			fclose(fp);
+			fwrite(&i->first, sizeof(i->first), 1, fp);
+			fwrite(&i->second, sizeof(i->second), 1, fp);
 		}
-		// close the file, and reopen it for writing
-		fp = fopen(pathAndName.c_str(), "w");
-		if (fp)
-		{
-			for (map<double, float>::iterator i = data.begin(); i!= data.end(); ++i)
-			{
-				r.t = i->first;
-				r.v = i->second;
-				fwrite(&r, sizeof(record), 1, fp);
-			}
-			fclose(fp);
-		}
+		fclose(fp);
+	}
 	pthread_mutex_unlock(&fileMutex);
 }
 

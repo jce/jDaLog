@@ -125,26 +125,34 @@ void in::setValue(float v, double t)
 void in::setVal(float v, double t){
 	setValue(v, t);}
 
-float in::getValue(){
-	if (not _isKnown){
-		_value = _logger->getLastValue();
-		_time = _logger->getLastTime();
-		//printf("%s is asking _logger for last value. Got %f\n", _name->getString().c_str(), _value);
-		_isKnown = true;}
-	return _value;}
+float in::getValue()
+{
+	if (not _isKnown)
+	{
+		record r = _logger->getLast();
+		_value = r.v;
+		_time = r.t;
+		_isKnown = r.t != 0;
+	}
+	return _value;
+}
 
 bool in::get_value_at(double time, float &value, double &value_time)	// When, returned value, returned time. JCE, 19-6-2019
 {
 	return _logger->get_value_at(time, value, value_time);
 }
 
-double in::getTime(){
-	if (not _isKnown){
-		_value = _logger->getLastValue();
-		_time = _logger->getLastTime();
-		//printf("%s is asking _logger for last value. Got %f\n", _name->getString().c_str(), _value);
-		_isKnown = true;}
-	return _time;}
+double in::getTime()
+{
+	if (not _isKnown)
+	{
+		record r = _logger->getLast();
+		_value = r.v;
+		_time = r.t;
+		_isKnown = r.t != 0;
+	}
+	return _time;
+}
 
 double in::getAge(){
 	return now() - getTime();}
