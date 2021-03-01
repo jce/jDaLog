@@ -1,54 +1,58 @@
 #ifndef HAVE_FLOATLOG_H
 #define HAVE_FLOATLOG_H
 
-#include "stdio.h"
 #include <list>
 #include <map>
+#include "pthread.h"
+#include "stdio.h"
 #include <string>
 #include <vector>
-#include "pthread.h"
-#include "floatLog.h"
-using namespace std;
 
-struct record {
+struct record 
+{
 	double t;
 	float v;
-	} __attribute__((__packed__));
+} __attribute__((__packed__));
 
-struct flStat{
-	int nr; 
-	float min; 
-	double avg; 
-	float max;};
+struct flStat
+{
+	unsigned int nr;// Number of samples in interval.
+	float t;		// Total described time [s]. 
+	float min; 		// Smallest sample.
+	double avg;		// Time weighed average. 
+	float max;		// Largest sample.
+};
 
-class floatLog{
+class floatLog
+{
 	public:
-		floatLog(string);
+		floatLog(std::string);
 		~floatLog();
-		void append(list<record> &);
+
 		void append(double, float);
 		void append(record &);
-		void read(list<record> &, double, double);
-		void readBinary(map<double, float> &);
+
+		void read(std::list<record> &, double, double);
+		void readBinary(std::map<double, float> &);
+
 		void writeToFile();
-		void importFromTextFile(string);
-		void importFromBinFile(string); // JCE, 19-7-13
+		void importFromTextFile(std::string);
+		void importFromBinFile(std::string); // JCE, 19-7-13
 		float getLastValue();
 		double getLastTime(); 	// JCE, 4-7-13
 		bool get_value_at(double, float&, double&);	// When, returned value, returned time. JCE, 19-6-2019
-		void readFromTo(map<double, float> &, double, double);	// JCE, 5-7-13
-		void summaryFromTo(vector<flStat> &, unsigned, double, double);	// JCE, 30-12-13
+		void readFromTo(std::map<double, float> &, double, double);	// JCE, 5-7-13
+		void summaryFromTo(std::vector<flStat> &, unsigned, double, double);	// JCE, 30-12-13
 		size_t getNumRecords();
-		void getRecords(map<double, float> &m, size_t s, size_t l);
+		void getRecords(std::map<double, float> &m, size_t s, size_t l);
 
 	private:
-		void _addDataToFloatLog(map<double, float> &);
-		list<record> _recordsToFile;
-		string _pathAndName;
-		//void writeToFile();
-		//void _read(map<double, float> &);
-		pthread_mutex_t _fileMutex, _memMutex;
+		void addDataToFloatLog(std::map<double, float> &);
+		std::list<record> recordsToFile;
+		std::string pathAndName;
+		pthread_mutex_t fileMutex = PTHREAD_MUTEX_INITIALIZER;
+		pthread_mutex_t memMutex = PTHREAD_MUTEX_INITIALIZER;
 		size_t records_in_file(); // Not protected by a mutex!
-		};
+};
 
 #endif // HAVE_FLOATLOG_H
