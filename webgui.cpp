@@ -23,10 +23,15 @@
 //#define debug
 //#define debug_mg
 
+//#define DBG(...) printf(__VA_ARGS__);
+#define DBG(...)
+
 using namespace std;
 
 uint16_t def_w = 1000;
 uint16_t def_h = 300;
+
+uint16_t plotnr = 0;
 
 // The purpose of this file is to control mongoose, and create a bunch of semi-uniform webpages that will serve as GUI for tcFarmControl. JCE, 14-6-13
 
@@ -99,13 +104,21 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 	if (haveKey) bins = x * 0.4;
 
 	// build the filename(s)
-	for(ini=ins.begin(); ini!=ins.end(); ini++){
+	/*for(ini=ins.begin(); ini!=ins.end(); ini++)
+	{
 		if (ini != ins.begin())
 			names = names + "_";
-		names = names + (*ini)->getName();}
+		names = names + (*ini)->getName();
+	}
+	DBG("gps name: %s (%zd chars)\n", names.c_str(), names.length());
 	snprintf(imageName, 1024, "http/graphs/%s_tmin_%lu_tmax_%lu_x_%u_y_%u.png", names.c_str(), tmin, tmax, x, y);
 	snprintf(scriptName, 1024, "http/graphs/%s_tmin_%lu_tmax_%lu_x_%u_y_%u.gps", names.c_str(), tmin, tmax, x, y);
 	snprintf(imageUrl, 1024, "/graphs/%s_tmin_%lu_tmax_%lu_x_%u_y_%u.png", names.c_str(), tmin, tmax, x, y);
+	*/
+	uint16_t pn = plotnr++; // Note the omission of proper locking. I could say that this will soon be fixed, but in reality i wish to migrate to another webserver. I'll just leave it untill then. Calculated risk. Well, guessed to be managable risk.
+	snprintf(imageName, 1024, "http/graphs/%x.png", pn);
+	snprintf(scriptName, 1024, "http/graphs/%x.gps", pn);
+	snprintf(imageUrl, 1024, "/graphs/%x.png", pn);
 	// Leave if file already exists.
 	FILE* fp = fopen(imageName, "r");
 	if (fp)
@@ -157,37 +170,49 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 			}
 		}
 		// Nu is er een lijst met y-assen. Per y-as moet de ymin, yrange en ymax berekend worden.
-		for(yi=y_axes.begin(); yi!=y_axes.end(); yi++){
-			for(iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++){
-				for(unsigned i = 0; i < iwdli->statLen; i++){
-					if (iwdli->stats[i].nr){
+		for(yi=y_axes.begin(); yi!=y_axes.end(); yi++)
+		{
+			for(iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++)
+			{
+				for(unsigned i = 0; i < iwdli->statLen; i++)
+				{
+					if (iwdli->stats[i].nr)
+					{
 						iwdli->haveData = true;
-						if (yi->haveData == false){
+						if (yi->haveData == false)
+						{
 							yi->ymin = iwdli->stats[i].min;
 							yi->ymax = iwdli->stats[i].max;
-							yi->haveData = true;}
-						else{
+							yi->haveData = true;
+						}
+						else
+						{
 							if (yi->ymin > iwdli->stats[i].min)
 								yi->ymin = iwdli->stats[i].min;
 							if (yi->ymax < iwdli->stats[i].max)
-								yi->ymax = iwdli->stats[i].max;}									
-						}
+								yi->ymax = iwdli->stats[i].max;
+						}									
 					}
 				}
+			}
 			// ymin and ymax are now known, move them away from limits a little
-			if (yi->ymax != yi->ymin){ // range > 0 -> ymax != ymin. JCE, 16-7-13
+			if (yi->ymax != yi->ymin)
+			{ // range > 0 -> ymax != ymin. JCE, 16-7-13
 				yi->yrange = yi->ymax - yi->ymin;
 				yi->ymin -= 0.05 * yi->yrange;
-				yi->ymax += 0.05 * yi->yrange;}
-			else{	// ymin == ymax
+				yi->ymax += 0.05 * yi->yrange;
+			}
+			else
+			{	// ymin == ymax
 				double margin(1);
 				if (yi->ymax > 1000)
 					margin = 0.05 * yi->ymax;
 				yi->ymin -= margin;
-				yi->ymax += margin;}
+				yi->ymax += margin;
 			}
-		// Deze implementatie is voor(lopig) voor 2 y-assen. Nu moet gekeken worden of er 1 zijn of meer dan 1
+		}
 
+		// Deze implementatie is voor(lopig) voor 2 y-assen. Nu moet gekeken worden of er 1 zijn of meer dan 1
 		bool haveY2(y_axes.size() > 1);
 		y_ax y1, y2;
 		y1 = *y_axes.begin();
@@ -220,44 +245,47 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 		else		fprintf(fp, "set key off\n");
 		fprintf(fp, "set grid\n");
 		fprintf(fp, "set style fill transparent solid 0.25 noborder\n");
-		string linecolor[] = {"blue", "red", "black", "green", "cyan"};
+		string linecolor[] = {"blue", "red", "black", "green", "magenta", "brown", "spring-green", "cyan", "dark-orange", "violet", "sienna4", "steelblue", "dark-spring-green", "goldenrod"};
 		unsigned int colornr(0);
 		string plotline;
 		bool first = true;
-		//for(ini=ins.begin(); ini!=ins.end(); ini++){
-			//if ((*ini)->getUnits() == y1.units or (haveY2 and (*ini)->getUnits() == y2.units)){
-		for(yi=y_axes.begin(); yi!=y_axes.end(); yi++){
-			for(iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++){
+		for(yi=y_axes.begin(); yi!=y_axes.end(); yi++)
+		{
+			for(iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++)
+			{
 				// Deze moet getekend. Plot line
-				if (first){ 
+				if (first)
+				{ 
 					plotline += "plot\t";
 					first = false;
-					}
+				}
 				else			
 					plotline += ", \\\n\t";
 				plotline += "\"-\" using 1:3:4";
 				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
 				plotline += " with filledcu lc rgb \""+linecolor[colornr]+"\"";
-				if (haveY2){
+				if (haveY2)
+				{
 					plotline += " axes ";
 					if (iwdli->inp->getUnits() == y1.units)
 						plotline += "x1y1";
 					else
 						plotline += "x1y2";
-					}
+				}
 				plotline += ", \\\n\t\"\" using 1:3";
 				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
 				plotline += " with lines lc rgb \""+linecolor[colornr]+"\"";
-				if (haveY2){
+				if (haveY2)
+				{
 					plotline += " axes ";
 					if (iwdli->inp->getUnits() == y1.units)
 						plotline += "x1y1";
 					else
 						plotline += "x1y2";
-					}
-				colornr++; if (colornr > 3) colornr = 0;
 				}
+				colornr++; if (colornr >= 14) colornr = 0;
 			}
+		}
 		plotline += "\n";
 		fprintf(fp, plotline.c_str());
 
@@ -266,41 +294,50 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 		double t(0);	
 		//for(ini=ins.begin(); ini!=ins.end(); ini++){
 			//if ((*ini)->getUnits() == y1.units or (haveY2 and (*ini)->getUnits() == y2.units)){
-		for(yi=y_axes.begin(); yi!=y_axes.end(); yi++){
-			for(iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++){		
+		for(yi=y_axes.begin(); yi!=y_axes.end(); yi++)
+		{
+			for(iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++)
+			{		
 				// neerschrijven in de gnuplot script van data range
 				if (yi != y_axes.begin() or iwdli != yi->iwdl.begin())
 					fprintf(fp, "e\n");	
 				double prevt = 0;		
-				for (unsigned i = 0; i <  iwdli->statLen; i++){
-					if (iwdli->stats[i].nr){			
+				for (unsigned i = 0; i <  iwdli->statLen; i++)
+				{
+					if (iwdli->stats[i].nr)
+					{			
 						t = tmin + i * interval;
 						if (prevt and t - prevt > 150 and t - prevt > (1.1 * interval))
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, t + (double)interval / 2);
 						fprintf(fp, " %.8f %.8f", iwdli->stats[i].min, iwdli->stats[i].max);	
-						fprintf(fp, " # %f\n", t);}
+						fprintf(fp, " # %f\n", t);
 					}
+				}
 				if (!iwdli->haveData) fprintf(fp, "1970-1-1 0:0:0 0 0\n");
 				// neerschrijven in de gnuplot script van data gemiddelde
 				fprintf(fp, "e\n");
 				prevt = 0;
-				for (unsigned i = 0; i <  iwdli->statLen; i++){
-					if (iwdli->stats[i].nr){	
+				for (unsigned i = 0; i <  iwdli->statLen; i++)
+				{
+					if (iwdli->stats[i].nr)
+					{	
 						t = tmin + i * interval;		
 						if (prevt and t - prevt > 150 and t - prevt > (1.1 * interval))
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, t + (double)interval / 2);
 						fprintf(fp, " %.8f", iwdli->stats[i].avg);	
-						fprintf(fp, " # %f\n", t);}
+						fprintf(fp, " # %f\n", t);
 					}
+				}
 				if (!iwdli->haveData) fprintf(fp, "1970-1-1 0:0:0 0 0\n");
 			}
 		}
 		fclose(fp);
-			
+		
+		DBG("gps written: %s\n", scriptName); 	
 		// Klaar. start gnuplot.
 		char systemCommand[1100];
 		snprintf(systemCommand, 1100, "gnuplot \"%s\"", scriptName);

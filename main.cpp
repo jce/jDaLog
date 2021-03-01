@@ -549,6 +549,8 @@ int main(){
 	// Stops all jobs, including those from interfaces.
 	jos_delete_pool(pool);
 
+	webGuiStop();
+
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->stop();
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
