@@ -15,10 +15,8 @@
 
 using namespace std;
 
-void test(void *v)
-{
-	printf("test %p\n", v);
-}
+//#define DBG(...) printf(__VA_ARGS__);
+#define DBG(...)
 
 logic_modulator::logic_modulator(const string d, const string n, out *o) : logic(d, n), out_mod(o) 
 {
@@ -78,7 +76,7 @@ void logic_modulator::run()
 
 	// Comparator.
 	out_val_new = e <= 0;
-	printf("%f %f %f \n", sp_val_new, out_val_new, e); 
+	DBG("%f %f %f \n", sp_val_new, out_val_new, e); 
 	
 	// Next time
 	double tnext = t + time_to_next(sp_val_new, out_val_new, e);

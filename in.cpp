@@ -208,8 +208,10 @@ void in::getRecords(map<double, float> &m, size_t s, size_t l)
 	_logger->getRecords(m, s, l);
 }
 
-void in::getDataSummary(vector<flStat> &stats, unsigned length , double from, double to){ // JCE, 31-12-13
-	_logger->summaryFromTo(stats, length, from, to);}
+void in::getDataSummary(vector<flStat> &stats, unsigned length , double from, double to)
+{
+	_logger->summaryFromTo(stats, length, from, to);
+}
 
 // Function to start importing a preconfigured text file. JCE, 18-7-13
 void in::importData(){
@@ -237,6 +239,11 @@ in* get_in(string name)
 		rv = inmap[name];
 	inmap_mutex.unlock();
 	return rv;
+}
+
+float in::get_breaklen()
+{
+	return breaklen;
 }
 
 // Callbacks on specific events. JCE, 9-11-2020

@@ -41,9 +41,10 @@ class in{
 		size_t getNumRecords();
 		void getRecords(map<double, float> &, size_t, size_t);	// JCE, 5-7-13 
 		// getDataSummary is a semi-draconic function to get a data summary (min, avg, max, samples-in-bin) without creating a list or map with every intermediate value. Should result in saving of memory and processor time. double 1 is the start-time, double 2 the end-time. 
-		void getDataSummary(vector<flStat>&, unsigned, double, double); // JCE, 31-12-13
+		virtual void getDataSummary(vector<flStat>&, unsigned, double, double);
 		void importData();		// JCE, 18-7-13, JCE, should kick the floatLogger into importing data from some configured filenames.
 		void touch();			// JCE, 28-8-13, makes a new measurement point, equal to the previous value.
+		float get_breaklen();
 
 		// Callbacks on specific events. JCE, 9-11-2020
 		void register_callback_on_update(void (*)(void*), void*);
@@ -64,7 +65,7 @@ class in{
 		callback_list *on_change = NULL;
 		callback_list *on_turn_invalid = NULL;
 		callback_list *on_turn_valid = NULL;
-
+		float breaklen = 60;
 	};
 
 extern mutex inmap_mutex; // JCE, 9-10-2018

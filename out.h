@@ -42,6 +42,7 @@ class out: public in {	// Een out is een in, maar dan aangepast. Namelijk er moe
 		bool getMan();
 		bool getControl();
 		void eval_expr();	// Evaluate the expression.
+		void getDataSummary(vector<flStat>&, unsigned , double, double);
 	friend void out_cb_in_changed(void*);
 	friend void out_cb_in_invalid(void*);
 	friend void out_cb_in_valid(void*);

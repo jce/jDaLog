@@ -98,7 +98,7 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 	double bins = x * 0.7;				// Approximately one bin per pixel width of the graph.
 	if (haveKey) bins = x * 0.4;
 
-	// builid the filename(s)
+	// build the filename(s)
 	for(ini=ins.begin(); ini!=ins.end(); ini++){
 		if (ini != ins.begin())
 			names = names + "_";
@@ -106,27 +106,29 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 	snprintf(imageName, 1024, "http/graphs/%s_tmin_%lu_tmax_%lu_x_%u_y_%u.png", names.c_str(), tmin, tmax, x, y);
 	snprintf(scriptName, 1024, "http/graphs/%s_tmin_%lu_tmax_%lu_x_%u_y_%u.gps", names.c_str(), tmin, tmax, x, y);
 	snprintf(imageUrl, 1024, "/graphs/%s_tmin_%lu_tmax_%lu_x_%u_y_%u.png", names.c_str(), tmin, tmax, x, y);
-	// Bestaat de file al? prima. wegwezen
+	// Leave if file already exists.
 	FILE* fp = fopen(imageName, "r");
-	if (fp){
+	if (fp)
+	{
 		fclose(fp);
-		return imageUrl;}
-	// Noudan, dan bestaat ie niet. Nu wordt het tijd een gnuplot script file te maken. 
-	// En misschien zijn de http en graph dirs er ook niet...
+		return imageUrl;
+	}
 	string path = "http/";	
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
 	path += "graphs/";
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
 	fp = fopen(scriptName, "w");
-	if (fp){
+	if (fp)
+	{
 		// Deel de ins in, in een lijst met y-assen. Vooral ter behoeve van berekenen van yrange
 		list<y_ax> y_axes;
 		list<y_ax>::iterator yi;
-		for(ini=ins.begin(); ini!=ins.end(); ini++){
+		for(ini=ins.begin(); ini!=ins.end(); ini++)
+		{
 			string units;
 			units = (*ini)->getUnits();
 			bool foundyax(false);
-			for(yi=y_axes.begin(); yi!=y_axes.end(); yi++){
+			for(yi=y_axes.begin(); yi!=y_axes.end(); yi++)
 				if (yi->units == units){		
 					inWithData iwd;
 					iwd.inp = (*ini);
@@ -135,8 +137,8 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 					iwd.inp->getDataSummary(iwd.stats, iwd.statLen, tmin, tmax);								
 					yi->iwdl.push_back(iwd);
 					foundyax = true;}
-				}
-			if (not foundyax){
+			if (not foundyax)
+			{
 				inWithData iwd;
 				iwd.inp = (*ini);
 				iwd.stats.resize(bins);
@@ -151,9 +153,9 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 				y.yrange = 2;
 				y.ymax = 1;
 				y.haveData = false;
-				// = {units, iwdl, -1, 2, 1, false};
-				y_axes.push_back(y);}
+				y_axes.push_back(y);
 			}
+		}
 		// Nu is er een lijst met y-assen. Per y-as moet de ymin, yrange en ymax berekend worden.
 		for(yi=y_axes.begin(); yi!=y_axes.end(); yi++){
 			for(iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++){

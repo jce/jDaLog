@@ -43,8 +43,12 @@ class floatLog
 		// Read all
 		void readBinary(std::map<double, float> &);
 
-		// Fancy read series
-		void summaryFromTo(std::vector<flStat> &, unsigned, double, double);
+		// Summary read series
+		// return vector, number of bins, from time, to time (break length)
+		void summaryFromTo(			std::vector<flStat> &, unsigned, double, double); // Fills nr, min, avg, max based on equal sample weight.
+		//void summaryFromToWeighedC(	std::vector<flStat> &, unsigned, double, double, float); // Based on sample time. Closest time weights sample.
+		void summaryFromToWeighedN(	std::vector<flStat> &, unsigned, double, double, float); // Based on sample time. To next weights sample.
+
 
 		// Maintenance
 		void writeToFile();

@@ -120,6 +120,11 @@ out* get_out(const std::string &descr)
 	return NULL;
 }
 
+void out::getDataSummary(vector<flStat> &stats, unsigned length , double from, double to)
+{
+	_logger->summaryFromToWeighedN(stats, length, from, to, breaklen);
+}
+
 void out_conf(json_t* json)	// Modifies existing outs by given json.
 {
 	// Root level objects will be out desriptors

@@ -95,10 +95,7 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
 	// Set the stats to a known value
 	for(unsigned i = 0; i<bins; i++)
 	{
-		stats[i].nr = 0;
-		stats[i].min = 0;
-		stats[i].avg = 0;
-		stats[i].max = 0;
+		stats[i] = {};
 	}
 
 	// This fills the stats.avg as the sum of stats.nr measurement values.
@@ -118,6 +115,40 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
 	for(unsigned i = 0; i<bins; i++)
 		if (stats[i].nr)
 			stats[i].avg = stats[i].avg / stats[i].nr;
+}
+
+void floatLog::summaryFromToWeighedN(vector<flStat> &stats, unsigned bins, double from, double to, float brk)
+{
+	double interval =(to - from) / bins;
+
+	// Set the stats to a known value
+	for(unsigned i = 0; i<bins; i++)
+	{
+		stats[i] = {};
+	}
+
+	double t1 = 0; 	// Last time
+	float v1 = 0;	// Last value
+
+	FOR_ALL(	if (t1 >= from and t1 <= to and isfinite(v1) and (t-t1) < brk) \
+				{ \
+					stats[bin(t1)].avg += v1 * (t - t1); \
+					stats[bin(t1)].nr ++; \
+					stats[bin(t1)].t += t-t1; \
+					if (v1 < stats[bin(t1)].min or stats[bin(t1)].nr == 1) \
+						stats[bin(t1)].min = v1; \
+					if (v1 > stats[bin(t1)].max or stats[bin(t1)].nr == 1) \
+						stats[bin(t1)].max = v1; \
+				} \
+				t1 = t; \
+				v1 = v; \
+			); \
+				
+
+	// Calculate the average
+	for(unsigned i = 0; i<bins; i++)
+		if (stats[i].nr)
+			stats[i].avg = stats[i].avg / stats[i].t;
 }
 
 record floatLog::getLast()
