@@ -70,6 +70,10 @@ void logic_modulator::run()
 	// Setpoint.
 	sp_val = sp_val_new;
 	sp_val_new = out_sp->getValue();
+	if (sp_val_new > 1)
+		sp_val_new = 1;
+	if (sp_val_new < 0)
+		sp_val_new = 0;
 
 	// Error integration.
 	e += dt * (out_val - sp_val);
