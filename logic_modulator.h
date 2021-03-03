@@ -33,7 +33,7 @@ class logic_modulator: public logic {
 		out *out_mod, *out_sp = NULL;
 		double e = 0;
 		double t = 0;
-		double out_val = 0, sp_val = 0, sp_val_new = 0, out_val_new = 0;
+		double out_val = 0, sp_val = 0;
 		double last_transition = 0;
 	};
 

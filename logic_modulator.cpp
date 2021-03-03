@@ -62,39 +62,77 @@ double logic_modulator::time_to_next(double sp, double out, double e)
 
 void logic_modulator::run()
 {
+	// There should only be one of these calls at a time.
+	jos_remove(pool, cc_run, this);
+
 	// Time and time delta.
 	double tnew = get_time_monotonic();
 	double dt = tnew - t;
 	t = tnew;
 
-	// Setpoint.
-	sp_val = sp_val_new;
-	sp_val_new = out_sp->getValue();
-	if (sp_val_new > 1)
-		sp_val_new = 1;
-	if (sp_val_new < 0)
-		sp_val_new = 0;
-
-	// Error integration.
+	// Error integration. out_val and setpoint of last call.
 	e += dt * (out_val - sp_val);
 
-	// Comparator.
-	out_val_new = e <= 0;
-	DBG("%f %f %f \n", sp_val_new, out_val_new, e); 
-	
-	// Next time
-	double tnext = t + time_to_next(sp_val_new, out_val_new, e);
-	jos_remove(pool, cc_run, this);
-	jos_run_at(pool, tnext, cc_run, this);
-		
-	// No switch.
-	if (out_val == out_val_new)
-		return;
+	// Setpoint update.
+	sp_val = out_sp->getValue();
+	if (sp_val > 1)
+		sp_val = 1;
+	if (sp_val < 0)
+		sp_val = 0;
 
-	// Switch.
-	out_mod->setOut(out_val_new);
-	out_val = out_val_new;
-	last_transition = t;
+	if ( e > 0 )
+	{
+		// The new out state should be "off".
+	
+		// The output is already off. Wait to the projected next transition.
+		if(out_val < 0.5)
+		{
+			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+			return;
+		}
+
+		// Minimum on time is not yet expired.
+		if(bid_value(time_on_min) and (t - last_transition) < time_on_min.d)
+		{
+			jos_run_at(pool, time_on_min.d - (t - last_transition), cc_run, this);
+			return;
+		}
+
+		// Switch off.
+		out_val = 0;
+		out_mod->setOut(out_val);
+		last_transition = t;
+		
+		// Delay to next step.
+		jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+	}
+	else
+	{
+		// The new out state should be "on"
+
+		// The output is already on. Wait to the projected next transition.
+		if(out_val >= 0.5)
+		{
+			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+			return;
+		}
+
+		// Minimum off time is not yet expired.
+		if(bid_value(time_off_min) and (t - last_transition) < time_off_min.d)
+		{
+			// Minimum off time is not yet expired.
+			jos_run_at(pool, time_off_min.d - (t - last_transition), cc_run, this);
+			return;
+		}
+
+		// Switch on.
+		out_val = 1;
+		out_mod->setOut(out_val);
+		last_transition = t;
+		
+		// Delay to next step.
+		jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+	}
 }
 
 void logic_modulator::setOut(out *o, float f)
