@@ -12,6 +12,7 @@
 #include "stringStore.h"
 #include "in.h"
 #include "mytime.h"
+#include "timefunc.h"
 #include "math.h" // floor()
 #include "sys/stat.h" // mkdir
 #include "out.h"
@@ -19,6 +20,7 @@
 #include <vector>
 #include "webin.h"
 #include "webgui_autograph.h"
+#include "webgui_intable.h"
 
 //#define debug
 //#define debug_mg
@@ -547,6 +549,9 @@ int make_in_page(struct mg_connection *conn, string inName){
 		//mg_printf(conn, line.c_str());
 	#endif
 
+	// Maybe i'll get the html or javascript fixed for this eventually.
+	mg_printf(conn, "A section of log data can be viewed as a list. Append /table/ (timestamps) or /table_l/ (human readable) to the url. Then the from timestamp, then the to timestamp. Or the human readable date/times in dd-mm-yyyy hh:mm:ss.<br>");
+
 	// note, met set en get
 	string note = myIn->getNote();
 	if (make_note(conn, note))
@@ -911,22 +916,18 @@ int make_logic_list_page(struct mg_connection *conn){
 
 int make_root_page(struct mg_connection *conn){
 	double now = make_header(conn);
-	mg_printf(conn, "<h2>main page</h2>\n");
-	mg_printf(conn, "Welcome to tcFarmControl.<br>\n");
-	mg_printf(conn, "<br>\n");
 	mg_printf(conn, make_link("/in", "inputs").c_str());
-	mg_printf(conn, "<br>link to interfaces<br>\n");
+	mg_printf(conn, "<br>\n");
 	mg_printf(conn, make_link("/webin", "web inputs").c_str());
 	mg_printf(conn, "<br>\n");
 	mg_printf(conn, make_link("/out", "outputs").c_str());
 	mg_printf(conn, "<br>\n");
 	mg_printf(conn, make_link("/manout", "outputs in manual mode").c_str());
 	mg_printf(conn, "<br>\n");
-	mg_printf(conn, "link to alarms<br>\n");
-	mg_printf(conn, "link to dedicated hmi pages<br>\n");
 	mg_printf(conn, make_link("/logic", "logics").c_str());
 	mg_printf(conn, "<br>\n");
-	mg_printf(conn, "link to page with changes. html or text?<br>\n");
+	mg_printf(conn, make_link("/jos", "job scheduler").c_str());
+	mg_printf(conn, "<br>\n");
 	mg_printf(conn, "about, page with build information, numbers, defined-at-compile times etc<br>\n");
 	mg_printf(conn, "Note the note. If a page auto refreshes, the note in progress is lost.<br>\n");
 	string note = noteStore->getString();
@@ -934,6 +935,20 @@ int make_root_page(struct mg_connection *conn){
 		noteStore->setString(note);
 	make_footer(conn, now);
 	return 1;}
+
+int make_jos_page(struct mg_connection *conn)
+{
+	double now = make_header(conn);
+	mg_printf(conn, "<h2>job scheduler readout</h2>\n");
+	mg_printf(conn, "<pre><code>\n");
+	#define SIZE 100000
+	char buf[SIZE];
+	jos_printn(pool, buf, SIZE);
+	mg_printf(conn, buf);
+	mg_printf(conn, "</code></pre>\n");
+	make_footer(conn, now);
+	return 1;
+}
 
 in *mongoose_requests;
 static int begin_request(struct mg_connection *conn) {
@@ -945,10 +960,45 @@ static int begin_request(struct mg_connection *conn) {
 
 	if (!strcmp(ri->uri, "/in") or !strcmp(ri->uri, "/in/"))
 		return make_in_list_page(conn);
-	if (!strncmp(ri->uri, "/in/", 4)){
-		char inName[513];
-		sscanf(ri->uri, "/in/%512s", inName);
-		return make_in_page(conn, inName);}
+	if (!strncmp(ri->uri, "/in/", 4))
+	{
+		in *i;
+		const char *uri = ri->uri + 4;
+		double from, to;
+		const char *slash1 = strpbrk(uri, "/");
+		const char *slash2 = slash1 ? strpbrk(slash1+1, "/") : NULL;
+		const char *slash3 = slash2 ? strpbrk(slash2+1, "/") : NULL;
+
+		if (slash1)
+			i = get_in(string(uri, slash1 - uri));
+		else
+			i = get_in(uri);
+		if (!i) {return 0;}
+		if (slash3)
+		{
+			if (!strncmp(slash1, "/table/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
+			{
+				mg_printf(conn, table_fromto(i, from, to).c_str());
+				return 1;
+			}
+			if (!strncmp(slash1, "/table_h/", 9) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
+			{
+				mg_printf(conn, table_fromto_h(i, from, to).c_str());
+				return 1;
+			}
+			if (sscanf(slash1, "/table/%lf/%lf", &from, &to) == 2)
+			{
+				mg_printf(conn, table_fromto(i, from, to).c_str());
+				return 1;
+			}
+			if (sscanf(slash1, "/table_h/%lf/%lf", &from, &to) == 2)
+			{
+				mg_printf(conn, table_fromto_h(i, from, to).c_str());
+				return 1;
+			}
+		}
+		return make_in_page(conn, i->getDescriptor());
+	}
 
 	if (!strcmp(ri->uri, "/webin") or !strcmp(ri->uri, "/iwebin/"))
 		return make_webin_list_page(conn);
@@ -977,6 +1027,9 @@ static int begin_request(struct mg_connection *conn) {
 		char logicName[513];
 		sscanf(ri->uri, "/logic/%512s", logicName);
 		return make_logic_page(conn, logicName);}
+
+	if (!strcmp(ri->uri, "/jos")){
+		return make_jos_page(conn);}
 
 	if (!strcmp(ri->uri, "/") or !strcmp(ri->uri, "/index.htm") or !strcmp(ri->uri, "/index.html")){
 		return make_root_page(conn);}

@@ -35,6 +35,7 @@ class logic_modulator: public logic {
 		double t = 0;
 		double out_val = 0, sp_val = 0;
 		double last_transition = 0;
+		pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 	};
 
 // Helper function for building object

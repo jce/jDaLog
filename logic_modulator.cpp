@@ -63,12 +63,17 @@ double logic_modulator::time_to_next(double sp, double out, double e)
 void logic_modulator::run()
 {
 	// There should only be one of these calls at a time.
+	// Calls originate from multiple sources, the scheduler is not the only source.
+	pthread_mutex_lock(&mutex);
 	jos_remove(pool, cc_run, this);
 
 	// Time and time delta.
 	double tnew = get_time_monotonic();
 	double dt = tnew - t;
 	t = tnew;
+
+	// Readback actual output status, just in case some other process changed it.
+	out_val = out_mod->getValue();
 
 	// Error integration. out_val and setpoint of last call.
 	e += dt * (out_val - sp_val);
@@ -88,6 +93,7 @@ void logic_modulator::run()
 		if(out_val < 0.5)
 		{
 			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+			pthread_mutex_unlock(&mutex);
 			return;
 		}
 
@@ -95,6 +101,7 @@ void logic_modulator::run()
 		if(bid_value(time_on_min) and (t - last_transition) < time_on_min.d)
 		{
 			jos_run_at(pool, time_on_min.d - (t - last_transition), cc_run, this);
+			pthread_mutex_unlock(&mutex);
 			return;
 		}
 
@@ -114,6 +121,7 @@ void logic_modulator::run()
 		if(out_val >= 0.5)
 		{
 			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+			pthread_mutex_unlock(&mutex);
 			return;
 		}
 
@@ -122,6 +130,7 @@ void logic_modulator::run()
 		{
 			// Minimum off time is not yet expired.
 			jos_run_at(pool, time_off_min.d - (t - last_transition), cc_run, this);
+			pthread_mutex_unlock(&mutex);
 			return;
 		}
 
@@ -133,6 +142,7 @@ void logic_modulator::run()
 		// Delay to next step.
 		jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
 	}
+	pthread_mutex_unlock(&mutex);
 }
 
 void logic_modulator::setOut(out *o, float f)

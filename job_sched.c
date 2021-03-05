@@ -364,3 +364,21 @@ void jos_print(jos_pool *pool)
 	}
 	pthread_mutex_unlock(&pool->mutex);
 }
+
+size_t jos_printn(jos_pool *pool, char *buf, size_t len)
+{
+	size_t rv;
+	pthread_mutex_lock(&pool->mutex);
+	double time;
+	jos_job *job = pool->first;
+	rv = snprintf(buf, len, "     fnc      arg               at         interval\n");
+	while(job)
+	{
+		time = (double) job->at.tv_sec + (double) job->at.tv_nsec / 1000000000;
+		rv += snprintf(buf+rv, len-rv, "%p %p %16f %16f\n", job->fnc, job->arg, time, job->interval);
+		job = job->next;
+	}
+	pthread_mutex_unlock(&pool->mutex);
+	return rv;
+}
+	
