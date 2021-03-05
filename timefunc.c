@@ -17,7 +17,6 @@ double get_time_monotonic()
 // Write a unix timestamp (not the monotonic time) as human readable string.
 void write_human_time(char *buf, double time)
 {
-	printf("%lf ", time);
 	struct timespec ts;
 	struct tm t;
 	ts.tv_sec = time;
