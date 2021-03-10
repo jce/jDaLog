@@ -55,11 +55,11 @@ void interface_xmrstak::getIns(){
 				addedRuntime = (t - prevT) / 3600.0;
 				addedPower = addedRuntime * powerConsumption->getValue()/ 1000.0;
 			}
-		else
-			hashrate->setValid(false);
+		//else
+		//	hashrate->setValid(false);
 		}
-	else
-		hashrate->setValid(false);
+	//else
+	//	hashrate->setValid(false);
 
 	prevT = now();
 

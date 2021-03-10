@@ -1,24 +1,24 @@
 #ifndef HAVE_IN_H
 #define HAVE_IN_H
 
+#include <map>
+#include <mutex>
 #include "stdio.h"
 #include <string>
-#include "floatLog.h"
-#include "stringStore.h"
-#include <map>
-//#include <vector>
-#include <mutex>
-#include "callback.h"
 
-using namespace std;
+#include "callback.h"
+#include "floatLog.h"
+#include "job_sched.h"
+#include "main.h"
+#include "stringStore.h"
 
 // The In has a separate name and descriptor. The second is used for file identification, so a namechange wont result in losing all measurement data. JCE, 20-6-13
 
 class in{
 	public:
 		//in(const string); // descr
-		in(const string, const string name = "", const string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
-		in(uint8_t, const char *dir, const string descr, const string prefix); // bogus item as hack, storage location, descr, prefix for name.
+		in(const std::string, const std::string name = "", const std::string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
+		in(uint8_t, const char *dir, const std::string descr, const std::string prefix); // bogus item as hack, storage location, descr, prefix for name.
 		virtual ~in();
 		bool hidden = false;
 		virtual void setValue(float, double = 0);
@@ -28,13 +28,13 @@ class in{
 		float getVal();
 		double getTime();		// JCE, 4-7-13
 		double getAge();		// JCE, 4-7-13
-		void setValid(bool);
+		//void setValid(bool);
 		bool isValid();
-		const string getDescriptor();
-		const string getUnits();	// JCE, 20-6-13
-		const string getName();		// JCE, 20-6-13
-		const string getNote();		// JCE, 20-6-13
-		void setNote(string);		// JCE, 4-7-13
+		const std::string getDescriptor();
+		const std::string getUnits();	// JCE, 20-6-13
+		const std::string getName();		// JCE, 20-6-13
+		const std::string getNote();		// JCE, 20-6-13
+		void setNote(std::string);		// JCE, 4-7-13
 		unsigned int getDecimals();
 		void writeToFile();		// JCE, 1-7-13
 		void getData(map<double, float> &, double, double);	// JCE, 5-7-13 
@@ -44,7 +44,10 @@ class in{
 		virtual void getDataSummary(vector<flStat>&, unsigned, double, double);
 		void importData();		// JCE, 18-7-13, JCE, should kick the floatLogger into importing data from some configured filenames.
 		void touch();			// JCE, 28-8-13, makes a new measurement point, equal to the previous value.
-		float get_breaklen();
+		void set_valid_time(float);	// Sets the time for what the measurement remains valid.
+		float get_valid_time();	// Reads the time that a measurement remains valid.
+		
+
 
 		// Callbacks on specific events. JCE, 9-11-2020
 		void register_callback_on_update(void (*)(void*), void*);
@@ -58,18 +61,20 @@ class in{
 		double _time;			// JCE, 4-7-13
 		floatLog *_logger;
 		bool _isValid, _isKnown;	// isKnown will be set if _value is input or read from file. JCE, 25-6-13
-		const string _descr;
+		const std::string _descr;
 		stringStore *_name, *_units, *_note; // JCE, 20-6-13
-		const string name_prefix = "";
+		const std::string name_prefix = "";
 		callback_list *on_update = NULL;
 		callback_list *on_change = NULL;
 		callback_list *on_turn_invalid = NULL;
 		callback_list *on_turn_valid = NULL;
-		float breaklen = 60;
+		float valid_time = 60;	// Default value is 60 seconds.
+		void turn_invalid();
+		CC(in, turn_invalid);
 	};
 
 extern mutex inmap_mutex; // JCE, 9-10-2018
-extern map<string, in*> inmap;
+extern std::map<std::string, in*> inmap;
 in* get_in(const char*); // JCE, 9-12-2020
-in* get_in(string); // JCE, 19-6-2019
+in* get_in(std::string); // JCE, 19-6-2019
 #endif // HAVE_IN_H

@@ -93,14 +93,6 @@ void interface_adam6052::getIns(){
 				}
 			}
 		}
-	if (not _ctx or not dataOk){	// added not dataOK. JCE, 21-8-13
-		if (not _ctx) latency->setValid(false); // latency stays valid, just at timeout. JCE, 21-8-13
-		for (uint16_t i = 0; i<8; i++){
-			DI[i]->setValid(false);
-			DO[i]->setValid(false);
-			CI[i]->setValid(false); // DI -> CI, JCE, 21-8-13
-			}
-		}
 	}
 
 // out setter, JCE, 23-7-13

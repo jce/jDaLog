@@ -71,69 +71,47 @@ void interface_fridge::getIns(){
 	// Power page
 	if (findFloatAfter(powerPage, "SSR duty cycle is ", f)) 
 		DC->setValue(f, t);
-	else
-		DC->setValid(false);
 	
 	if (strstr(powerPage.c_str(), "Cooling relay is  off")){
 		R0->setValue(0, t);}
 	else if (strstr(powerPage.c_str(), "Cooling relay is  on")){
 		R0->setValue(1, t);}
-	else
-		R0->setValid(false);
 
 	if (strstr(powerPage.c_str(), "Heating relay is  off")){
 		R1->setValue(0, t);}
 	else if (strstr(powerPage.c_str(), "Heating relay is  on")){
 		R1->setValue(1, t);}
-	else
-		R1->setValid(false);
 
 	if (strstr(powerPage.c_str(), "Master relay is  off")){
 		R2->setValue(0, t);}
 	else if (strstr(powerPage.c_str(), "Master relay is  on")){
 		R2->setValue(1, t);}
-	else
-		R2->setValid(false);
 	// Temperature page, not implemented at the moment...
 	//
 	
 	// CO2 page
 	if (findFloatAfter(co2Page, "CO2 level: ", f)) 
 		CO2->setValue(f, t);
-	else
-		CO2->setValid(false);
 	
 	// Debug page
 	if (findFloatAfter(debugPage, "Requests: ", f)) 
 		requests->setValue(f, t);
-	else
-		requests->setValid(false);
 
 	if (findFloatAfter(debugPage, "Resets: ", f)) 
 		resets->setValue(f, t);
-	else
-		resets->setValid(false);
 
 	if (findFloatAfter(debugPage, "Scans per second: ", f)) 
 		scanrate->setValue(f, t);
-	else
-		scanrate->setValid(false);
 
 	if (findFloatAfter(debugPage, "Uptime [s, d h:m:s]: ", f)) 
 		uptime->setValue(f, t);
-	else
-		uptime->setValid(false);
 
 	// Temperature page, copy pasted (wat slecht) from interface_tgTemp.cpp.
 	if (findFloatAfter(tempPage, "SOt: ", f)) 
 		SOt->setValue(f, t);
-	else
-		SOt->setValid(false);
 
 	if (findFloatAfter(tempPage, "SOrh: ", f)) 
 		SOrh->setValue(f, t);
-	else
-		SOrh->setValid(false);
 	if(SOt->isValid() and SOrh->isValid()){
 		// Calculations for temperature, relative humidity and dewpoint in accordance
 		// to the sensirion SH11 datasheet
@@ -174,22 +152,10 @@ void interface_fridge::getIns(){
 				if (b > 0){
 					Td = Tn * a / b;
 					dewp->setValue(Td, t);}
-				else{
-					dewp->setValid(false);}}
-			else{
-				dewp->setValid(false);}}
-		else
-			dewp->setValid(false);}
-	else{
-		temp->setValid(false);
-		rh->setValid(false);
-		dewp->setValid(false);}
-
-
-	#ifdef debug
-		//printf("Interface %s fetches %s:\n%s\n", getDescriptor().c_str(), url.c_str(), statusPage.c_str());
-	#endif
+			}
+		}
 	}
+}
 
 void interface_fridge::setOut(out* o, float v){
 	if (!globalControl) return;

@@ -33,7 +33,8 @@ interface_rwl::~interface_rwl(){
 	delete(latency);
 	delete(adcreadout);}
 
-void interface_rwl::getIns(){
+void interface_rwl::getIns()
+{
 	double start = now();
 	string url = _ipstr + "/status.htm";
 	string statusPage = get_html_page(url);
@@ -44,40 +45,23 @@ void interface_rwl::getIns(){
 	float f;
 	if (findFloatAfter(statusPage, "Water level (h) = ", f)) 
 		waterlevel->setValue(f, t);
-	else
-		waterlevel->setValid(false);
 
 	if (findFloatAfter(statusPage, "Water volume (v) = ", f)) 
 		watervolume->setValue(f, t);
-	else
-		watervolume->setValid(false);
 
 	if (findFloatAfter(statusPage, "drmod: ", f)) 
 		adcreadout->setValue(f, t);
-	else
-		adcreadout->setValid(false);
 
 	if (findFloatAfter(debugPage, "Requests: ", f)) 
 		requestcounter->setValue(f, t);
-	else
-		requestcounter->setValid(false);
 
 	if (findFloatAfter(debugPage, "Resets: ", f)) 
 		resetcounter->setValue(f, t);
-	else
-		resetcounter->setValid(false);
 
 	if (findFloatAfter(debugPage, "Scans per second: ", f)) 
 		scanrate->setValue(f, t);
-	else
-		scanrate->setValid(false);
 
 	if (findFloatAfter(debugPage, "Uptime [s, d h:m:s]: ", f)) 
 		uptime->setValue(f, t);
-	else
-		uptime->setValid(false);
-
-
-	//printf("Interface %s fetches %s:\n%s\n", getDescriptor().c_str(), url.c_str(), statusPage.c_str());
-	}
+}
 

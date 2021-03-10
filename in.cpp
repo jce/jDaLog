@@ -111,7 +111,11 @@ void in::setValue(float v, double t)
 	_value = v;
 	_isValid = true;
 	_isKnown = true;
-	if (t == 0) t = now();		// fixed t!= 0 -> t==0. JCE, 4-7-13
+	if (t == 0) t = now();
+
+	jos_remove(pool, cc_turn_invalid, this);
+	jos_run_in(pool, valid_time, cc_turn_invalid, this);
+
 	_time = t;
 	_logger->append(t, v);
 
@@ -160,15 +164,12 @@ double in::getAge(){
 float in::getVal(){
 	return getValue();}
 
-void in::setValid(bool v)
+void in::turn_invalid()
 {
-	bool tinvalid = _isValid && !v;
-	bool tvalid = !_isValid && v;
-	_isValid = v;
-	if (tinvalid)
+	bool call_callbacks = _isValid;
+	_isValid = false;
+	if (call_callbacks)
 		cb_call(on_turn_invalid);
-	if (tvalid)
-		cb_call(on_turn_valid);
 }
 
 bool in::isValid(){
@@ -241,9 +242,14 @@ in* get_in(string name)
 	return rv;
 }
 
-float in::get_breaklen()
+void in::set_valid_time(float f)
 {
-	return breaklen;
+	valid_time = f;
+}
+
+float in::get_valid_time()
+{
+	return valid_time;
 }
 
 // Callbacks on specific events. JCE, 9-11-2020

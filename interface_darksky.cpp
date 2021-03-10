@@ -54,10 +54,9 @@ string get_https_page(const string& url, long timeout) // Make sure https is in 
 	return s;
 }
 
-interface_darksky::interface_darksky(const string d, const string n, float i, const string key, const float latitude, const float longitude):interface(d, n, i), _key(key), _lat(latitude), _lon(longitude){
-	
+interface_darksky::interface_darksky(const string d, const string n, float i, const string key, const float latitude, const float longitude):interface(d, n, i), _key(key), _lat(latitude), _lon(longitude)
+{
 	responseTime = new in(getDescriptor() + "_rt", getName() + " response time", "ms", 3);
-	
 	precipIntensity = new in(getDescriptor() + "_pi", getName() + " precip intensity", "mm/h", 1);
 	precipProbability = new in(getDescriptor() + "_pp", getName() + " precip probability", "%", 1);
 	temperature = new in(getDescriptor() + "_temp", getName() + " temperature", "°C", 2);
@@ -72,12 +71,26 @@ interface_darksky::interface_darksky(const string d, const string n, float i, co
 	uvIndex = new in(getDescriptor() + "_uv", getName() + " uv index", "", 0);
 	visibility = new in(getDescriptor() + "_v", getName() + " visibility", "km", 2);
 	ozone = new in(getDescriptor() + "_oz", getName() + " ozone", "DU", 2);
-	}
+	responseTime -> set_valid_time(i * 2.5);
+	precipIntensity -> set_valid_time(i * 2.5);
+	precipProbability -> set_valid_time(i * 2.5);
+	temperature -> set_valid_time(i * 2.5);
+	apparentTemperature -> set_valid_time(i * 2.5);
+	dewPoint -> set_valid_time(i * 2.5);
+	humidity -> set_valid_time(i * 2.5);
+	pressure -> set_valid_time(i * 2.5);
+	windSpeed -> set_valid_time(i * 2.5);
+	windGust -> set_valid_time(i * 2.5);
+	windBearing -> set_valid_time(i * 2.5);
+	cloudCover -> set_valid_time(i * 2.5);
+	uvIndex -> set_valid_time(i * 2.5);
+	visibility -> set_valid_time(i * 2.5);
+	ozone -> set_valid_time(i * 2.5);
+}
 
-interface_darksky::~interface_darksky(){
-	
+interface_darksky::~interface_darksky()
+{
 	delete responseTime;
-	
 	delete precipIntensity;
 	delete precipProbability;
 	delete temperature;
@@ -97,7 +110,6 @@ interface_darksky::~interface_darksky(){
 // Translate a json value from the json "j", identified by string "tag"
 // multiplied by scale to an input value for in at time t.
 void interface_darksky::json_to_in(json_t* j, in* i, const char* tag, float scale, double t){
-	bool succes = false;
 	if (j){
 		json_t *valueObject = json_object_get(j, tag);
 		if (valueObject){
@@ -123,30 +135,10 @@ void interface_darksky::json_to_in(json_t* j, in* i, const char* tag, float scal
 		fflush(stdout);
 	#endif // debug2
 				//i->setValue(json_number_value(valueObject) * scale, t);
-				succes = true;
 				}
 			}
 		}
-	i->setValid(succes);
 	};
-
-// Set all ins collected from the json to invalid.
-void interface_darksky::setAllInsInvalid(){	
-	precipIntensity->setValid(false);
-	precipProbability->setValid(false);
-	temperature->setValid(false);
-	apparentTemperature->setValid(false);
-	dewPoint->setValid(false);
-	humidity->setValid(false);
-	pressure->setValid(false);
-	windSpeed->setValid(false);
-	windGust->setValid(false);
-	windBearing->setValid(false);
-	cloudCover->setValid(false);
-	uvIndex->setValid(false);
-	visibility->setValid(false);
-	ozone->setValid(false);
-	}
 
 void interface_darksky::getIns(){
 	#ifdef debug2
@@ -197,7 +189,6 @@ void interface_darksky::getIns(){
 				json_to_in(cur, visibility, "visibility", 1.0, t);	
 				json_to_in(cur, ozone, "ozone", 1.0, t);	
 			}
-			else setAllInsInvalid(); 
 	#ifdef debug2
 		printf("json_decref(%i)\n", (int) json);
 		fflush(stdout);
@@ -210,7 +201,6 @@ void interface_darksky::getIns(){
 		}
 	else 
 		{
-		setAllInsInvalid();
 	#ifdef debug2
 		printf("There was no json to be decref'ed\n");
 	#endif // debug2

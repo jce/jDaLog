@@ -19,7 +19,6 @@ map<string, webin*> webinmap;
 
 webin::webin(const string d, const string n, const string u, const unsigned int de) : in(d, n, u, de)
 {
-	setValid(true);	// there is no such thing as an invalid web-in. It is like a configuration value.
 	webinmap[getDescriptor()] = this;
 }
 

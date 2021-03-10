@@ -119,14 +119,6 @@ void interface_sht3x::getIns()
 		fdp = b * y / (a - y);
 		dewp->setValue(fdp, t);
 	}
-
-	if (not ok)
-	{
-		temp->setValid(false);
-		rh->setValid(false);
-		dewp->setValid(false);
-		ah->setValid(false);
-	}
 }
 
 void interface_sht3x::setOut(out* /*o*/, float /*v*/)

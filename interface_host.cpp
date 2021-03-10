@@ -217,22 +217,9 @@ void interface_host::getIns(){
 			double totalCpuTime = (double) (utime + stime + cutime + cstime) / cps;
 			if (_prevT) // Is deze init op 0?
 				cputp->setValue((totalCpuTime - cputs->getValue()) / (thisT - _prevT) * 100);
-			else
-				cputp->setValid(false);
 			cputs->setValue(totalCpuTime);
 			}
 		}
-	if (not allok){
-		cpuus->setValid(false);
-		cpuss->setValid(false);
-		cputs->setValid(false);
-		cputp->setValid(false);
-		num_threads->setValid(false);
-		priority->setValid(false);
-		vsize->setValid(false);
-		nice->setValid(false);
-		//rss->setValid(false);
-		}	
 
 	// Proc/stat
 	#ifdef debug
@@ -279,28 +266,6 @@ void interface_host::getIns(){
 			hcputotalnoiowait->setValue((float)(user+system+nice+irq+softirq) / cps, thisT);
 			}
 		}
-	if (not allok){
-		hcpuuser->setValid(false);
-		hcpunice->setValid(false);
-		hcpusystem->setValid(false);
-		hcpuiowait->setValid(false);
-		hcpuirq->setValid(false);
-		hcpusoftirq->setValid(false);
-		hcputotal->setValid(false);
-		hcputotalnoiowait->setValid(false);
-		}	
-	if (not allok and not _prevT){
-		hcpuuserp->setValid(false);
-		hcpunicep->setValid(false);
-		hcpusystemp->setValid(false);
-		hcpuidlep->setValid(false);
-		hcpuiowaitp->setValid(false);
-		hcpuirqp->setValid(false);
-		hcpusoftirqp->setValid(false);
-		hcputotalp->setValid(false);
-		hcputotalnoiowaitp->setValid(false);
-
-		}
 
 	#ifdef debug
 		printf("\nfinished extracting host cpu ins\n");
@@ -317,8 +282,6 @@ void interface_host::getIns(){
 		if (allok)
 			uptime->setValue(uptimef);
 		}
-	if (not allok)
-		uptime->setValid(false);		
 
 	// Memory, from /proc/blah/statm
 	char statmFile[101];
@@ -333,8 +296,6 @@ void interface_host::getIns(){
 		if (allok)
 			VmRSS->setValue(VmRSSIn * sysconf(_SC_PAGESIZE));
 		}
-	if (not allok)
-		VmRSS->setValid(false);		
 
 	// File system status, from library
 	struct statvfs s;
@@ -349,12 +310,6 @@ void interface_host::getIns(){
 			i->used->setValue(totalBytes - freeBytes, thisT);
 			i->usedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
 		}
-		else
-		{
-			i->free->setValid(false);
-			i->used->setValid(false);
-			i->usedp->setValid(false);
-		}	
 	}
 	if (_prevT){
 		double dt = thisT - _prevT;
@@ -370,7 +325,6 @@ void interface_host::getIns(){
 	//printf(result.c_str());
 	commandExecutedOK = (result.find("temp=") != string::npos);
 	if (commandExecutedOK) cpuTemperature->setValue( stod(result.substr(5, 4)), thisT);
-	cpuTemperature->setValid(commandExecutedOK);
 
 	//command = " sudo vcgencmd measure_clock arm";
 	command = "vcgencmd measure_clock arm";
@@ -378,7 +332,6 @@ void interface_host::getIns(){
 	result = _exec(command.c_str());
 	commandExecutedOK = (result.find("frequency(48)=") != string::npos);
 	if (commandExecutedOK) cpuFrequency->setValue( stod(result.substr(14)), thisT);
-	cpuFrequency->setValid(commandExecutedOK);
 
 	_prevT = thisT;
 	}

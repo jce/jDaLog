@@ -25,7 +25,6 @@ class interface_darksky : public interface{
 		const string _key;
 		const float _lat, _lon;
 		void json_to_in(json_t*, in*, const char*, float, double);
-		void setAllInsInvalid();	
 	};
 
 #endif // HAVE_INTERFACE_DARKSKY_H

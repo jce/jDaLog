@@ -51,13 +51,9 @@ void interface_tgTemp::getIns(){
 	// Status page
 	if (findFloatAfter(tempPage, "SOt: ", f)) 
 		SOt->setValue(f, t);
-	else
-		SOt->setValid(false);
 
 	if (findFloatAfter(tempPage, "SOrh: ", f)) 
 		SOrh->setValue(f, t);
-	else
-		SOrh->setValid(false);
 	if(SOt->isValid() and SOrh->isValid()){
 		// Calculations for temperature, relative humidity and dewpoint in accordance
 		// to the sensirion SH11 datasheet
@@ -98,38 +94,22 @@ void interface_tgTemp::getIns(){
 				if (b > 0){
 					Td = Tn * a / b;
 					dewp->setValue(Td, t);}
-				else{
-					dewp->setValid(false);}}
-			else{
-				dewp->setValid(false);}}
-		else
-			dewp->setValid(false);}
-	else{
-		temp->setValid(false);
-		rh->setValid(false);
-		dewp->setValid(false);}
+			}
+		}
+	}
 
 	// Debug page
 	if (findFloatAfter(debugPage, "Requests: ", f)) 
 		requests->setValue(f, t);
-	else
-		requests->setValid(false);
 
 	if (findFloatAfter(debugPage, "Resets: ", f)) 
 		resets->setValue(f, t);
-	else
-		resets->setValid(false);
 
 	if (findFloatAfter(debugPage, "Scans per second: ", f)) 
 		scanrate->setValue(f, t);
-	else
-		scanrate->setValid(false);
 
 	if (findFloatAfter(debugPage, "Uptime [s, d h:m:s]: ", f)) 
 		uptime->setValue(f, t);
-	else
-		uptime->setValid(false);
-
 
 	//printf("Interface %s fetches %s:\n%s\n", getDescriptor().c_str(), url.c_str(), statusPage.c_str());
 	}

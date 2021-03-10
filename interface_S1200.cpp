@@ -178,9 +178,8 @@ void interface_S1200::getIns(){
 	//printf(" %X\n", Cli_DBRead(PLC, 85, 0, sizeof(DBHeader), &data));
 	double end = now();
 	double t = (start + end) / 2;
-	bool b_PLCOnline = false, b_roomIOOnline = false, b_roomMotionTop, b_roomMotionDesk, b_roomDoorOpen, b_roomMotionCorridor, b_roomPresence;
+	bool b_roomIOOnline = false, b_roomMotionTop, b_roomMotionDesk, b_roomDoorOpen, b_roomMotionCorridor, b_roomPresence;
 	bool rainSensorOK = false, roomTemperatureReadoutOK = false;
-	//b_PLCOnline = rv == 0;
 	bool b_roomComp = false, b_roomSleepSw = false;
 	bool b_fishTankPump; // JCE, 30-8-2018
 	latency->setValue((end-start)/1*1000, t); // 1 request, scale = ms
@@ -203,7 +202,6 @@ void interface_S1200::getIns(){
 
 		if (rv == 0 and scanCA == scanCB and magicNr == MAGICNR and version == 1 and scancounter != scanCA and uptime > 10)
 		{
-			b_PLCOnline = true;
 			if (lastReadTime > 1 and (scanCA - scancounter) != 0)
 			{
 				f = 1000.0 * (t-lastReadTime) / (scanCA - scancounter);
@@ -301,30 +299,17 @@ void interface_S1200::getIns(){
 			memcpy(&f, data + 62, 4);
 			f = beftoh(f);
 			if (f > 0) // Hack to eliminate zeroes from the data. JCE, 30-4-2019
-			{
 				sheepWater->setValue(f, t);
-				sheepWater->setValid(b_PLCOnline);
-			}
-			else
-				sheepWater->setValid(false);
 
 			memcpy(&f, data +66, 4);
 			f = beftoh(f);
 			if (f > 0) // Hack to eliminate zeroes from the data. JCE, 30-4-2019
-			{	
 				sheepFoodTime->setValue(f, t);
-				sheepFoodTime->setValid(b_PLCOnline);
-			}
-			else
-				sheepFoodTime->setValid(false);
 
 			// Added, JCE, 22-9-2018
 			//	in *sheepWaterPulse, *sheepFoodPresence; // Abstracted pulses from water, actual sheep-is-eating detection. JCE, 22-9-2018	
 			sheepWaterPulse->setValue( (uint8_t) data[70], t-15); // Pulses are 30 seconds extended. Substracting 15 seconds of measurement time makes the pulses symmetric. JCE, 2-9-2018
-			sheepWaterPulse->setValid(b_PLCOnline);
 			sheepFoodPresence->setValue(data[71] & (1 << 0), t); 
-			sheepFoodPresence->setValid(b_PLCOnline);
-
 	
 			// Added, jce, 22-6-2019		
 			memcpy(&rain_ticks, data + 76, 4);
@@ -337,34 +322,6 @@ void interface_S1200::getIns(){
 		}
 	}
 
-	roomMotionTop->setValid(b_PLCOnline and b_roomIOOnline);
-	roomMotionDesk->setValid(b_PLCOnline and b_roomIOOnline);
-	roomMotionCorridor->setValid(b_PLCOnline and b_roomIOOnline);
-	roomDoorOpen->setValid(b_PLCOnline and b_roomIOOnline);
-	roomPresence->setValid(b_PLCOnline and b_roomIOOnline);
-	roomLight->setValid(b_PLCOnline and b_roomIOOnline);
-	scantime->setValid(b_PLCOnline);
-	chickenGatePosEst->setValid(b_PLCOnline);
-	chickenDeskMotion->setValid(b_PLCOnline);
-	roomLight->setValid(b_PLCOnline);
-	roomPresence->setValid(b_PLCOnline);
-	roomMotionCorridor->setValid(b_PLCOnline);
-	roomDoorOpen->setValid(b_PLCOnline);
-	roomMotionDesk->setValid(b_PLCOnline);
-	roomMotionTop->setValid(b_PLCOnline);
-	roomIOOnline->setValid(b_PLCOnline);
-	roomTemp->setValid(b_PLCOnline and roomTemperatureReadoutOK);
-	roomRH->setValid(b_PLCOnline and roomTemperatureReadoutOK);
-	hyflofft->setValid(b_PLCOnline);
-	hyflont->setValid(b_PLCOnline);
-	hyfpressure->setValid(b_PLCOnline);
-	hyfruntime->setValid(b_PLCOnline);
-	hyfstarts->setValid(b_PLCOnline);
-	rainDetector->setValid(rainSensorOK);
-//	hyfruntime->setValue(be16toh( &((uint16_t*) data + 4)) );
-//	hyfstarts->setValue(be16toh( &((uint16_t*) data + 12)) );
-	fishTankPump->setValid(b_PLCOnline);	
-	
 	//uint16_t header_scancounter = be16toh(&((uint16_t*)ptr));
 	//uint16_t header_scancounter = be16toh(&((uint16_t*)ptr));
 	//
@@ -407,5 +364,4 @@ void interface_S1200::getIns(){
 
 void interface_S1200::setOut(out* o, float v){
 	o->setValue(v);
-	o->setValid(true);
 	}

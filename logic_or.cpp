@@ -32,7 +32,6 @@ void logic_or::setOut(out* o, float v){
 	#endif
 	if (o == A or o == B){
 		o->setValue(v);
-		o->setValid(true);
 		#ifdef debug 
 		printf("logic_or's setOut(): myOut before setting=%f\n", _myOut->getValue());
 		#endif

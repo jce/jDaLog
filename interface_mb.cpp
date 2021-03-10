@@ -228,13 +228,6 @@ void interface_mb::run()
 		}
 		else
 		{
-			while (true)
-			{
-				reg->i->setValid(false);
-				if (reg == end)
-					break;
-				reg = reg->adj_after;
-			}
 			if (conmem)
 			{
 				PRINT_ERROR();

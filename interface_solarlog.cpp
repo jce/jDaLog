@@ -94,25 +94,12 @@ void interface_solarlog::getIns(){
 			Udc->setValue(regs[7], t);
 			if(Pdc->getValue() > 0)
 				efficiency->setValue(Pac->getValue() / Pdc->getValue() * 100);
-			else
-				efficiency->setValid(false);
 			if (_lastValidDateTime){
 				float dt = t - _lastValidDateTime;
 				totalKwhProduced->setValue(totalKwhProduced->getValue() + dt * Pdc->getValue() / (1000*3600));
 				}
 			_lastValidDateTime = t;
 			}
-		}
-	else
-		latency->setValid(false);
-
-	if(not dataOk){
-		Pac->setValid(false);
-		Pdc->setValid(false);
-		Uac->setValid(false);
-		Udc->setValid(false);
-		Udc->setValid(false);
-		efficiency->setValid(false);
 		}
 	}
 

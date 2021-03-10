@@ -16,8 +16,6 @@
 
 using namespace std;
 
-//#define debug
-
 // Helper functions, used in the children... JCE, 21-6-13
 //
 
@@ -74,8 +72,6 @@ void findFloatAfter(const char* str, const char* cue, in *i, double t)
 	float f;
 	if (findFloatAfter(str, cue, f))
 		i->setValue(f, t);
-	else
-		i->setValid(false);
 }
 void findFloatAfter(string str, const char* cue, in& i, double t)
 {

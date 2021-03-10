@@ -356,8 +356,8 @@ void build_logics(json_t *arr)
 	}
 }
 
-void loop1s(){
-
+void loop1s()
+{
 	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
 	in *hs110_rm_p = get_in("hs110_rm_p");
 	in *hs110_fr_p = get_in("hs110_fr_p");
@@ -368,9 +368,6 @@ void loop1s(){
 			pwrsum = new in("pwrsum", "Power sum", "W", 3);
 		pwrsum->setValue(hs110_rm_p->getValue() + hs110_fr_p->getValue() + hs110_wp_p->getValue());
 	}
-	else
-		if(pwrsum)
-			pwrsum->setValid(false);
 
 	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
 	in *hs110_rm_tot = get_in("hs110_rm_tot");
@@ -382,10 +379,7 @@ void loop1s(){
 			kWhsum = new in("kwhsum", "kWh sum", "kWh", 3);
 		kWhsum->setValue(hs110_rm_tot->getValue() + hs110_fr_tot->getValue() + hs110_wp_tot->getValue());
 	}
-	else
-		if(pwrsum)
-			kWhsum->setValid(false);
-	}
+}
 
 void loop60s(){
 	buildNr->setValue(tcBuildNr);
@@ -554,15 +548,15 @@ int main(){
 	printf("shuttind down...\n");
 	run = false;
 
-	// Stops all jobs, including those from interfaces.
-	jos_delete_pool(pool);
-
-	webGuiStop();
-
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->stop();
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->join();
+
+	// Stops all jobs, including those from interfaces.
+	jos_delete_pool(pool);
+	webGuiStop();
+
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		delete i->second;
 	

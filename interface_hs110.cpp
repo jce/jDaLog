@@ -170,23 +170,15 @@ prp(q, "o");
 		//findFloatAfter(buf, "voltage_mv\":", voltage, t);		
 		if (findFloatAfter(buf+4, "voltage_mv\":", v))
 			voltage->setValue(v/1000, t);		
-		else
-			voltage->setValid(false);
 
 		if (findFloatAfter(buf+4, "current_ma\":", a))
 			current->setValue(a/1000, t);		
-		else
-			current->setValid(false);
 
 		if (findFloatAfter(buf+4, "power_mw\":", p))
 			power->setValue(p/1000, t);		
-		else
-			power->setValid(false);
 
 		//if (findFloatAfter(buf+4, "total_wh\":", wh))
 		//	total_kwh->setValue(wh/1000, t);		
-		//else
-		//	total_kwh->setValid(false);
 		// It seems the meter does not store watthours over a restart. JCE, 3-10-2020
 		if (findFloatAfter(buf+4, "total_wh\":", wh))
 		{
@@ -200,13 +192,9 @@ prp(q, "o");
 			total_kwh->setValue(kWh_stored_at_startup + (wh - Wh_hs110_at_startup)/1000, t);		
 			whreadout->setValue(wh, t);
 		}
-		else
-			total_kwh->setValid(false);
 
 		if (findFloatAfter(buf+4, "err_code\":", err))
 			err_code->setValue(err, t);		
-		else
-			err_code->setValid(false);
 
 		if (voltage->isValid() and current->isValid())
 		{
@@ -226,31 +214,16 @@ prp(q, "o");
 					tmppf = 0;
 				pf->setValue(tmppf, t);
 			}
-			else
-				pf->setValid(false);
 		}
-		else
-		{
-			va->setValid(false);
-			pf->setValid(false);
-		}
-
 
 		if (findFloatAfter(buf+4, "rssi\":", v))
 			rssi->setValue(v, t);		
-		else
-			rssi->setValid(false);
 
 		if (findFloatAfter(buf+4, "relay_state\":", v))
 			relay->setValue(v, t);		
-		else
-			relay->setValid(false);
 
 		if (findFloatAfter(buf+4, "led_off\":", v))
 			led->setValue(1 - v, t);		
-		else
-			led->setValid(false);
-
 	}
 	float l = (end - start) * 1000;
 	if (l > 1000)
