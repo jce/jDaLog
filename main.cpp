@@ -44,6 +44,7 @@
 #include "logic_compare.h"
 #include "logic_modulator.h"
 #include "interface_mb.h"
+#include "interface_GS308E.h"
 
 using namespace std;
 //#define debug
@@ -215,6 +216,13 @@ void build_interfaces(json_t *arr)
 						interface_mb_from_json(id, name, json);
 					else
 						printf("could not build interface_mb(%s, %s)\n", id, name);
+				}
+				if (strcmp(type, "GS308E") == 0)
+				{
+					if (id and name)
+						interface_gs308e_from_json(id, name, json);
+					else
+						printf("could not build interface_gs308e(%s, %s)\n", id, name);
 				}
 			}
 		}	
