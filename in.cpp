@@ -11,6 +11,8 @@
 
 using namespace std;
 
+//#define DBG(...) printf(__VA_ARGS__);
+#define DBG(...)
 //#define debug
 
 // Implementation of class in. In should give an uniform representation of inputs for tcFarmControl. I assume to use it later for both visualisation and as generic origin of information for internal logics. The in should also allow for "simple" enumeration and finding of any of the inputs. To be done by an in-map or list with search function. JCE, 19-6-13
@@ -250,6 +252,11 @@ void in::set_valid_time(float f)
 float in::get_valid_time()
 {
 	return valid_time;
+}
+
+void in::sort_file()
+{
+	_logger->sort_file();
 }
 
 // Callbacks on specific events. JCE, 9-11-2020

@@ -389,16 +389,26 @@ void loop60s(){
 }
 
 void loopstoreio(){
-	// for all esnsors, call store to file
+	// for all sensors, call store to file
 	map<string, in*>::iterator i;
 	for (i = inmap.begin(); i!= inmap.end(); i++)
 	{
-		i->second->importData();
+		//i->second->importData();
 		i->second->writeToFile();
 	}
 	// webgui.h / webgui.cp
 	deleteOldFiles(); // AKA segmentation fault... JCE, 5-7-13
 	}
+
+void sort_all_in_files()
+{
+	for (auto i = inmap.begin(); i!= inmap.end(); i++)
+	{
+		if (!run)
+			return;
+		i->second->sort_file();
+	}
+}
 
 void debug_plot_stuff()
 {
@@ -479,26 +489,12 @@ int main(){
 		return 0;
 	}
 
-	/* Test for removing of jobs
-	jos_run_every(pool, 1, print_ptr, (void*) 1);
-	jos_run_every(pool, 1, print_ptr, (void*) 2);
-	jos_run_every(pool, 1, print_ptr, (void*) 3);
-	jos_run_every(pool, 1, print_ptr, (void*) 4);
-	sleep(1);
-	jos_remove(pool, print_ptr, (void*) 2);
-	sleep(1);
-	jos_remove(pool, print_ptr, (void*) 4);
-	sleep(1);
-	jos_remove(pool, print_ptr, (void*) 1);
-	jos_remove(pool, print_ptr, (void*) 3);
-	jos_remove(pool, print_ptr, (void*) 4);
-	*/
-
 	build_interfaces(json_object_get(json, "interface"));
 	build_webins(json_object_get(json, "webin"));
 	build_dir_to_ins(json_object_get(json, "dir_to_ins"));
 	build_logics(json_object_get(json, "logic"));
 	out_conf(json_object_get(json, "out"));
+	bool check_files = json_is_true(json_object_get(json, "check_files"));
 	
 	//uint16_t port = 8090;
 	json_t *webgui_j = json_object_get(json, "webgui");
@@ -536,6 +532,8 @@ int main(){
 	jos_run_every(pool, 1, 		(void (*)(void*)) loop1s, NULL);
 	jos_run_every(pool, 60, 	(void (*)(void*)) loop60s, NULL);
 	jos_run_every(pool, 3600, 	(void (*)(void*)) loopstoreio, NULL);
+	if (check_files)
+		jos_run(  pool,     	(void (*)(void*)) sort_all_in_files, NULL);
 	//jos_run(pool, (void (*)(void*)) debug_plot_stuff, NULL);
 	//jos_run(pool, (void (*)(void*)) debug_plot_stuff2, NULL);
 	//jos_run(pool, (void (*)(void*)) debug_plot_stuff3, NULL);
@@ -548,11 +546,15 @@ int main(){
 	printf("shuttind down...\n");
 	run = false;
 
+	for (auto i = inmap.begin(); i!= inmap.end(); i++)
+		i->second->writeToFile();
+
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->stop();
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->join();
 
+	// webgui.h / webgui.cp
 	// Stops all jobs, including those from interfaces.
 	jos_delete_pool(pool);
 	webGuiStop();

@@ -46,7 +46,7 @@ class in{
 		void touch();			// JCE, 28-8-13, makes a new measurement point, equal to the previous value.
 		void set_valid_time(float);	// Sets the time for what the measurement remains valid.
 		float get_valid_time();	// Reads the time that a measurement remains valid.
-		
+		void sort_file();		// Sort the binary file.		
 
 
 		// Callbacks on specific events. JCE, 9-11-2020

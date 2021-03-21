@@ -4,7 +4,7 @@
 #include "job_sched.h"
 
 #define tcProgramName		"tcFarmControl"
-#define tcProgramVersion	0.800	// version 0.8 and higher are C++, pre are Python 2.7
+#define tcProgramVersion	0.9	// version 0.8 and higher are C++, pre are Python 2.7. 0.9: binary in files are now stored ordered.
 #define tcDataDir			"./data/"
 #define tcWebRoot			"./http/"
 
