@@ -49,7 +49,7 @@ in::in(uint8_t, const char *dir, const string d, const string prefix): _decimals
 	_note = new stringStore(string(dir) + "/note.txt");
 	
 	inmap_mutex.lock();	
-	if (inmap.find(_descr) != inmap.end()) printf("Double description used for ""in"" %s\n", _descr.c_str());
+	if (inmap.find(_descr) != inmap.end()) printf("Double description used for \"in\" %s\n", _descr.c_str());
 	inmap[_descr] = this ;
 	inmap_mutex.unlock();
 }	

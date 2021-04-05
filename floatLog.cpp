@@ -18,17 +18,20 @@ using namespace std;
 
 #define FOR_ALL_IN_FILE_UNM(...) \
 { \
-	openfile_read(); \
-	double t; \
-	float v; \
-    if (fp) \
-    { \
-        while ( fread(&t, sizeof(t), 1, fp) && fread(&v, sizeof(v), 1, fp) ) \
-		{ \
-			__VA_ARGS__ \
-        } \
-        fclose(fp); \
-    } \
+	if (mode == to_file) \
+	{ \
+		openfile_read(); \
+		double t; \
+		float v; \
+    	if (fp) \
+    	{ \
+    	    while ( fread(&t, sizeof(t), 1, fp) && fread(&v, sizeof(v), 1, fp) ) \
+			{ \
+				__VA_ARGS__ \
+    	    } \
+    	    fclose(fp); \
+    	} \
+	} \
 }
 
 #define FOR_ALL_IN_FILE(...) \
@@ -58,23 +61,38 @@ using namespace std;
 
 floatLog::floatLog(string pan):pathAndName(pan) 
 {
+	read_last_from_file();
+}
+
+floatLog::~floatLog() 
+{
+	writeToFile(); 
+}
+
+void floatLog::read_last_from_file()
+{
 	pthread_mutex_lock(&fileMutex);
 	openfile_read();
 		if (fp)
 		{
 			// seek 1 record before end
-			fseek(fp, - RSIZE, SEEK_END);
+        	fseek(fp, 0, SEEK_END);
+        	size_t pos = ftell(fp) / RSIZE;
+			if (pos == 0)
+			{
+				last.t = 0;
+				last.v = 0;
+				fclose(fp);
+				pthread_mutex_unlock(&fileMutex);
+				return;
+			}
+        	fseek(fp, (pos - 1) * RSIZE, SEEK_SET);
 			// read record
 			fread(&last.t, sizeof(double), 1, fp);
 			fread(&last.v, sizeof(float), 1, fp) ;
 			fclose(fp);
 		}
 	pthread_mutex_unlock(&fileMutex);
-}
-
-floatLog::~floatLog() 
-{
-	writeToFile(); 
 }
 
 void floatLog::append(double t, float v)
@@ -95,6 +113,15 @@ void floatLog::append(double t, float v)
 	last.t = t;
 	last.v = v;
 	recordsToFile.insert(recordsToFile.end(), {t,v});
+
+	// Trim the records in memory if appropriate.
+	if (ram_max_samples)
+		while (recordsToFile.size() > ram_max_samples)
+			recordsToFile.erase(recordsToFile.begin());
+	if (ram_max_history > 0)
+		while (recordsToFile.begin()->t < t - ram_max_history)
+			recordsToFile.pop_front();
+
 	pthread_mutex_unlock(&memMutex);
 }
 
@@ -258,6 +285,12 @@ record floatLog::getLast()
 void floatLog::writeToFile() 
 {
 	DBG("writeToFile()\n");
+	if (mode != to_file)
+	{
+		DBG("writeToFile() aborted tue to mode != to_file.\n");
+		return;
+	}
+
 	list<record>::iterator i;
 	pthread_mutex_lock(&fileMutex);
 	pthread_mutex_lock(&memMutex);
@@ -485,6 +518,27 @@ bool floatLog::file_is_ok()
 {
 	printf("checking %s\n", pathAndName.c_str());
 	bool rv = true;
+	
+	// Test file length
+	pthread_mutex_lock(&fileMutex);
+	openfile_read();
+	if (!fp)
+	{
+		pthread_mutex_unlock(&fileMutex);
+		return true;	// No file, no contents to check.
+	}
+   	fseek(fp, 0, SEEK_END);
+	size_t len = ftell(fp);
+    size_t pos = len / RSIZE;
+	rv = len == pos * RSIZE;
+	fclose(fp);
+	pthread_mutex_unlock(&fileMutex);
+	if (!rv)
+	{
+		printf("%s: filelength (%zu) is not a multiple of record length (%zu).\n", pathAndName.c_str(), len, RSIZE);
+		return rv;
+	}
+
 	double x = -DBL_MAX;
 	size_t rec = 0;
 	double n = now();
@@ -492,17 +546,17 @@ bool floatLog::file_is_ok()
 		if (x >= t)\
 		{\
 			rv = false;\
-			printf("%s: file is not linear at position %ld, time %lf, prev time %lf, diff: %lf, value %f\n", pathAndName.c_str(), rec, t, x, t-x, v);\
+			printf("%s: file is not linear at position %zu, time %lf, prev time %lf, diff: %lf, value %f\n", pathAndName.c_str(), rec, t, x, t-x, v);\
 		}\
 		if (t <= 0)\
 		{\
 			rv = false;\
-			printf("%s: file contains record before time 0 at position %ld, time %lf, value %f\n", pathAndName.c_str(), rec, t, v);\
+			printf("%s: file contains record before time 0 at position %zu, time %lf, value %f\n", pathAndName.c_str(), rec, t, v);\
 		}\
 		if (t >= n)\
 		{\
 			rv = false;\
-			printf("%s: file contains record in the future at position %ld, time %lf, value %f\n", pathAndName.c_str(), rec, t, v);\
+			printf("%s: file contains record in the future at position %zu, time %lf, value %f\n", pathAndName.c_str(), rec, t, v);\
 		}\
 		x = t;\
 		rec++;\
@@ -528,7 +582,7 @@ void floatLog::sort_file()
     fseek(fp, 0, SEEK_END);
 	fclose(fp); 
 	FOR_ALL_IN_FILE_UNM(m[t] = v;); // Opens and closes the file internally
-	printf("records after reading: %ld\n", m.size()); 
+	printf("records after reading: %zu\n", m.size()); 
 	fp = fopen(pathAndName.c_str(), "wb"); // Overwriting!!
    	if (!fp)
 	{
@@ -549,6 +603,45 @@ void floatLog::sort_file()
 	printf("done\n");
 }
 
+floatLog::operationmode floatLog::get_operation_mode()
+{
+	return mode;
+}
+
+void floatLog::set_operation_mode(operationmode m)
+{
+	
+	// It would be strange to have the last sample depending on the file if mode is ram_only.
+	if (mode != m && m == ram_only && recordsToFile.size() == 0)
+	{
+		last.t = 0;
+		last.v = 0;
+	}
+
+	// When switching to to_file, make sure the sequence is OK.
+	if (mode != m && m == to_file)
+	{
+		read_last_from_file();
+    	pthread_mutex_lock(&memMutex);
+		while (recordsToFile.size() && recordsToFile.begin()->t < last.t)
+			recordsToFile.pop_front();
+		if (recordsToFile.size())
+			last = recordsToFile.back();
+    	pthread_mutex_unlock(&memMutex);
+	}
+
+	mode = m;
+}
+
+void floatLog::set_ram_max_samples(size_t s)
+{
+	ram_max_samples = s;
+}
+
+void floatLog::set_ram_max_history(float t)
+{
+	ram_max_history = t;
+}
 
 
 

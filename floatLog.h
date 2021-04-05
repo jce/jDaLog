@@ -59,6 +59,15 @@ class floatLog
 		//void summaryFromToWeighedC(	std::vector<flStat> &, unsigned, double, double, float); // Based on sample time. Closest time weights sample.
 		void summaryFromToWeighedN(	std::vector<flStat> &, unsigned, double, double, float); // Based on sample time. To next weights sample.
 
+		// Operation mode control
+		typedef enum operationmode{ to_file, ram_only } operationmode;
+		// Set operation mode.
+		// to_file: Default. Stores to file every "writeToFile()" call.
+		// ram_only: Keep all samples in ram. "writeToFile()" has no effect.
+		operationmode get_operation_mode();
+		void set_operation_mode(operationmode);
+		void set_ram_max_samples(size_t);	// Maximum amount of samples to be stored in ram. 0 to disable. Default is 0.
+		void set_ram_max_history(float);	// Maximum historic time to be stored in ram. (Drop samples older than now-interval). 0 to disable. Default is 0.
 
 		// Maintenance
 		void writeToFile();
@@ -76,12 +85,16 @@ class floatLog
 		pthread_mutex_t fileMutex = PTHREAD_MUTEX_INITIALIZER;
 		pthread_mutex_t memMutex = PTHREAD_MUTEX_INITIALIZER;
 		size_t records_in_file(); // Not protected by a mutex!
+		void read_last_from_file();
 		record last;
 
 		FILE *fp;
 		void openfile_read();
 		void openfile_write();
 		size_t from_index(double); // File should be open, returns the first record number in the file at or above given timestamp.
+		operationmode mode = to_file;
+		size_t ram_max_samples = 0;
+		float ram_max_history = 0;
 };
 
 #endif // HAVE_FLOATLOG_H
