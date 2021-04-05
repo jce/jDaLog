@@ -574,7 +574,7 @@ bool floatLog::file_is_ok()
 }
 
 // Sort the binary file, rewriting all.
-void floatLog::sort_file()
+/*void floatLog::sort_file()
 {
 	if (file_is_ok())
 		return;
@@ -613,7 +613,7 @@ void floatLog::sort_file()
     pthread_mutex_unlock(&fileMutex);
 	printf("Records after:   %14zu\nRecords removed: %14zu\n", cnt, m.size() - cnt); 
 	printf("done\n");
-}
+}*/
 
 floatLog::operationmode floatLog::get_operation_mode()
 {
@@ -655,8 +655,90 @@ void floatLog::set_ram_max_history(float t)
 	ram_max_history = t;
 }
 
+// Trim the binary file, rewriting all. Parameter section is the test, succeeding records test true.
+#define TRIM(...) \
+	map<double, float> m; \
+    pthread_mutex_lock(&fileMutex); \
+	FOR_ALL_IN_FILE_UNM(m[t] = v;); \
+	printf("Records before:  %14zu\n", m.size()); \
+	fp = fopen(pathAndName.c_str(), "wb"); \
+   	if (!fp) \
+	{ \
+		printf("Opening file for writing failed!\n"); \
+    	pthread_mutex_unlock(&fileMutex); \
+		return 0; \
+	} \
+	size_t cnt = 0; \
+	if (m.size()) \
+		for (auto i = m.begin(); i != m.end(); i++) \
+			if (__VA_ARGS__) \
+				{ \
+    			    fwrite(&i->first, sizeof(double), 1, fp); \
+    			    fwrite(&i->second, sizeof(float), 1, fp); \
+					cnt++; \
+				} \
+    fclose(fp); \
+    pthread_mutex_unlock(&fileMutex); \
+	printf("Records after:   %14zu\nRecords removed: %14zu\n", cnt, m.size() - cnt); \
+	printf("done\n"); \
+	//return m.size() - cnt;
 
+size_t floatLog::trim_time_to(double t)
+{
+	printf("%s: trim time to %lf.\n", pathAndName.c_str(), t);
+	TRIM( i->first > t );
+	return m.size() - cnt;
+}	
 
+size_t floatLog::trim_time_from(double t)
+{
+	printf("%s: trim time from %lf.\n", pathAndName.c_str(), t);
+	TRIM( i->first < t );
+	return m.size() - cnt;
+}	
+	
+size_t floatLog::trim_time_from_to(double t, double u)
+{
+	printf("%s: trim time from %lf to %lf.\n", pathAndName.c_str(), t, u);
+	TRIM( i->first < t || i->first > u );
+	return m.size() - cnt;
+}	
+
+size_t floatLog::trim_value_to(float v)
+{
+	printf("%s: trim value to %f.\n", pathAndName.c_str(), v);
+	TRIM( i->second > v );
+	return m.size() - cnt;
+}
+	
+size_t floatLog::trim_value_from(float v)
+{
+	printf("%s: trim value from %f.\n", pathAndName.c_str(), v);
+	TRIM( i->second < v );
+	return m.size() - cnt;
+}
+
+size_t floatLog::trim_value_from_to(float v, float w)
+{
+	printf("%s: trim time from %f to %f.\n", pathAndName.c_str(), v, w);
+	TRIM( i->second < v || i->second > w );
+	return m.size() - cnt;
+}	
+	
+size_t floatLog::sort_file()
+{
+	if (file_is_ok())
+		return 0;
+	printf("Sorting %s...\n", pathAndName.c_str());
+	double n = now();
+	TRIM( i->first > 1000 and i->first < n and isfinite(i->second) );
+	read_last_from_file();
+	return m.size() - cnt;
+}
+	
+	
+	
+	
 
 
 
