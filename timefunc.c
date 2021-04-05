@@ -30,16 +30,17 @@ void write_human_time(char *buf, double time)
 // Returns 1 on success, 0 on failure.
 int read_human_time(const char *buf, double *time)
 {
-	double sec;
-	struct timespec ts;
-	struct tm t;
-	if ( sscanf(buf, "%d-%d-%d %d:%d:%lf", &t.tm_mday, &t.tm_mon, &t.tm_year, &t.tm_hour, &t.tm_min, &sec) != 6)
+	double sec = 0;
+	struct timespec ts = {0};
+	struct tm t = {0};
+	t.tm_isdst = -1;
+	if ( sscanf(buf, "%d-%d-%d%*1[ _]%d:%d:%lf", &t.tm_mday, &t.tm_mon, &t.tm_year, &t.tm_hour, &t.tm_min, &sec) < 3)
 		return 0;
 	t.tm_mon -= 1;
 	t.tm_year -= 1900;
 	t.tm_sec = sec;
 	ts.tv_nsec = (sec - t.tm_sec) * 1000000000;
 	ts.tv_sec = mktime(&t);
-	*time = ts.tv_sec + ts.tv_nsec / 1000000000;	
+	*time = ts.tv_sec + ts.tv_nsec / 1000000000;
 	return 1;
 }
