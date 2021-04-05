@@ -402,12 +402,14 @@ void loopstoreio(){
 
 void sort_all_in_files()
 {
+	printf("Start checking binary data files.\n");
 	for (auto i = inmap.begin(); i!= inmap.end(); i++)
 	{
 		if (!run)
 			return;
 		i->second->sort_file();
 	}
+	printf("Binary data file checking complete.\n");
 }
 
 void debug_plot_stuff()
