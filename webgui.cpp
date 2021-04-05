@@ -5,6 +5,7 @@
 #include <string>
 #include "string.h"
 #include "floatLog.h"
+#include "inttypes.h" // Macros like SCNu16
 #include "main.h"
 #include "mongoose.h"
 #include "version.h"
@@ -483,91 +484,61 @@ string make_image(string url){
 string make_image_line(string url){
 	return make_image(url) + "<br>";}
 
-int make_in_page(struct mg_connection *conn, string inName){
-	map<string, in*>:: iterator i;		// Addressing by index is no good idea. It creates the element if it does not exist.
-	i = inmap.find(inName);			// Fixed, JCE, 5-3-14
-	if (i == inmap.end()) {return 0;}
-	in* myIn = i->second;
-	//if (myOut == 0) {return 0;}
-	// catch manual setpoint if present
-	//in* myIn = inmap[inName];
-	//if (myIn == 0) {return 0;}
+int make_in_graph_page(struct mg_connection *conn, in *i, double from, double to, uint16_t w=def_w, uint16_t h=def_h)
+{
+	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
+	string line;
+	line = make_image_line(plotLine(i, from, to, w, h));
+	mg_printf(conn, line.c_str());
+	return 1;
+}
 
+int make_in_page(struct mg_connection *conn, in *i)
+{
 	// headers
 	double start = make_header(conn, 60);
 	
 	// (short) name
-	mg_printf(conn, "<h2>In page: %s</h2>\n", myIn->getName().c_str());
+	mg_printf(conn, "<h2>In page: %s</h2>\n", i->getName().c_str());
 	// (long) name
-	mg_printf(conn, "short name: %s<br>\n", myIn->getDescriptor().c_str()); // also could have been inName, hm...
+	mg_printf(conn, "short name: %s<br>\n", i->getDescriptor().c_str()); // also could have been inName, hm...
 	
 	// current state
-	mg_printf(conn, "last measurement: %.*f %s<br>\n", myIn->getDecimals(), myIn->getValue(), myIn->getUnits().c_str());
+	mg_printf(conn, "last measurement: %.*f %s<br>\n", i->getDecimals(), i->getValue(), i->getUnits().c_str());
 
 	// The age of this particular measurement
-	//float age = now() - myIn->getTime();
-	mg_printf(conn, "measurement age: %.3f seconds<br>\n", myIn->getAge());
+	mg_printf(conn, "measurement age: %.3f seconds<br>\n", i->getAge());
 		
 	// The validity of this measurement
-	if (myIn->isValid())
+	if (i->isValid())
 		mg_printf(conn, "this in is considered valid<br>\n");
 	else
 		mg_printf(conn, "this in is considered invalid<br>\n");
 
-	// graph blah, blah, blah and blah
-//	mg_printf(conn, "graph 1<br>\n");
-	//string plotUrl = plotLine(myIn, now() - 3600, now(), 800, 300);
-	//string plotLink = make_link( plotUrl, "graph1");
-	//string line = plotLink + "<br>";
-	#ifdef debug
-		double tdata, tscript, tplot, tsum;
-		string line = make_image_line(plotLine(myIn, now() - 3600, now(), def_w, def_h, tdata, tscript, tplot));
-		mg_printf(conn, line.c_str());
-		tsum = tdata + tscript + tplot;
-		//mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		//line = make_image_line(plotLine(myIn, now() - 24*3600, now(), def_w, def_h, tdata, tscript, tplot));
-		//mg_printf(conn, line.c_str());
-		//tsum += tdata + tscript + tplot;
-		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 7*24*3600, now(), def_w, def_h, tdata, tscript, tplot));
-		mg_printf(conn, line.c_str());
-		tsum += tdata + tscript + tplot;
-		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600, now(), def_w, def_h, tdata, tscript, tplot));
-		mg_printf(conn, line.c_str());
-		tsum += tdata + tscript + tplot;
-		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		mg_printf(conn, "Graph total time: %f s<br>\n", tsum);
-	#else
-		string line;
-		//line = make_image_line(plotLine(myIn, now() - 5, now(), def_w, def_h));
-		//mg_printf(conn, line.c_str());
-		//line = make_image_line(plotLine(myIn, now() - 60, now(), def_w, def_h));
-		//mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 3600, now(), def_w, def_h));
-		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 24*3600, now(), def_w, def_h));
-		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 7*24*3600, now(), def_w, def_h));
-		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600, now(), def_w, def_h));
-		mg_printf(conn, line.c_str());
-		//line = make_image_line(plotLine(myIn, now() - 1 * 365*24*3600, now(), def_w, def_h));
-		//mg_printf(conn, line.c_str());
-	#endif
+	string line;
+	line = make_image_line(plotLine(i, now() - 3600, now(), def_w, def_h));
+	mg_printf(conn, line.c_str());
+	line = make_image_line(plotLine(i, now() - 24*3600, now(), def_w, def_h));
+	mg_printf(conn, line.c_str());
+	line = make_image_line(plotLine(i, now() - 7*24*3600, now(), def_w, def_h));
+	mg_printf(conn, line.c_str());
+	line = make_image_line(plotLine(i, now() - 4*7*24*3600, now(), def_w, def_h));
+	mg_printf(conn, line.c_str());
 
 	// Maybe i'll get the html or javascript fixed for this eventually.
-	mg_printf(conn, "A section of log data can be viewed as a list. Append /table/ (timestamps) or /table_l/ (human readable) to the url. Then the from timestamp, then the to timestamp. Or the human readable date/times in dd-mm-yyyy hh:mm:ss.<br>");
+	mg_printf(conn, "A section of log data can be viewed as a list. Append /table/ or /table_h/(from)/(to) to the url. The times can be unix timestamps or human readable date/time: dd-mm-yyyy hh:mm:ss.<br>");
+	mg_printf(conn, "A graph of a section of log data can be generated. Append /graph/(from)/(to)[/w/h] to the url. From and to can be unix timestamps or human readable time/date.<br>");
 
 	// note, met set en get
-	string note = myIn->getNote();
+	string note = i->getNote();
 	if (make_note(conn, note))
-		myIn->setNote(note);
+		i->setNote(note);
 
 	// footer
 	make_footer(conn, start);
 
-	return 1;} 
+	return 1;
+} 
 
 int make_in_list_page(struct mg_connection *conn){
 	double now = make_header(conn, 10);
@@ -872,19 +843,11 @@ int make_logic_page(struct mg_connection *conn, string logicName){
 	i = logics.find(logicName);		// Fixed, JCE, 5-3-14
 	if (i == logics.end()) {return 0;}
 	logic* myLogic = i->second;
-	//logic* myLogic = logics[logicName];
-	//if (myLogic == 0) {return 0;}
 
 	char post_data[4096], newNote[4096];//, setdata[1024];
 	int post_data_len;
 	post_data_len = mg_read(conn, post_data, sizeof(post_data));
 	if (post_data_len){
-		//if (mg_get_var(post_data, post_data_len, "value", setdata, sizeof(setdata)) > -1)
-		//	{
-		//	float newVal(0);
-		//	if (sscanf(setdata, "%f", &newVal) == 1)
-		//		myIn->setValue(newVal);
-		//	}
 		if (mg_get_var(post_data, post_data_len, "note", newNote, sizeof(newNote)) > -1)
 			myLogic->setNote(newNote);
 		}
@@ -958,8 +921,12 @@ int make_jos_page(struct mg_connection *conn)
 }
 
 in *mongoose_requests;
-static int begin_request(struct mg_connection *conn) {
+pthread_mutex_t request_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int begin_request(struct mg_connection *conn) 
+{
+	pthread_mutex_lock(&request_counter_mutex);
 	mongoose_requests->setValue(mongoose_requests->getValue() + 1);
+	pthread_mutex_unlock(&request_counter_mutex);
 	const struct mg_request_info *ri = mg_get_request_info(conn);
 	#ifdef debug_mg
 		printf("Mongoose: start request %s\n", ri->uri);
@@ -975,6 +942,7 @@ static int begin_request(struct mg_connection *conn) {
 		const char *slash1 = strpbrk(uri, "/");
 		const char *slash2 = slash1 ? strpbrk(slash1+1, "/") : NULL;
 		const char *slash3 = slash2 ? strpbrk(slash2+1, "/") : NULL;
+		const char *slash4 = slash3 ? strpbrk(slash3+1, "/") : NULL;
 
 		if (slash1)
 			i = get_in(string(uri, slash1 - uri));
@@ -1003,11 +971,18 @@ static int begin_request(struct mg_connection *conn) {
 				mg_printf(conn, table_fromto_h(i, from, to).c_str());
 				return 1;
 			}
+			uint16_t w, h;
+			if (slash4 && !strncmp(slash1, "/graph/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to) && sscanf(slash4, "/%" SCNu16 "/%" SCNu16, &w, &h) == 2)
+				return make_in_graph_page(conn, i, from, to, w, h);			
+			if (!strncmp(slash1, "/graph/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
+				return make_in_graph_page(conn, i, from, to);			
+			if (sscanf(slash1, "/graph/%lf/%lf", &from, &to) == 2)
+				return make_in_graph_page(conn, i, from, to);			
 		}
-		return make_in_page(conn, i->getDescriptor());
+		return make_in_page(conn, i);
 	}
 
-	if (!strcmp(ri->uri, "/webin") or !strcmp(ri->uri, "/iwebin/"))
+	if (!strcmp(ri->uri, "/webin") or !strcmp(ri->uri, "/webin/"))
 		return make_webin_list_page(conn);
 	if (!strncmp(ri->uri, "/webin/", 7)){
 		char webinName[513];

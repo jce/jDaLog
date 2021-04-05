@@ -545,18 +545,27 @@ bool floatLog::file_is_ok()
 	FOR_ALL_IN_FILE(\
 		if (x >= t)\
 		{\
+			if(rv) \
+				printf("%s: file is not linear at position %zu, time %lf, prev time %lf, diff: %lf, value %f\n", pathAndName.c_str(), rec, t, x, t-x, v);\
 			rv = false;\
-			printf("%s: file is not linear at position %zu, time %lf, prev time %lf, diff: %lf, value %f\n", pathAndName.c_str(), rec, t, x, t-x, v);\
 		}\
-		if (t <= 0)\
+		if (t <= 1000)\
 		{\
+			if(rv) \
+				printf("%s: file contains record before time 1000 at position %zu, time %lf, value %f\n", pathAndName.c_str(), rec, t, v);\
 			rv = false;\
-			printf("%s: file contains record before time 0 at position %zu, time %lf, value %f\n", pathAndName.c_str(), rec, t, v);\
 		}\
 		if (t >= n)\
 		{\
+			if(rv)\
+				printf("%s: file contains record in the future at position %zu, time %lf, value %f\n", pathAndName.c_str(), rec, t, v);\
 			rv = false;\
-			printf("%s: file contains record in the future at position %zu, time %lf, value %f\n", pathAndName.c_str(), rec, t, v);\
+		}\
+		if (! isfinite(v))\
+		{\
+			if(rv)\
+				printf("%s: file contains record with non finite value at position %zu, time %lf, value %f\n", pathAndName.c_str(), rec, t, v);\
+			rv = false;\
 		}\
 		x = t;\
 		rec++;\
@@ -582,7 +591,7 @@ void floatLog::sort_file()
     fseek(fp, 0, SEEK_END);
 	fclose(fp); 
 	FOR_ALL_IN_FILE_UNM(m[t] = v;); // Opens and closes the file internally
-	printf("records after reading: %zu\n", m.size()); 
+	printf("Records before:  %14zu\n", m.size()); 
 	fp = fopen(pathAndName.c_str(), "wb"); // Overwriting!!
    	if (!fp)
 	{
@@ -591,15 +600,18 @@ void floatLog::sort_file()
 		return;
 	}
 	double n = now();
+	size_t cnt = 0;
 	if (m.size())
 		for (auto i = m.begin(); i != m.end(); i++)
-			if (i->first > 0 and i->first < n)
+			if (i->first > 1000 and i->first < n and isfinite(i->second))
 				{
     			    fwrite(&i->first, sizeof(double), 1, fp);
     			    fwrite(&i->second, sizeof(float), 1, fp);
+					cnt++;
 				}
     fclose(fp);
     pthread_mutex_unlock(&fileMutex);
+	printf("Records after:   %14zu\nRecords removed: %14zu\n", cnt, m.size() - cnt); 
 	printf("done\n");
 }
 
