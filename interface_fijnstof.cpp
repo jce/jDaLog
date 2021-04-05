@@ -30,8 +30,8 @@ interface_fijnstof::interface_fijnstof(const string d, const string n, float int
 	errors = new in(getDescriptor() + "_er", getName() + " errors", "");
 	latency = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 
-	pm2->set_valid_time(300);
-	pm10->set_valid_time(300);
+	pm2->set_valid_time(360);
+	pm10->set_valid_time(360);
 	}
 
 interface_fijnstof::~interface_fijnstof(){

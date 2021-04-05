@@ -79,6 +79,8 @@ struct inWithData
 	vector<flStat> stats; 
 	unsigned statLen; 
 	bool haveData;
+	float valid_time;
+	double from, to;
 };
 
 struct y_ax
@@ -144,21 +146,29 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 			units = (*ini)->getUnits();
 			bool foundyax(false);
 			for(yi=y_axes.begin(); yi!=y_axes.end(); yi++)
-				if (yi->units == units){		
+				if (yi->units == units)
+				{		
 					inWithData iwd;
 					iwd.inp = (*ini);
 					iwd.stats.resize(bins);
 					iwd.statLen = bins;
-					iwd.inp->getDataSummary(iwd.stats, iwd.statLen, tmin, tmax);								
+					iwd.valid_time = (*ini)->get_valid_time();
+					iwd.from = tmin - iwd.valid_time;
+					iwd.to = tmax + iwd.valid_time;
+					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
 					yi->iwdl.push_back(iwd);
-					foundyax = true;}
+					foundyax = true;
+				}
 			if (not foundyax)
 			{
 				inWithData iwd;
 				iwd.inp = (*ini);
 				iwd.stats.resize(bins);
 				iwd.statLen = bins;
-				iwd.inp->getDataSummary(iwd.stats, iwd.statLen, tmin, tmax);
+				iwd.valid_time = (*ini)->get_valid_time();
+				iwd.from = tmin - iwd.valid_time;
+				iwd.to = tmax + iwd.valid_time;
+				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
 				y_ax y;
@@ -291,15 +301,12 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 		plotline += "\n";
 		fprintf(fp, plotline.c_str());
 
-		// Prak die gegevens even in een soort samenvatting
-		double interval =(( double) tmax - tmin) / bins;
-		double t(0);	
-		//for(ini=ins.begin(); ini!=ins.end(); ini++){
-			//if ((*ini)->getUnits() == y1.units or (haveY2 and (*ini)->getUnits() == y2.units)){
 		for(yi=y_axes.begin(); yi!=y_axes.end(); yi++)
 		{
 			for(iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++)
-			{		
+			{	
+				double interval = (iwdli->to - iwdli->from) / bins;
+				double t;
 				// neerschrijven in de gnuplot script van data range
 				if (yi != y_axes.begin() or iwdli != yi->iwdl.begin())
 					fprintf(fp, "e\n");	
@@ -308,11 +315,11 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 				{
 					if (iwdli->stats[i].nr)
 					{			
-						t = tmin + i * interval;
-						if (prevt and t - prevt > 150 and t - prevt > (1.1 * interval))
+						t = iwdli->from + i * interval;
+						if (prevt and t - prevt > iwdli->valid_time and t - prevt > (1.1 * interval))
 							fprintf(fp, "\n");
 						prevt = t;
-						fprintt(fp, t + (double)interval / 2);
+						fprintt(fp, t + interval / 2);
 						fprintf(fp, " %.8f %.8f", iwdli->stats[i].min, iwdli->stats[i].max);	
 						fprintf(fp, " # %f\n", t);
 					}
@@ -325,11 +332,11 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 				{
 					if (iwdli->stats[i].nr)
 					{	
-						t = tmin + i * interval;		
-						if (prevt and t - prevt > 150 and t - prevt > (1.1 * interval))
+						t = iwdli->from + i * interval;		
+						if (prevt and t - prevt > iwdli->valid_time and t - prevt > (1.1 * interval))
 							fprintf(fp, "\n");
 						prevt = t;
-						fprintt(fp, t + (double)interval / 2);
+						fprintt(fp, t + interval / 2);
 						fprintf(fp, " %.8f", iwdli->stats[i].avg);	
 						fprintf(fp, " # %f\n", t);
 					}
