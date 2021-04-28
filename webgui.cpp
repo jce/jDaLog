@@ -95,7 +95,7 @@ struct y_ax
 };
 
 // Per 30-12-13, modified this function to relay the summaries to the floatLog instance(s).
-string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title)
+string plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned int y, string title)
 {
 	//printf("plotlines( %d ins, %ld, %ld, %d, %d, %s)\n", ins.size(), tmin, tmax, x, y, title.c_str());
 
@@ -364,37 +364,37 @@ string plotLines(list<in*> ins, unsigned long tmin, unsigned long tmax, unsigned
 	return "no URL";
 	}
 
-string plotLine(in* myIn, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y){
+string plotLine(in* myIn, double tmin, double tmax, unsigned int x, unsigned int y){
 	list<in*> inList;
 	inList.push_back(myIn);
 	return plotLines(inList, tmin, tmax, x, y, myIn->getName());
 	}
 
-string plotLines(in* i1, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title){
+string plotLines(in* i1, double tmin, double tmax, unsigned int x, unsigned int y, string title){
 	list<in*> inList;
 	inList.push_back(i1);
 	return plotLines(inList, tmin, tmax, x, y, title);
 	}
 
-string plotLines(in* i1, in* i2, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title){
+string plotLines(in* i1, in* i2, double tmin, double tmax, unsigned int x, unsigned int y, string title){
 	list<in*> inList;
 	inList.push_back(i1); inList.push_back(i2);
 	return plotLines(inList, tmin, tmax, x, y, title);
 	}
 
-string plotLines(in* i1, in* i2, in* i3, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title){
+string plotLines(in* i1, in* i2, in* i3, double tmin, double tmax, unsigned int x, unsigned int y, string title){
 	list<in*> inList;
 	inList.push_back(i1); inList.push_back(i2); inList.push_back(i3);
 	return plotLines(inList, tmin, tmax, x, y, title);
 	}
 
-string plotLines(in* i1, in* i2, in* i3, in* i4, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title){
+string plotLines(in* i1, in* i2, in* i3, in* i4, double tmin, double tmax, unsigned int x, unsigned int y, string title){
 	list<in*> inList;
 	inList.push_back(i1); inList.push_back(i2); inList.push_back(i3); inList.push_back(i4);
 	return plotLines(inList, tmin, tmax, x, y, title);
 	}
 
-string plotLines(in* i1, in* i2, in* i3, in* i4, in* i5, unsigned long tmin, unsigned long tmax, unsigned int x, unsigned int y, string title){
+string plotLines(in* i1, in* i2, in* i3, in* i4, in* i5, double tmin, double tmax, unsigned int x, unsigned int y, string title){
 	list<in*> inList;
 	inList.push_back(i1); inList.push_back(i2); inList.push_back(i3); inList.push_back(i4); inList.push_back(i5);
 	return plotLines(inList, tmin, tmax, x, y, title);
