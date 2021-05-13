@@ -111,7 +111,10 @@ void interface_mb::run()
 	int rv;
 	modbus_t *ctx;
 	if (comtype == mbc_tcp)
+	{
 		ctx = modbus_new_tcp(_ipstr.c_str(), port);
+		modbus_set_error_recovery(ctx, (modbus_error_recovery_mode) (MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL) );
+	}
 	if (comtype == mbc_rtu)
 		ctx = modbus_new_rtu(device.c_str(), baud, parity, data_bit, stop_bit);
 	// Too bad, the library does not have modbus ascii.
