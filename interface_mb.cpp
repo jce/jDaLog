@@ -557,6 +557,7 @@ void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
 				o = NULL;
 				i = new in(descr, name, unit, decimals);			
 			}
+			i->set_valid_time(scan * IN_VALIDTIME_SCAN_MULTIPLY);
 
 			mb_key key = {id, regtype, offset};
 			reg_context *reg = &mb->reg[key];

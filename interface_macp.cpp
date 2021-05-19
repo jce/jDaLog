@@ -37,6 +37,7 @@ string exec(const char* cmd)
 interface_macp::interface_macp(const string d, const string n, float i, const string pr, bool h, bool t):interface(d, n, i), pingrange(pr), hidden_ins(h), _trackallmacs(t)
 {
 	searchtime = new in(getDescriptor() + "_st", getName() + " searchtime", "s", 3);
+	searchtime->set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
 	if (_trackallmacs)
 	{
 		// Data is stored in #define tcDataDir + /in/ then in a dir.
@@ -56,6 +57,7 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 						//printf("match\n");
 						macs_auto[mac] = new in(getDescriptor() + "_" + mac, getName() + " " + mac, "", 0);
 						macs_auto[mac]->hidden = h;
+						macs_auto[mac]->set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
 					}
 				}
 			}
@@ -103,6 +105,7 @@ void interface_macp::getIns()
 			{
 				macs_auto[match_str] = new in(getDescriptor() + "_" + match_str, getName()+ " " + match_str, "", 0);
 				macs_auto[match_str] -> hidden = hidden_ins;
+				macs_auto[match_str] -> set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
 			}
 		}
 	}
@@ -131,5 +134,6 @@ void interface_macp::add_mac(const char *macstr, const char *macdescr, const cha
 	if (!macname)
 		macname = macdescr;
 	macs[macstr] = new in(getDescriptor() + "_" + macdescr, getName()+ " " + macname, "", 0);
+	macs[macstr] -> set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
 }
 

@@ -45,11 +45,11 @@ class interface: public outhost{
 		virtual void run();		// Override in derived class.
 	protected:
 		bool run_flg;
+		float interval; // [s] time between getIns calls.
 	private:
 		const std::string _descr;
 		stringStore *_name, *_note; // JCE, 20-6-13
 		pthread_t thread = 0;
-		float interval; // [s] time between getIns calls.
 	};
 
 extern std::map<std::string, interface*> interfaces;
