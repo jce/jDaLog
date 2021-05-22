@@ -19,6 +19,7 @@ map<string, webin*> webinmap;
 
 webin::webin(const string d, const string n, const string u, const unsigned int de) : in(d, n, u, de)
 {
+	set_valid_time( WEBIN_STORE_INTERVAL * IN_VALIDTIME_SCAN_MULTIPLY );
 	webinmap[getDescriptor()] = this;
 }
 

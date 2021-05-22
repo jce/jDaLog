@@ -8,6 +8,8 @@
 #include <map>
 #include "in.h"
 
+#define WEBIN_STORE_INTERVAL	60	// Seconds
+
 using namespace std;
 
 // the special webin. Just like a normal in, but then originates from the http gui pages. More like a configuration... Will probobly result in crappy graphs?...
