@@ -111,7 +111,10 @@ double now_mt()
 
 map<string, interface*> interfaces;
 
-interface::interface(const string d, const string n, float _interval) : _descr(d), interval(_interval) {
+interface::interface(const string d, const string n, float _interval): 
+	interval(_interval),
+	_descr(d) 
+{
 	string path = tcDataDir;	
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
 	path += "/interface/";

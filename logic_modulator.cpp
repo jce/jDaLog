@@ -15,9 +15,6 @@
 
 using namespace std;
 
-//#define DBG(...) printf(__VA_ARGS__);
-#define DBG(...)
-
 logic_modulator::logic_modulator(const string d, const string n, out *o) : logic(d, n), out_mod(o) 
 {
 	out_sp = new out(d + "_sp", n + " setpoint", out_mod->getUnits(), 4, (void*) this, 0, FLT_MIN, 1);
@@ -41,6 +38,7 @@ logic_modulator::~logic_modulator()
 
 double logic_modulator::time_to_next(double sp, double out, double e)
 {
+	DBG(d_ttn, "time_to_next(sp = %f, out = %f, e = %f)\n", sp, out, e);
 	if (sp == out)
 		return 60.0;
 	double rv = e / (sp - out);
@@ -62,6 +60,7 @@ double logic_modulator::time_to_next(double sp, double out, double e)
 
 void logic_modulator::run()
 {
+	DBG(d_run, "run()\n");
 	// There should only be one of these calls at a time.
 	// Calls originate from multiple sources, the scheduler is not the only source.
 	pthread_mutex_lock(&mutex);
@@ -85,13 +84,16 @@ void logic_modulator::run()
 	if (sp_val < 0)
 		sp_val = 0;
 
+	DBG(d_run, " e = %f\n", e);
 	if ( e > 0 )
 	{
 		// The new out state should be "off".
+		DBG(d_run, " The new out state should be \"off\".\n");
 	
 		// The output is already off. Wait to the projected next transition.
 		if(out_val < 0.5)
 		{
+			DBG(d_run, " The output is already off. Wait to the projected next transition.\n");
 			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
 			pthread_mutex_unlock(&mutex);
 			return;
@@ -100,7 +102,8 @@ void logic_modulator::run()
 		// Minimum on time is not yet expired.
 		if(bid_value(time_on_min) and (t - last_transition) < time_on_min.d)
 		{
-			jos_run_at(pool, time_on_min.d - (t - last_transition), cc_run, this);
+			DBG(d_run, " The minimum on time is not yet expired.\n");
+			jos_run_at(pool, time_on_min.d + last_transition, cc_run, this);
 			pthread_mutex_unlock(&mutex);
 			return;
 		}
@@ -116,10 +119,12 @@ void logic_modulator::run()
 	else
 	{
 		// The new out state should be "on"
+		DBG(d_run, " The new out state should be \"on\"\n");
 
 		// The output is already on. Wait to the projected next transition.
 		if(out_val >= 0.5)
 		{
+			DBG(d_run, " The output is already on. Wait to the projected next transition.\n");
 			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
 			pthread_mutex_unlock(&mutex);
 			return;
@@ -128,8 +133,8 @@ void logic_modulator::run()
 		// Minimum off time is not yet expired.
 		if(bid_value(time_off_min) and (t - last_transition) < time_off_min.d)
 		{
-			// Minimum off time is not yet expired.
-			jos_run_at(pool, time_off_min.d - (t - last_transition), cc_run, this);
+			DBG(d_run, " Minimum off time is not yet expired.\n");
+			jos_run_at(pool, time_off_min.d + last_transition, cc_run, this);
 			pthread_mutex_unlock(&mutex);
 			return;
 		}
@@ -147,6 +152,7 @@ void logic_modulator::run()
 
 void logic_modulator::setOut(out *o, float f)
 {
+	DBG(d_so, "setOut(out = %p, f = %f)\n", o, f);
 	if (o == out_sp)	
 		out_sp->setValue(f);
 	jos_remove(pool, cc_run, this);
@@ -225,5 +231,26 @@ void logic_modulator_from_json(const char *id, const char *name, json_t *json)
 	//bool_in_double_from_json(m->time_off_max, 			json_object_get(json, "time_off_max"));
 	bool_in_double_from_json(m->time_on_min, 			json_object_get(json, "time_on_min"));
 	//bool_in_double_from_json(m->time_on_max, 			json_object_get(json, "time_on_max"));
+	m->d_ttn = debug_enable(json, "dbg_ttn");
+	m->d_run = debug_enable(json, "dbg_run");
+	m->d_so = debug_enable(json, "dbg_setout");
 }
 
+// Returns json value of parameter 1 from json 0, or false if not exists.
+bool debug_enable(json_t *json, const char *key)
+{
+	json_t *obj = json_object_get(json, key);
+	if (obj)
+	{
+		if (json_is_true(obj))
+			return true;
+		if (json_is_string(obj))
+			if (strcmp(json_string_value(obj), "true") == 0)
+				return true;
+		if (json_is_integer(obj))
+			return json_integer_value(obj) >= 1;
+		if (json_is_real(obj))
+			return json_real_value(obj) >= 0.5;
+	}
+	return false;
+}

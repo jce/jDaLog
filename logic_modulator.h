@@ -11,12 +11,20 @@
 #include "main.h"
 #include "jansson.h"
 
+#define DBG(_C_, ...) { if(_C_) printf(__VA_ARGS__); }
+
 typedef struct bool_in_double
 {
 	bool have = false;
 	in *i = NULL;
 	double d = 0;
 } in_double;
+
+// Helper function for building object
+void bool_in_double_from_json(bool_in_double&, json_t*);
+bool bid_value(bool_in_double&); // Fills bid.value if the bit is an "in", returns bid.have.
+void logic_modulator_from_json(const char*, const char*, json_t*);
+bool debug_enable(json_t*, const char*);	// Returns json value of parameter 1 from json 0, or false if not exists.
 
 class logic_modulator: public logic {
 	public:
@@ -36,11 +44,9 @@ class logic_modulator: public logic {
 		double out_val = 0, sp_val = 0;
 		double last_transition = 0;
 		pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-	};
 
-// Helper function for building object
-void bool_in_double_from_json(bool_in_double&, json_t*);
-bool bid_value(bool_in_double&); // Fills bid.value if the bit is an "in", returns bid.have.
-void logic_modulator_from_json(const char*, const char*, json_t*);
+		bool d_ttn, d_run, d_so;
+	friend void logic_modulator_from_json(const char*, const char*, json_t*);
+	};
 
 #endif // HAVE_MODULATOR_H
