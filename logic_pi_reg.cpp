@@ -114,7 +114,7 @@ int logic_pi_reg::make_page(struct mg_connection *conn)
 	mg_printf(conn, ": %.*f %s<br>\n", e->getDecimals(), e->getValue(), e->getUnits().c_str());
 	mg_printf(conn, "%s", make_in_link(esum, "Error sum").c_str());
 	mg_printf(conn, ": %.*f %s<br>\n", esum->getDecimals(), esum->getValue(), esum->getUnits().c_str());
-	mg_printf(conn, "%s", make_in_link(sp, "Actuator").c_str());
+	mg_printf(conn, "%s", make_in_link(act, "Actuator").c_str());
 	mg_printf(conn, ": %.*f %s<br>\n", act->getDecimals(), act->getValue(), act->getUnits().c_str());
 
 	mg_printf(conn, "%s", make_webin_link(P, "P factor").c_str());
@@ -127,11 +127,11 @@ int logic_pi_reg::make_page(struct mg_connection *conn)
 	mg_printf(conn, ": %.*f %s<br>\n", Imax->getDecimals(), Imax->getValue(), Imax->getUnits().c_str());
 
 	string line;
- 	line = make_image_line(plotLines(sp, meas, act, esum, now() - 3600, now(), 1280, 300, ""));
+ 	line = make_image_line(plotLines(sp, meas, act, now() - 3600, now(), 1280, 300, ""));
 	mg_printf(conn, line.c_str());
- 	line = make_image_line(plotLines(sp, meas, act, esum, now() - 24 * 3600, now(), 1280, 300, ""));
+ 	line = make_image_line(plotLines(sp, meas, act, now() - 24 * 3600, now(), 1280, 300, ""));
 	mg_printf(conn, line.c_str());
- 	line = make_image_line(plotLines(sp, meas, act, esum, now() - 7*24 * 3600, now(), 1280, 300, ""));
+ 	line = make_image_line(plotLines(sp, meas, act, now() - 7*24 * 3600, now(), 1280, 300, ""));
 	mg_printf(conn, line.c_str());
 	return 1;
 }
