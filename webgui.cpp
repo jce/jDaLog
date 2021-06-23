@@ -20,7 +20,7 @@
 #include "logic.h"
 #include <vector>
 #include "webin.h"
-#include "webgui_autograph.h"
+//#include "webgui_autograph.h"
 #include "webgui_intable.h"
 
 //#define debug
@@ -1051,7 +1051,7 @@ static int begin_request(struct mg_connection *conn)
 		return make_root_page(conn);}
 
 	//return webgui_autograph(ri->uri);
-	return webgui_autograph(string(ri->uri)); 
+	//return webgui_autograph(string(ri->uri)); 
 
 	#ifdef debug_mg
 		printf("Mongoose: finished request %s\n", ri->uri);

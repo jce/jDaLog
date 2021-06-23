@@ -8,7 +8,7 @@
 #include "mongoose.h"
 #include "version.h"
 #include "webgui.h"
-#include "webgui2.h"
+//#include "webgui2.h"
 #include "webgui_mac.h"
 #include "sys/time.h"
 #include "unistd.h" // usleep
