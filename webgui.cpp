@@ -467,6 +467,12 @@ string make_in_link(in* i)
 	return make_link("/in/" + i->getDescriptor(), i->getName());
 }
 
+string make_webin_link(in* i, const string text)
+{
+	return make_link("/webin/" + i->getDescriptor(), text);
+}
+
+
 string make_out_link(out* o)
 {
 	return make_link("/out/" + o->getDescriptor(), o->getName());

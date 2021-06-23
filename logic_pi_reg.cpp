@@ -74,19 +74,15 @@ logic_pi_reg::~logic_pi_reg()
 
 void logic_pi_reg::run()
 {
-	printf("a");
 	runmutex.lock();
 	double t = get_time_monotonic();
-	printf("b");
 	double dt = t - tprev;
-	printf("c");
 	tprev = t;
 
 	double measval = meas->getValue();
 	double spval = sp->getValue();
 	double eval = measval - spval;
 	double I1val = I1->getValue();
-	printf("d");
 
 	e->setValue( eval );
 	double esumval = esum->getValue() + dt * eval;
@@ -96,36 +92,35 @@ void logic_pi_reg::run()
 	if (esumval > esummax)	esumval = esummax;
 	esum->setValue(esumval);
 
-	printf("e");
 	if (dir_is_increment)
 	{
-	printf("f");
 		act->setOut(-eval * P->getValue() + -esumval / I1val);
-	printf("g");
 	}
 	else
 	{
-	printf("h");
 		act->setOut(eval * P->getValue() + esumval / I1val);
-	printf("i");
 	}
 	runmutex.unlock();
-	printf("j");
 }
 
 int logic_pi_reg::make_page(struct mg_connection *conn)
 {
 	mg_printf(conn, "pi regulator page<br>\n");
 	mg_printf(conn, "Measurement: %.*f %s<br>\n", meas->getDecimals(), meas->getValue(), meas->getUnits().c_str());
-	mg_printf(conn, "Setpoint: %.*f %s<br>\n", sp->getDecimals(), sp->getValue(), sp->getUnits().c_str());
+	mg_printf(conn, "%s", make_webin_link(sp, "Setpoint").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", sp->getDecimals(), sp->getValue(), sp->getUnits().c_str());
 	mg_printf(conn, "error: %.*f %s<br>\n", e->getDecimals(), e->getValue(), e->getUnits().c_str());
 	mg_printf(conn, "error sum: %.*f %s<br>\n", esum->getDecimals(), esum->getValue(), esum->getUnits().c_str());
 	mg_printf(conn, "Actuator: %.*f %s<br>\n", act->getDecimals(), act->getValue(), act->getUnits().c_str());
 
-	mg_printf(conn, "P factor: %.*f %s<br>\n", P->getDecimals(), P->getValue(), P->getUnits().c_str());
-	mg_printf(conn, "I sum for 1 actuation: %.*f %s<br>\n", I1->getDecimals(), I1->getValue(), I1->getUnits().c_str());
-	mg_printf(conn, "Error sum minimum: %.*f %s<br>\n", Imin->getDecimals(), Imin->getValue(), Imin->getUnits().c_str());
-	mg_printf(conn, "Error sum maximum: %.*f %s<br>\n", Imax->getDecimals(), Imax->getValue(), Imax->getUnits().c_str());
+	mg_printf(conn, "%s", make_webin_link(P, "P factor").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", P->getDecimals(), P->getValue(), P->getUnits().c_str());
+	mg_printf(conn, "%s", make_webin_link(I1, "I sum for 1 actuation").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", I1->getDecimals(), I1->getValue(), I1->getUnits().c_str());
+	mg_printf(conn, "%s", make_webin_link(Imin, "Error sum minimum").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", Imin->getDecimals(), Imin->getValue(), Imin->getUnits().c_str());
+	mg_printf(conn, "%s", make_webin_link(Imax, "Error sum maximum").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", Imax->getDecimals(), Imax->getValue(), Imax->getUnits().c_str());
 
 	string line;
  	line = make_image_line(plotLines(sp, meas, act, esum, now() - 3600, now(), 1280, 300, ""));
