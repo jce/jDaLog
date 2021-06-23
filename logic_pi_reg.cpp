@@ -47,12 +47,12 @@ logic_pi_reg::logic_pi_reg(const string d, const string n, in *_meas, out *_act,
 	if (not Imin)
 	{
 		myImin = true;
-		Imin = new webin(getDescriptor() + "_imin", getName() + " I min", I1->getUnits(), I1->getDecimals());
+		Imin = new webin(getDescriptor() + "_imin", getName() + " I min actuation", act->getUnits(), act->getDecimals());
 	}
 	if (not Imax)
 	{
 		myImax = true;
-		Imax = new webin(getDescriptor() + "_imax", getName() + " I max", I1->getUnits(), I1->getDecimals());
+		Imax = new webin(getDescriptor() + "_imax", getName() + " I max actuation", act->getUnits(), act->getDecimals());
 	}
 
 	e = new in(d + "_e", n + " error", meas->getUnits(), meas->getDecimals());
@@ -117,9 +117,9 @@ int logic_pi_reg::make_page(struct mg_connection *conn)
 	mg_printf(conn, ": %.*f %s<br>\n", P->getDecimals(), P->getValue(), P->getUnits().c_str());
 	mg_printf(conn, "%s", make_webin_link(I1, "I sum for 1 actuation").c_str());
 	mg_printf(conn, ": %.*f %s<br>\n", I1->getDecimals(), I1->getValue(), I1->getUnits().c_str());
-	mg_printf(conn, "%s", make_webin_link(Imin, "Error sum minimum").c_str());
+	mg_printf(conn, "%s", make_webin_link(Imin, "I min actuation").c_str());
 	mg_printf(conn, ": %.*f %s<br>\n", Imin->getDecimals(), Imin->getValue(), Imin->getUnits().c_str());
-	mg_printf(conn, "%s", make_webin_link(Imax, "Error sum maximum").c_str());
+	mg_printf(conn, "%s", make_webin_link(Imax, "I max actuation").c_str());
 	mg_printf(conn, ": %.*f %s<br>\n", Imax->getDecimals(), Imax->getValue(), Imax->getUnits().c_str());
 
 	string line;
