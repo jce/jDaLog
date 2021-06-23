@@ -106,12 +106,16 @@ void logic_pi_reg::run()
 int logic_pi_reg::make_page(struct mg_connection *conn)
 {
 	mg_printf(conn, "pi regulator page<br>\n");
-	mg_printf(conn, "Measurement: %.*f %s<br>\n", meas->getDecimals(), meas->getValue(), meas->getUnits().c_str());
+	mg_printf(conn, "%s", make_in_link(meas, "Measurement").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", meas->getDecimals(), meas->getValue(), meas->getUnits().c_str());
 	mg_printf(conn, "%s", make_webin_link(sp, "Setpoint").c_str());
 	mg_printf(conn, ": %.*f %s<br>\n", sp->getDecimals(), sp->getValue(), sp->getUnits().c_str());
-	mg_printf(conn, "error: %.*f %s<br>\n", e->getDecimals(), e->getValue(), e->getUnits().c_str());
-	mg_printf(conn, "error sum: %.*f %s<br>\n", esum->getDecimals(), esum->getValue(), esum->getUnits().c_str());
-	mg_printf(conn, "Actuator: %.*f %s<br>\n", act->getDecimals(), act->getValue(), act->getUnits().c_str());
+	mg_printf(conn, "%s", make_in_link(e, "Error").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", e->getDecimals(), e->getValue(), e->getUnits().c_str());
+	mg_printf(conn, "%s", make_in_link(esum, "Error sum").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", esum->getDecimals(), esum->getValue(), esum->getUnits().c_str());
+	mg_printf(conn, "%s", make_in_link(sp, "Actuator").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", act->getDecimals(), act->getValue(), act->getUnits().c_str());
 
 	mg_printf(conn, "%s", make_webin_link(P, "P factor").c_str());
 	mg_printf(conn, ": %.*f %s<br>\n", P->getDecimals(), P->getValue(), P->getUnits().c_str());

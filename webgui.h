@@ -14,6 +14,7 @@ string make_image_line(string);
 // make an htm l link. String 1 is the linked url, string 2 the visible tekst. Returns the html code for the link.
 string make_link(string, string text = "");
 string make_in_link(in*);
+string make_in_link(in*, const std::string);
 string make_webin_link(in*, const std::string);
 string make_out_link(out*);
 

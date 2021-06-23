@@ -462,6 +462,11 @@ string make_link(string url, string text){
 	if (text == "") text = url;
 	return "<a href=\"" + url + "\">" + text + "</a>";}
 
+string make_in_link(in* i, const string text)
+{
+	return make_link("/in/" + i->getDescriptor(), text);
+}
+
 string make_in_link(in* i)
 {
 	return make_link("/in/" + i->getDescriptor(), i->getName());
