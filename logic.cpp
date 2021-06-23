@@ -14,7 +14,8 @@ using namespace std;
 
 map<string, logic*> logics;
 
-logic::logic(const string d, const string n) : _descr(d) {
+logic::logic(const string d, const string n) : _descr(d) 
+{
 	string path = tcDataDir;	
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
 	path += "/logic/";
@@ -25,9 +26,11 @@ logic::logic(const string d, const string n) : _descr(d) {
 	//if (_name->getString() != n and n != "") _name->setString(n); // Commented. JCE, 11-7-13, build 481
 	_name->setString(n);
 	_note = new stringStore(path + "/note.txt");
-	logics[_descr] = this ;}
+	logics[_descr] = this ;
+}
 
-logic::~logic(){
+logic::~logic()
+{
 	#ifdef debug
 		printf("Deleting logic %s...\n", _descr.c_str());
 	#endif
@@ -37,7 +40,7 @@ logic::~logic(){
 	#ifdef debug
 		printf("Logic %s is deleted\n", _descr.c_str());
 	#endif
-	}
+}
 
 // Function intended for an out to call, if it needs to be set. The out itself cannot set the physical device, the logic has to do this.
 void logic::setOut(out*, float){} // JCE, 16-7-13

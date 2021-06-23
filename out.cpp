@@ -110,6 +110,8 @@ unsigned int outsInManual(){
 
 out* get_out(const char* descr)
 {
+	if (NULL == descr)
+		return NULL;
 	return get_out(string(descr));
 }
 

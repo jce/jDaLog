@@ -45,6 +45,7 @@
 #include "logic_modulator.h"
 #include "interface_mb.h"
 #include "interface_GS308E.h"
+#include "logic_pi_reg.h"
 
 using namespace std;
 //#define debug
@@ -87,20 +88,20 @@ void build_interfaces(json_t *arr)
 			type = 	json_string_value(json_object_get(json, "type"));
 			if (type)
 			{
-				id = 	json_string_value(json_object_get(json, "id"));
-				name = 	json_string_value(json_object_get(json, "name"));
-				key = 	json_string_value(json_object_get(json, "key"));
-				address = json_string_value(json_object_get(json, "address"));
+				id = 		json_string_value(json_object_get(json, "id"));
+				name = 		json_string_value(json_object_get(json, "name"));
+				key = 		json_string_value(json_object_get(json, "key"));
+				address = 	json_string_value(json_object_get(json, "address"));
 				pingrange = json_string_value(json_object_get(json, "pingrange"));
-				i2c_dev = json_string_value(json_object_get(json, "i2c_dev"));
-				jlon =  json_object_get(json, "lon");
-				lon = json_number_value(jlon);
-				jlat =  json_object_get(json, "lat");
-				lat = json_number_value(jlat);
-				jscan =  json_object_get(json, "scan");
-				scan = json_number_value(jscan);
-				ji2c_id =  json_object_get(json, "i2c_id");
-				i2c_id = json_integer_value(ji2c_id);
+				i2c_dev = 	json_string_value(json_object_get(json, "i2c_dev"));
+				jlon =  	json_object_get(json, "lon");
+				lon = 		json_number_value(jlon);
+				jlat =  	json_object_get(json, "lat");
+				lat = 		json_number_value(jlat);
+				jscan =  	json_object_get(json, "scan");
+				scan = 		json_number_value(jscan);
+				ji2c_id =	json_object_get(json, "i2c_id");
+				i2c_id = 	json_integer_value(ji2c_id);
 
 				if (!name) name = id;
 
@@ -350,6 +351,19 @@ void build_logics(json_t *arr)
 						//	m->input_limit_low
 						}
 					}	*/			
+				}
+				if (strcmp(type, "pi_reg") == 0)
+				{
+					const char* meass = json_string_value(json_object_get(json, "meas"));
+					in *meas = get_in(meass);
+					const char* acts = json_string_value(json_object_get(json, "act"));
+					out *act = get_out(acts);
+					string dir = json_string_value(json_object_get(json, "dir"));
+
+					if (id and name and meas and act)
+						new logic_pi_reg(id, name, meas, act, dir);
+					else
+						printf("could not build logic_pi_reg(%s, %s, %s, %s, %s)\n", id, name, meass, acts, dir.c_str());
 				}
 			}
 		}

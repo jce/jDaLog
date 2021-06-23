@@ -20,7 +20,10 @@ class webin: public in{
 		~webin();
 	};
 
-extern map<string, webin*> webinmap;
+extern mutex webinmap_mutex;
+extern std::map<std::string, webin*> webinmap;
+webin* get_webin(const char*);
+webin* get_webin(std::string);
 
 // JCE, 16-9-13
 void touchAllWebins(); // Touch all webins. Please run every minute.

@@ -118,7 +118,7 @@ void interface_pi_gpio::setOut(out *o, float v)
 	{
 		gpioWrite(outputs[o], v >= 0.5);
 		o->setValue(gpioRead(outputs[o]));
-	}		
+	}
 } 
 
 // Inspiration derived (copied) from http://abyz.me.uk/rpi/pigpio/examples.html#Misc_minimal_gpio
