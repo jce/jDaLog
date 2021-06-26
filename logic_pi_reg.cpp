@@ -89,14 +89,23 @@ void logic_pi_reg::run()
 	double measval = meas->getValue();
 	double spval = sp->getValue();
 	double eval = measval - spval;
-	double I1val = I1->getValue();
-
 	e->setValue( eval );
-	double esumval = esum->getValue() + dt * eval;
+
+	double evallimited = eval;
+	double Irl = Iratelim->getValue();
+	if (evallimited > Irl)
+		evallimited = Irl;
+	if (evallimited < -Irl)
+		evallimited = -Irl;
+
+	double esumval = esum->getValue() + dt * evallimited;
+	double I1val = I1->getValue();
 	double esummin = Imin->getValue() * I1val;
 	double esummax = Imax->getValue() * I1val;
-	if (esumval < esummin)	esumval = esummin;
-	if (esumval > esummax)	esumval = esummax;
+	if (esumval < esummin)
+		esumval = esummin;
+	if (esumval > esummax)
+		esumval = esummax;
 	esum->setValue(esumval);
 
 	if (dir_is_increment)
