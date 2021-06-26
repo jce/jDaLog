@@ -58,7 +58,7 @@ logic_pi_reg::logic_pi_reg(const string d, const string n, in *_meas, out *_act,
 	if (not Iratelim)
 	{
 		myIratelim = true;
-		Iratelim = new webin(getDescriptor() + "_imir", getName() + " I max integration rate", act->getUnits(), act->getDecimals());
+		Iratelim = new webin(getDescriptor() + "_imir", getName() + " I max integration rate", meas->getUnits(), meas->getDecimals());
 	}
 
 	e = new in(d + "_e", n + " error", meas->getUnits(), meas->getDecimals());
