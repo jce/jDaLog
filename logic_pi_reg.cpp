@@ -18,7 +18,7 @@
 using namespace std;
 
 // bla, bla, measurement, actuator, "+" if actuator is incrementing the measurement, "-" if actuator is decrementing measurement, setpoint, P factor, I sum that actuates 1, Imin, Imax.
-logic_pi_reg::logic_pi_reg(const string d, const string n, in *_meas, out *_act, const string direction, in *_sp, in *_P, in *_I1, in *_Imin, in *_Imax):
+logic_pi_reg::logic_pi_reg(const string d, const string n, in *_meas, out *_act, const string direction, in *_sp, in *_P, in *_I1, in *_Imin, in *_Imax, in *_Iratelim):
 	logic(d, n), 
 	meas(_meas), 
 	sp(_sp),
@@ -26,6 +26,7 @@ logic_pi_reg::logic_pi_reg(const string d, const string n, in *_meas, out *_act,
 	I1(_I1),
 	Imin(_Imin),
 	Imax(_Imax),
+	Iratelim(_Iratelim),
 	act(_act),
 	dir_is_increment(direction == "+")
 {
@@ -54,6 +55,11 @@ logic_pi_reg::logic_pi_reg(const string d, const string n, in *_meas, out *_act,
 		myImax = true;
 		Imax = new webin(getDescriptor() + "_imax", getName() + " I max actuation", act->getUnits(), act->getDecimals());
 	}
+	if (not Iratelim)
+	{
+		myIratelim = true;
+		Iratelim = new webin(getDescriptor() + "_imir", getName() + " I max integration rate", act->getUnits(), act->getDecimals());
+	}
 
 	e = new in(d + "_e", n + " error", meas->getUnits(), meas->getDecimals());
 	esum = new in(d + "_esum", n + " error sum", meas->getUnits() + "s", meas->getDecimals());
@@ -63,11 +69,12 @@ logic_pi_reg::logic_pi_reg(const string d, const string n, in *_meas, out *_act,
 
 logic_pi_reg::~logic_pi_reg()
 {
-	if(myP)		delete P;
-	if(myI1)	delete I1;
-	if(myImin)	delete Imin;
-	if(myImax)	delete Imax;
-	if(mysp)	delete sp;
+	if(myP)			delete P;
+	if(myI1)		delete I1;
+	if(myImin)		delete Imin;
+	if(myImax)		delete Imax;
+	if(mysp)		delete sp;
+	if(myIratelim)	delete Iratelim;
 	delete e;
 	delete esum;
 }
