@@ -141,6 +141,8 @@ int logic_pi_reg::make_page(struct mg_connection *conn)
 	mg_printf(conn, ": %.*f %s<br>\n", Imin->getDecimals(), Imin->getValue(), Imin->getUnits().c_str());
 	mg_printf(conn, "%s", make_webin_link(Imax, "I max actuation").c_str());
 	mg_printf(conn, ": %.*f %s<br>\n", Imax->getDecimals(), Imax->getValue(), Imax->getUnits().c_str());
+	mg_printf(conn, "%s", make_webin_link(Iratelim, "I learning rate limit").c_str());
+	mg_printf(conn, ": %.*f %s<br>\n", Iratelim->getDecimals(), Iratelim->getValue(), Iratelim->getUnits().c_str());
 
 	string line;
  	line = make_image_line(plotLines(sp, meas, act, now() - 3600, now(), 1280, 300, ""));
