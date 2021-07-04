@@ -59,6 +59,12 @@ interface_pi_gpio::interface_pi_gpio(const string d, const string n, float i):in
 
 interface_pi_gpio::~interface_pi_gpio()
 {
+	for (auto o = outputs.begin(); o != outputs.end(); o++)
+	{
+		printf("%p %d\n", o->first, o->second);
+		//setOut(o->first, 0);
+		gpioWrite(o->second, 0);
+	}		
 	while (!inputs.empty())
 	{
 		delete( inputs.begin()->second );
