@@ -51,23 +51,38 @@ interface_mb::~interface_mb()
 {
 }
 
-void interface_mb::setOut(out*, float)
+void interface_mb::setOut(out *o, float v)
 {
-	/*
-	if (!globalControl) return;
-	makeModbusContext();
-	bool newState = true;
-	if (v < 0.5) newState = false;
+
+	if (!globalControl) 
+		return;
+
+	if (outreg.count(o) == 0)
+		return;
+
+	uint16_t buf[4];
+	mb_key key = outreg[o];
+	reg_context *regcon = &reg[key];
+
+	if (key.regtype == mb_holding)
+		regcon->writeconv(v, buf);
+	if (key.regtype == mb_coil)
+		buf[0] = v >= 0.5;
+
+	modbus_t *ctx = new_context();
 	if(ctx)
-		for (uint16_t i = 0; i<8; i++)
-			if (o == DO[i] and newState != DO[i]->getValue())
-				if(modbus_connect(ctx) != -1)
-					{
-					modbus_write_bit(ctx, 16+i, newState);
-					modbus_close(ctx); 
-					getIns();
-					}
-	*/
+	{
+		modbus_connect(ctx);
+		modbus_set_slave(ctx, key.id);
+
+		if (key.regtype == mb_coil)
+			modbus_write_bit(ctx, key.offset, buf[0]);
+		if (key.regtype == mb_holding)
+			modbus_write_registers(ctx, key.offset, regcon->len, buf);
+
+		modbus_close(ctx);
+		modbus_free(ctx);
+	}
 }
 
 void interface_mb::start()
@@ -94,6 +109,20 @@ void interface_mb::start()
 		printf("Modbus connection to %s %d%c%d %d Baud Restored.\n", device.c_str(), data_bit, parity, stop_bit, baud); \
 }
 
+modbus_t* interface_mb::new_context()
+{
+	modbus_t *ctx;
+	if (comtype == mbc_tcp)
+	{
+		ctx = modbus_new_tcp(_ipstr.c_str(), port);
+		modbus_set_error_recovery(ctx, (modbus_error_recovery_mode) (MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL) );
+	}
+	if (comtype == mbc_rtu)
+		ctx = modbus_new_rtu(device.c_str(), baud, parity, data_bit, stop_bit);
+	// Too bad, the library does not have modbus ascii.
+	return ctx;
+}
+
 void interface_mb::run()
 {
 	// Pick off the first register from the queue. Then trace back and forwards if other registers are also eligible to be fetched.
@@ -109,15 +138,7 @@ void interface_mb::run()
 	mb_offset max_fetch;
 	reg_context *start, *end, *reg;	// first item this fetch, last item this fetch, some loop temp value.
 	int rv;
-	modbus_t *ctx;
-	if (comtype == mbc_tcp)
-	{
-		ctx = modbus_new_tcp(_ipstr.c_str(), port);
-		modbus_set_error_recovery(ctx, (modbus_error_recovery_mode) (MODBUS_ERROR_RECOVERY_LINK | MODBUS_ERROR_RECOVERY_PROTOCOL) );
-	}
-	if (comtype == mbc_rtu)
-		ctx = modbus_new_rtu(device.c_str(), baud, parity, data_bit, stop_bit);
-	// Too bad, the library does not have modbus ascii.
+	modbus_t *ctx = new_context();
 
 	modbus_set_response_timeout(ctx, 1, 0);
 	bool conmem = 1;	// To display errors only once.

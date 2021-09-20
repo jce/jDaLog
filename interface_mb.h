@@ -72,6 +72,7 @@ class interface_mb : public interface{
 		void reschedule(reg_context*);
 		static double next_multiple(double val, double interval);	// Get the next multiple;
 		const mb_comtype comtype;
+		modbus_t* new_context();
 
 	friend void interface_mb_from_json(const char*, const char*, json_t*);
 	};
