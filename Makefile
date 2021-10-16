@@ -11,7 +11,7 @@ CCFLAGS=-I. -W -Wall -g -O0 -Wno-psabi#-O3
 CPPFLAGS=-I. -W -Wall -std=c++17 -g -O0 -Wno-psabi# -O3#-m32
 #CPPFLAGS=-I. -W -Wall -g -O0 -Wno-psabi# -O3#-m32
 #LFLAGS=-ldl -pthread -lcurl -lmodbus -lsnap7 -ljansson -lmicrohttpd -L/usr/lib/arm-linux-gnueabihf  -lmariadbclient 
-LFLAGS=-ldl -pthread -lcurl -lmodbus -lsnap7 -ljansson -L/usr/lib/arm-linux-gnueabihf  -lmariadbclient -lstdc++fs
+LFLAGS=-ldl -pthread -lcurl -lmodbus -lsnap7 -ljansson -L/usr/lib/arm-linux-gnueabihf  -lmariadbclient -lstdc++fs -lusb
 OBJDIR=obj
 INCDIRS=
 

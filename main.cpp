@@ -44,6 +44,7 @@
 #include "logic_compare.h"
 #include "logic_modulator.h"
 #include "interface_mb.h"
+#include "interface_k8055.h"
 #include "interface_GS308E.h"
 #include "logic_pi_reg.h"
 
@@ -224,6 +225,13 @@ void build_interfaces(json_t *arr)
 						interface_gs308e_from_json(id, name, json);
 					else
 						printf("could not build interface_gs308e(%s, %s)\n", id, name);
+				}
+				if (strcmp(type, "k8055") == 0)
+				{
+					if (id and name)
+						interface_k8055_from_json(id, name, json);
+					else
+						printf("could not build interface_k8055(%s, %s)\n", id, name);
 				}
 			}
 		}	
