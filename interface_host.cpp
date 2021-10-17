@@ -150,9 +150,10 @@ interface_host::~interface_host(){
 	}
 
 // Secret hidden helper function
+// No longer hidden
 
 // http://stackoverflow.com/questions/478898/how-to-execute-a-command-and-get-output-of-command-within-c
-string interface_host::_exec(const char* cmd) {
+string system_exec(const char* cmd) {
     shared_ptr<FILE> pipe(popen(cmd, "r"), pclose);
     if (!pipe) return "ERROR";
     char buffer[128];
@@ -321,7 +322,7 @@ void interface_host::getIns(){
 	bool commandExecutedOK;
 	//command = "sudo vcgencmd measure_temp";
 	command = "vcgencmd measure_temp";
-	result = _exec(command.c_str());
+	result = system_exec(command.c_str());
 	//printf(result.c_str());
 	commandExecutedOK = (result.find("temp=") != string::npos);
 	if (commandExecutedOK) cpuTemperature->setValue( stod(result.substr(5, 4)), thisT);
@@ -329,7 +330,7 @@ void interface_host::getIns(){
 	//command = " sudo vcgencmd measure_clock arm";
 	command = "vcgencmd measure_clock arm";
 	// Answer should be: frequency(45)=600000000 Note for Pi4 45 -> 48
-	result = _exec(command.c_str());
+	result = system_exec(command.c_str());
 	commandExecutedOK = (result.find("frequency(48)=") != string::npos);
 	if (commandExecutedOK) cpuFrequency->setValue( stod(result.substr(14)), thisT);
 

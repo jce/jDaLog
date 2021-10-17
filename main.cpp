@@ -47,6 +47,7 @@
 #include "interface_k8055.h"
 #include "interface_GS308E.h"
 #include "logic_pi_reg.h"
+#include "interface_fritz.h"
 
 using namespace std;
 //#define debug
@@ -232,6 +233,13 @@ void build_interfaces(json_t *arr)
 						interface_k8055_from_json(id, name, json);
 					else
 						printf("could not build interface_k8055(%s, %s)\n", id, name);
+				}
+				if (strcmp(type, "fritz") == 0)
+				{
+					if (id and name)
+						interface_fritz_from_json(id, name, json);
+					else
+						printf("could not build interface_fritz(%s, %s)\n", id, name);
 				}
 			}
 		}	
@@ -550,6 +558,7 @@ int main(){
 	else
 		webGuiStart();
 	
+	touchAllWebins();
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->start();
 	

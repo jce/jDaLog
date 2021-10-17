@@ -38,4 +38,7 @@ class interface_host : public interface{
 		string _exec(const char*);
 	};
 
+// Helper function: Execute a command on the system, receive the response in a string.
+std::string system_exec(const char*);
+
 #endif // HAVE_INTERFACE_HOST_H

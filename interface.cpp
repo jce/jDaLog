@@ -94,6 +94,18 @@ int findIntAfter(const char* str, const char* cue, int& i){
 int findIntAfter(string str, const char* cue, int& i){
 	return findIntAfter(str.c_str(), cue, i);}
 
+int findUnsignedLongLongAfter(const char* str, const char* cue, unsigned long long &l)
+{
+	const char* loc = strstr(str, cue);
+	if (loc and strlen(loc) > strlen(cue))
+		return sscanf(loc + strlen(cue), "%llu", &l);
+    return 0;
+}
+int findUnsignedLongLongAfter(string str, const char* cue, unsigned long long &l)
+{
+	return findUnsignedLongLongAfter(str.c_str(), cue, l);
+}
+
 double now_mt()
 {
 	struct timespec ts;
