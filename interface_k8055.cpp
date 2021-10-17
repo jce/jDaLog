@@ -23,19 +23,31 @@ using namespace std;
 
 interface_k8055::interface_k8055(const string d, const string n):interface(d, n, 1)
 {
-	a1 = new in("k8055 a1", "k8055 a1", "", 3);
-	a1->set_valid_time(2.5 * 60.0);
+	ai1 = new in("k8055_ai1", "k8055 ai1", "", 3);
+	ai1->set_valid_time(2.5 * 60.0);
 	bf = new_blockfilter(40);
+	ao1 = new out("k8055_ao1", "k8055 ao1", "", 3, this, 0, 1, 256);
+	ao2 = new out("k8055_ao2", "k8055 ao2", "", 3, this, 0, 1, 256);
 }
 
 interface_k8055::~interface_k8055()
 {
-	delete a1;
+	delete ai1;
+	delete ao1;
+	delete ao2;
 	free(bf);
 }
 
-void interface_k8055::setOut(out*, float)
+void interface_k8055::setOut(out *o, float v)
 {
+	if (v < 0)
+		v = 0;
+	if (v > 1)
+		v = 1;
+	if (o == ao1)
+		outval1_new = v;
+	if (o == ao2)
+		outval2_new = v;
 }
 
 void interface_k8055::run()
@@ -71,11 +83,33 @@ void interface_k8055::run()
 			result = ReadAllAnalog(&a1l, &a2l);
 		}
 
+		if ( (result >= 0) && (outval1_new != outval1_written) )
+		{ 
+			result = OutputAnalogChannel(1, outval1_new * 255);
+			if (result >= 0)
+			{
+				outval1_written = outval1_new;
+				ao1->setValue(outval1_written);
+			}
+		}
+
+		if ( (result >= 0) && (outval2_new != outval2_written) )
+		{ 
+			result = OutputAnalogChannel(2, outval2_new * 255);
+			if (result >= 0)
+			{
+				outval2_written = outval2_new;
+				ao2->setValue(outval2_written);
+			}
+		}
+
 		// Try and recover from a disconnection
 		if (result < 0 && prevresult >= 0)
 		{
 			blockfilter_clear(bf);
 			DBG("k8055: Connection failed");
+			outval1_written = 0;
+			outval2_written = 0;
 		}
 		if (result >= 0)
 		{
@@ -93,7 +127,7 @@ void interface_k8055::run()
 					//last_val = val;
 					//last_t = t;
 					DBG("Write first value: %f", hysteresis_val);
-					a1->setValue(hysteresis_val, hysteresis_t);
+					ai1->setValue(hysteresis_val, hysteresis_t);
 				}
 				if (t > hysteresis_t + max_write_time)
 				{
@@ -102,14 +136,14 @@ void interface_k8055::run()
 					//hysteresis_t = last_t;
 					hysteresis_t = t;
 					DBG("Write keepalive value: %f", hysteresis_val);
-					a1->setValue(hysteresis_val, hysteresis_t);
+					ai1->setValue(hysteresis_val, hysteresis_t);
 				}
 				else if ((t > hysteresis_t + write_hysteresis_start) && (val > (hysteresis_val + hysteresis) || val < (hysteresis_val - hysteresis)))
 				{
 					hysteresis_val = val;
 					hysteresis_t = t;
 					DBG("Write changed value: %f", hysteresis_val);
-					a1->setValue(hysteresis_val, hysteresis_t);
+					ai1->setValue(hysteresis_val, hysteresis_t);
 				}
 				//last_val = val;
 				//last_t = t;

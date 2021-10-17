@@ -5,7 +5,8 @@
 #include "in.h"
 #include "k8055.h"
 
-#include "stdio.h"
+//#include <pthread>
+#include <stdio.h>
 #include <string>
 #include <map>
 
@@ -25,8 +26,11 @@ class interface_k8055 : public interface{
 		void setOut(out*, float);
 		void run();
 	private:
-		in *a1;
+		in *ai1; //, *ai2;
+		out *ao1, *ao2;
+		float outval1_new = 0, outval2_new = 0, outval1_written = 0, outval2_written = 0;
 		blockfilter *bf;
+		//pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 	};
 
 void interface_k8055_from_json(const char*, const char*, json_t*);
