@@ -10,13 +10,16 @@
 #include "stringStore.h"
 #include "math.h" // pow()
 #include "out.h"
+#include "webgui.h"
+
 #include <iostream>
 #include <cstdio>
 #include <memory>
 #include <regex>
 #include <filesystem>	// C++17, directory iterator
 
-#define debug
+#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+//#define DBG(...)
 
 using namespace std;
 
@@ -40,6 +43,9 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 	searchtime->set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
 	if (_trackallmacs)
 	{
+		found_new_mac = new in(getDescriptor() + "_fnm", getName() + " found new mac");
+		found_new_mac->set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
+		logic_mac = new logic_mac_c(getDescriptor(), getName(), found_new_mac, macs_auto);
 		// Data is stored in #define tcDataDir + /in/ then in a dir.
 		// Try and reconstruct any mac_ to in's 
 		for( auto& p: filesystem::directory_iterator(tcDataDir "in/"))
@@ -67,6 +73,11 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 interface_macp::~interface_macp()
 {
 	delete searchtime;
+	if (_trackallmacs)
+	{
+		delete found_new_mac;
+		delete logic_mac;
+	}
 	for (auto mac = macs_auto.begin(); mac != macs_auto.end(); mac++)
 		delete mac->second;
 	for (auto mac = macs.begin(); mac != macs.end(); mac++)
@@ -103,10 +114,13 @@ void interface_macp::getIns()
 			// Create in's for new mac addresses
 			if (macs_auto.count(match_str) != 1)
 			{
+				found_new_mac->setVal(1);
 				macs_auto[match_str] = new in(getDescriptor() + "_" + match_str, getName()+ " " + match_str, "", 0);
 				macs_auto[match_str] -> hidden = hidden_ins;
 				macs_auto[match_str] -> set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
 			}
+			else
+				found_new_mac->touch();
 		}
 	}
 
@@ -120,6 +134,37 @@ void interface_macp::getIns()
 
 void interface_macp::setOut(out*, float)
 {
+}
+
+logic_mac_c::logic_mac_c(const string d, const string n, in* f, map<string, in*> &m): logic(d,n), found_new_mac(f), macs_auto(m)
+{
+	found_new_mac->register_callback_on_change(cc_on_found_new_mac_change, this);
+}	
+
+void logic_mac_c::on_found_new_mac_change()
+{
+	DBG("logic_mac_c::on_found_new_mac_change() called");
+}
+
+int logic_mac_c::make_page(struct mg_connection *conn)
+{
+	DBG("logic_mac_c::make_page(...) called");
+	mg_printf(conn, "known mac list:\n");
+
+	mg_printf(conn, "<table><tbody><tr><th>MAC</th><th>Status</th><th>Note</th></tr>\n");
+	for (auto i = macs_auto.begin(); i != macs_auto.end(); i++)
+	{	
+		string onlinefield;
+		if (i->second->getValue())
+			onlinefield = "<td style=\"background-color:green;\">Online</td>";
+		else
+			onlinefield = "<td style=\"background-color:red;\">Offline</td>";
+		string s = "<tr><td>" + make_in_link(i->second, i->first) + "</td>" + onlinefield + "<td>" + i->second->getNote().substr(0, 100) + "</td></tr>\n";
+		mg_printf(conn, s.c_str());
+		//DBG("%s", s.c_str());
+	}
+	mg_printf(conn, "</tbody></table>\n");
+	return 1;
 }
 
 void interface_macp::add_mac(const char *macstr, const char *macdescr, const char *macname)

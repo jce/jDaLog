@@ -10,6 +10,7 @@ libmodbus-dev
 libcurl4-openssl-dev
 gnuplot
 nmap
+libusb-dev
 
 Optional packages:
 matchbox (on screen keyboard)
