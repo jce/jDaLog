@@ -1,0 +1,14 @@
+first, create user usb
+sudo groupadd usb
+
+then add a new udev rule, add to file /etc/udev/rules.d/99-com.rules :
+SUBSYSTEMS=="usb", ATTRS{idVendor}=="10cf", ATTRS{idProduct}=="5500", GROUP="usb", MODE="660"
+
+reload udev
+/etc/init.d/udev reload
+
+add yorself to the usb group
+sudo usermod -a -G usb username
+
+Then you are not yet part of this group. Relog or restart?
+
