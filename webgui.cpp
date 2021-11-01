@@ -504,10 +504,10 @@ int make_in_graph_page(struct mg_connection *conn, in *i, double from, double to
 	return 1;
 }
 
-int make_in_trim_reply(struct mg_connection *conn, size_t trimmed)
+int make_in_remove_reply(struct mg_connection *conn, size_t removed)
 {
 	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
-	mg_printf(conn, "Trim removed %zu records.", trimmed);
+	mg_printf(conn, "Removed %zu records.", removed);
 	return 1;
 }
 
@@ -546,7 +546,7 @@ int make_in_page(struct mg_connection *conn, in *i)
 	// Maybe i'll get the html or javascript fixed for this eventually.
 	mg_printf(conn, "A section of log data can be viewed as a list. Append /table/ or /table_h/(from)/(to) to the url. The times can be unix timestamps or human readable date/time: dd-mm-yyyy hh:mm:ss.<br>");
 	mg_printf(conn, "A graph of a section of log data can be generated. Append /graph/(from)/(to)[/w/h] to the url. From and to can be unix timestamps or human readable time/date.<br>");
-	mg_printf(conn, "Data can be trimmed from the dataset (takes some time) with /trim_(time_from, time_to, time_from_to, value_over, value_under, value_between)/(number or human readable datetime[/number or human readable datetime]. Trim commands remove data including the given limit(s)<br>");
+	mg_printf(conn, "Data can be removed from the dataset (takes some time) with /remove_(time_from, time_to, time_from_to, value_over, value_under, value_between)/(number or human readable datetime[/number or human readable datetime]. Removes data including the given limit(s)<br>");
 
 	// note, met set en get
 	string note = i->getNote();
@@ -998,25 +998,25 @@ static int begin_request(struct mg_connection *conn)
 			if (sscanf(slash1, "/graph/%lf/%lf", &from, &to) == 2)
 				return make_in_graph_page(conn, i, from, to);			
 			// Trim commands, human readable
-			if (slash2 && !strncmp(slash1, "/trim_time_from/", 16) && read_human_time(slash2+1, &from))
-				return make_in_trim_reply(conn, i->trim_time_from(from));			
-			if (slash2 && !strncmp(slash1, "/trim_time_to/", 14) && read_human_time(slash2+1, &to))
-				return make_in_trim_reply(conn, i->trim_time_to(to));			
-			if (slash3 && !strncmp(slash1, "/trim_time_from_to/", 19) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
-				return make_in_trim_reply(conn, i->trim_time_from_to(from, to));			
+			if (slash2 && !strncmp(slash1, "/remove_time_from/", 16) && read_human_time(slash2+1, &from))
+				return make_in_remove_reply(conn, i->remove_time_from(from));			
+			if (slash2 && !strncmp(slash1, "/remove_time_to/", 14) && read_human_time(slash2+1, &to))
+				return make_in_remove_reply(conn, i->remove_time_to(to));			
+			if (slash3 && !strncmp(slash1, "/remove_time_from_to/", 19) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
+				return make_in_remove_reply(conn, i->remove_time_from_to(from, to));			
 			// Trim commands, timestamp
-			if (sscanf(slash1, "/trim_time_from/%lf", &from) == 1)
-				return make_in_trim_reply(conn, i->trim_time_from(from));			
-			if (sscanf(slash1, "/trim_time_to/%lf", &to) == 1)
-				return make_in_trim_reply(conn, i->trim_time_to(to));			
-			if (sscanf(slash1, "/trim_time_from)to/%lf/%lf", &from, &to) == 2)
-				return make_in_trim_reply(conn, i->trim_time_from_to(from, to));			
-			if (sscanf(slash1, "/trim_value_over/%lf", &from) == 1)
-				return make_in_trim_reply(conn, i->trim_value_from(from));			
-			if (sscanf(slash1, "/trim_value_under/%lf", &to) == 1)
-				return make_in_trim_reply(conn, i->trim_value_to(to));			
-			if (sscanf(slash1, "/trim_value_between/%lf/%lf", &from, &to) == 2)
-				return make_in_trim_reply(conn, i->trim_value_from_to(from, to));			
+			if (sscanf(slash1, "/remove_time_from/%lf", &from) == 1)
+				return make_in_remove_reply(conn, i->remove_time_from(from));			
+			if (sscanf(slash1, "/remove_time_to/%lf", &to) == 1)
+				return make_in_remove_reply(conn, i->remove_time_to(to));			
+			if (sscanf(slash1, "/remove_time_from)to/%lf/%lf", &from, &to) == 2)
+				return make_in_remove_reply(conn, i->remove_time_from_to(from, to));			
+			if (sscanf(slash1, "/remove_value_over/%lf", &from) == 1)
+				return make_in_remove_reply(conn, i->remove_value_from(from));			
+			if (sscanf(slash1, "/remove_value_under/%lf", &to) == 1)
+				return make_in_remove_reply(conn, i->remove_value_to(to));			
+			if (sscanf(slash1, "/remove_value_between/%lf/%lf", &from, &to) == 2)
+				return make_in_remove_reply(conn, i->remove_value_from_to(from, to));			
 		}
 		return make_in_page(conn, i);
 	}

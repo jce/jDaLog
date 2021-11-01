@@ -75,13 +75,13 @@ class floatLog
 		void importFromBinFile(std::string);
 		size_t getNumRecords();
 
-		// Trim functions trime time and/or value ranges. Including the exact matches. Return number of removed records.
-		size_t trim_time_to(double);
-		size_t trim_time_from(double);
-		size_t trim_time_from_to(double, double);
-		size_t trim_value_to(float);
-		size_t trim_value_from(float);
-		size_t trim_value_from_to(float, float);
+		// Trim functions remove time and/or value ranges. Including the exact matches. Return number of removed records.
+		size_t remove_time_to(double);
+		size_t remove_time_from(double);
+		size_t remove_time_from_to(double, double);
+		size_t remove_value_to(float);
+		size_t remove_value_from(float);
+		size_t remove_value_from_to(float, float);
 
 		bool file_is_ok();		// Returns true if every sample in the file is later than the previous sample, none at t <= 0 and none in the future.
 		size_t sort_file();		// Sorts the file. Reads all to memory, so can consume much memory.

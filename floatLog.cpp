@@ -656,7 +656,7 @@ void floatLog::set_ram_max_history(float t)
 }
 
 // Trim the binary file, rewriting all. Parameter section is the test, succeeding records test true.
-#define TRIM(...) \
+#define REMOVE(...) \
 	map<double, float> m; \
     pthread_mutex_lock(&fileMutex); \
 	FOR_ALL_IN_FILE_UNM(m[t] = v;); \
@@ -683,45 +683,45 @@ void floatLog::set_ram_max_history(float t)
 	printf("done\n"); \
 	//return m.size() - cnt;
 
-size_t floatLog::trim_time_to(double t)
+size_t floatLog::remove_time_to(double t)
 {
-	printf("%s: trim time to %lf.\n", pathAndName.c_str(), t);
-	TRIM( i->first > t );
+	printf("%s: remove time to %lf.\n", pathAndName.c_str(), t);
+	REMOVE( i->first > t );
 	return m.size() - cnt;
 }	
 
-size_t floatLog::trim_time_from(double t)
+size_t floatLog::remove_time_from(double t)
 {
-	printf("%s: trim time from %lf.\n", pathAndName.c_str(), t);
-	TRIM( i->first < t );
+	printf("%s: remove time from %lf.\n", pathAndName.c_str(), t);
+	REMOVE( i->first < t );
 	return m.size() - cnt;
 }	
 	
-size_t floatLog::trim_time_from_to(double t, double u)
+size_t floatLog::remove_time_from_to(double t, double u)
 {
-	printf("%s: trim time from %lf to %lf.\n", pathAndName.c_str(), t, u);
-	TRIM( i->first < t || i->first > u );
+	printf("%s: remove time from %lf to %lf.\n", pathAndName.c_str(), t, u);
+	REMOVE( i->first < t || i->first > u );
 	return m.size() - cnt;
 }	
 
-size_t floatLog::trim_value_to(float v)
+size_t floatLog::remove_value_to(float v)
 {
-	printf("%s: trim value to %f.\n", pathAndName.c_str(), v);
-	TRIM( i->second > v );
+	printf("%s: remove value to %f.\n", pathAndName.c_str(), v);
+	REMOVE( i->second > v );
 	return m.size() - cnt;
 }
 	
-size_t floatLog::trim_value_from(float v)
+size_t floatLog::remove_value_from(float v)
 {
-	printf("%s: trim value from %f.\n", pathAndName.c_str(), v);
-	TRIM( i->second < v );
+	printf("%s: remove value from %f.\n", pathAndName.c_str(), v);
+	REMOVE( i->second < v );
 	return m.size() - cnt;
 }
 
-size_t floatLog::trim_value_from_to(float v, float w)
+size_t floatLog::remove_value_from_to(float v, float w)
 {
-	printf("%s: trim time from %f to %f.\n", pathAndName.c_str(), v, w);
-	TRIM( i->second < v || i->second > w );
+	printf("%s: remove time from %f to %f.\n", pathAndName.c_str(), v, w);
+	REMOVE( i->second < v || i->second > w );
 	return m.size() - cnt;
 }	
 	
@@ -731,7 +731,7 @@ size_t floatLog::sort_file()
 		return 0;
 	printf("Sorting %s...\n", pathAndName.c_str());
 	double n = now();
-	TRIM( i->first > 1000 and i->first < n and isfinite(i->second) );
+	REMOVE( i->first > 1000 and i->first < n and isfinite(i->second) );
 	read_last_from_file();
 	return m.size() - cnt;
 }

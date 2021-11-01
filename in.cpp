@@ -255,12 +255,12 @@ float in::get_valid_time()
 }
 
 void in::sort_file()													{_logger->sort_file(); }
-size_t in::trim_time_from(double d)										{return _logger->trim_time_from(d); }
-size_t in::trim_time_to(double d)										{return _logger->trim_time_to(d); }
-size_t in::trim_time_from_to(double d, double e)                        {return _logger->trim_time_from_to(d, e); }
-size_t in::trim_value_from(float v)                                     {return _logger->trim_value_from(v); }
-size_t in::trim_value_to(float v) 										{return _logger->trim_value_to(v); }
-size_t in::trim_value_from_to(float v, float w)                         {return _logger->trim_value_from_to(v, w); }
+size_t in::remove_time_from(double d)									{return _logger->remove_time_from(d); }
+size_t in::remove_time_to(double d)										{return _logger->remove_time_to(d); }
+size_t in::remove_time_from_to(double d, double e)                      {return _logger->remove_time_from_to(d, e); }
+size_t in::remove_value_from(float v)                                   {return _logger->remove_value_from(v); }
+size_t in::remove_value_to(float v) 									{return _logger->remove_value_to(v); }
+size_t in::remove_value_from_to(float v, float w)                       {return _logger->remove_value_from_to(v, w); }
 
 // Callbacks on specific events. JCE, 9-11-2020
 void in::register_callback_on_update(void (*f)(void*), void *p)			{cb_add(&on_update, f, p);}
