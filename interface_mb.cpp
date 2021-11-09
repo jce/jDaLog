@@ -15,7 +15,8 @@
 #include "sys/time.h" // gettimeofday(()
 #include <unistd.h>		// sleep
 
-//#define debug
+#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+//#define DBG(...)
 
 using namespace std;
 
@@ -200,15 +201,19 @@ void interface_mb::run()
 		switch(key.regtype)
 		{
 			case mb_coil:
+				DBG("reading coils");
 				rv = modbus_read_bits(ctx, start->key.offset, num, bits);
 				break;
 			case mb_status:
+				DBG("reading status");
 				rv = modbus_read_input_bits(ctx, start->key.offset, num, bits);
 				break;
 			case mb_input:
+				DBG("reading input");
 				rv = modbus_read_input_registers(ctx, start->key.offset, num, regs);
 				break;
 			case mb_holding:
+				DBG("reading holding");
 				rv = modbus_read_registers(ctx, start->key.offset, num, regs);
 				break;
 			case mb_none:
@@ -216,8 +221,7 @@ void interface_mb::run()
 				rv = 0;
 				break;
 		}
-		//printf("rv: %d\n", rv);
-		//printsch(&schedule);
+		DBG("rv = %d, num = %d", rv, num);
 
 		// To in.
 		reg = start;
@@ -252,6 +256,7 @@ void interface_mb::run()
 		}
 		else
 		{
+			DBG("error");
 			if (conmem)
 			{
 				PRINT_ERROR();
@@ -261,7 +266,8 @@ void interface_mb::run()
 
 		// There is a failure mode for modbus rtu, in which the usb rs485 adapter is temporarily disconnected.
 		// Libmodbus' auto reconnect does not catch this.
-		if (conmem == 0 && comtype == mbc_rtu)
+		// Seems like libmodbus' auto reconnect does not work on modbusTCP either. JCE, 9-11-2021
+		if (conmem == 0 /*&& comtype == mbc_rtu*/)
 		{
 			modbus_close(ctx);
 			while (run_flg && ! modbus_connect(ctx) == 0 )
