@@ -14,6 +14,7 @@ old/
 snap7*
 tinyexpr/
 data_backup/
+version.h
 
 config.json
 *.ignore

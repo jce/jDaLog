@@ -58,7 +58,7 @@ bool run(true);
 bool globalControl(true);	// The inverse of isDevelopmentVersion heh. JCE, 25-9-13
 jos_pool *pool;
 
-in *buildNr, *version, *haveControl;
+in *haveControl;
 logic *lfijnstof, *lrain;
 logic *lpower;
 in *pwrsum = NULL, *kWhsum = NULL;
@@ -412,8 +412,6 @@ void loop1s()
 }
 
 void loop60s(){
-	buildNr->setValue(tcBuildNr);
-	version->setValue(tcProgramVersion);
 	haveControl->setValue(globalControl);
 	touchAllWebins();
 }
@@ -489,7 +487,7 @@ int main(){
 	mysql_library_init(0, NULL, NULL);
 
 	// Startup
-	printf("welkom bij %s V %.3f build %i\n", tcProgramName, tcProgramVersion, (int)tcBuildNr);
+	printf("welcome to tcFarmControl " GIT_SHORT_HASH " " GIT_WORKING_TREE "\n");
 
 	// Read configuration
     json_t *json;
@@ -544,8 +542,6 @@ int main(){
 			def_h = json_integer_value(def_h_j);
 	}
 
-	buildNr = new in("buildnr", "Build nummer", ""); //buildNr.setValue(tcBuildNr);
-	version = new in("progver", "Program version", "", 3); //version.setValue(tcProgramVersion);
 	haveControl = new in("prog_ctrl", "Program has control", "");
 	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
 	lrain = new logic_rain("lrain", "LRain");
@@ -602,8 +598,6 @@ int main(){
 	delete lpower;
 	delete lrain;
 	delete lfijnstof;
-	delete buildNr;
-	delete version;
 	delete haveControl;
 
 	for (auto wi = webinmap.begin(); wi != webinmap.end(); wi++)
@@ -611,7 +605,7 @@ int main(){
 
 	mysql_library_end();
 
-	printf("%s V %.3f build %i has shutdown. byebye.\n", tcProgramName, tcProgramVersion, (int)tcBuildNr);
+	printf("tcFarmControl " GIT_SHORT_HASH " " GIT_WORKING_TREE " has shutdown. byebye.\n");
 	return 0;
 	}
 

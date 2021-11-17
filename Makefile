@@ -27,10 +27,15 @@ DEPFILES_CPP := $(patsubst %.cpp, $(OBJDIR)/%.d, $(CPPFILES))
 DEPFILES_C :=$(patsubst %.c, $(OBJDIR)/%.d, $(CFILES))
 DEPFILES := $(DEPFILES_CPP) $(DEPFILES_C)
 
-tcFarmControl: $(OBJFILES)
+tcFarmControl: version.h $(OBJFILES)
 	$(CPP) -o $@ $^ $(LFLAGS)
 	#sh archive.sh
-	sh incrementBuild.sh
+	#sh incrementBuild.sh
+
+version.h: .FORCE
+	python build_git_header.py	
+
+.FORCE:
 
 $(OBJDIR)/%.o: %.cpp
 	$(CPP) -c -o $@ $< $(CPPFLAGS)
