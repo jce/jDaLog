@@ -487,7 +487,7 @@ int main(){
 	mysql_library_init(0, NULL, NULL);
 
 	// Startup
-	printf("welcome to tcFarmControl " GIT_SHORT_HASH " " GIT_WORKING_TREE "\n");
+	printf("welcome to tcFarmControl " GIT_SHORT_HASH_WITH_MODIFIED "\n");
 
 	// Read configuration
     json_t *json;
@@ -605,7 +605,7 @@ int main(){
 
 	mysql_library_end();
 
-	printf("tcFarmControl " GIT_SHORT_HASH " " GIT_WORKING_TREE " has shutdown. byebye.\n");
+	printf("tcFarmControl " GIT_SHORT_HASH_WITH_MODIFIED " has shutdown. byebye.\n");
 	return 0;
 	}
 

@@ -40,6 +40,7 @@ def write_header_file():
 #define GIT_SHORT_HASH "''' + get_git_revision_short_hash() + '''"
 #define GIT_WORKING_TREE_CLEAN ''' + get_git_working_tree_clean() + '''
 #define GIT_WORKING_TREE "''' + ( "clean" if get_git_working_tree_clean() == "1" else "modified" ) + '''"
+#define GIT_SHORT_HASH_WITH_MODIFIED "''' + get_git_revision_short_hash() + ( " modified" if get_git_working_tree_clean() != "1" else "") + '''" 
 
 #endif // HAVE_VERSION_H
 '''
