@@ -97,14 +97,18 @@ interface_host::interface_host(const string d, const string n, float i):interfac
 	hcputotalp = new in("host_cpu_total_p", "Host cpu total used with iowait %", "%", 6);
 	hcputotalnoiowaitp = new in("host_cpu_total_noiowait_p", "Host cpu total used without iowait %", "%", 6);
 		//in *hcpuuserp, *hcpusystemp, *hcpuidlep, *hcpuiowaitp, *hcpuirqp, *hcpusoftirqp, *hcputotalp, *hcputotalnoiowaitp;
+#ifdef HAVE_RPI
 	cpuTemperature = new in("host_cpu_temperature", "Host cpu temperature", "°C", 1); // JCE, 3-9-2018
 	cpuFrequency = new in("host_cpu_frequency", "Host cpu frequency", "Hz", 0);
+#endif // HAVE_RPI
 	}
 
 interface_host::~interface_host(){
 	
+#ifdef HAVE_RPI
 	delete cpuFrequency;
 	delete cpuTemperature; // JCE, 3-9-2018
+#endif // HAVE_RPI
 
 	for (auto i = disks.begin(); i != disks.end(); i++)
 	{
@@ -316,6 +320,7 @@ void interface_host::getIns(){
 		double dt = thisT - _prevT;
 		totalruntime->setValue(totalruntime->getValue() + dt);}
 
+#ifdef HAVE_RPI
 	// Raspberry pi 3 has a CPU temperature readout.
 	// JCE, 3-9-2018
 	string command, result;
@@ -323,16 +328,15 @@ void interface_host::getIns(){
 	//command = "sudo vcgencmd measure_temp";
 	command = "vcgencmd measure_temp";
 	result = system_exec(command.c_str());
-	//printf(result.c_str());
 	commandExecutedOK = (result.find("temp=") != string::npos);
 	if (commandExecutedOK) cpuTemperature->setValue( stod(result.substr(5, 4)), thisT);
 
-	//command = " sudo vcgencmd measure_clock arm";
 	command = "vcgencmd measure_clock arm";
 	// Answer should be: frequency(45)=600000000 Note for Pi4 45 -> 48
 	result = system_exec(command.c_str());
 	commandExecutedOK = (result.find("frequency(48)=") != string::npos);
 	if (commandExecutedOK) cpuFrequency->setValue( stod(result.substr(14)), thisT);
+#endif // HAVE_RPI
 
 	_prevT = thisT;
 	}

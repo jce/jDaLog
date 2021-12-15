@@ -1,6 +1,8 @@
 #ifndef HAVE_INTERFACE_HOST_H
 #define HAVE_INTERFACE_HOST_H
 
+#include "config.h"
+
 #include "stdio.h"
 #include <string>
 #include "in.h"
@@ -32,7 +34,9 @@ class interface_host : public interface{
                 //in *idrss, *isrss, *minflt, *majflt, *nswap, *inblock, *oublock, *nvcsw, *nivcsw;
 		in *runtime, *totalruntime;
 		in *uptime;
+#ifdef HAVE_RPI
 		in *cpuTemperature, *cpuFrequency;
+#endif // HAVE_RPI
 	private:
 		double _prevT;
 		string _exec(const char*);

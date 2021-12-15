@@ -42,7 +42,9 @@
 #include "jansson.h"
 #include "in_from_dir.h"
 #include "logic_km.h"
-#include "interface_pi_gpio.h"
+#ifdef HAVE_RPI
+	#include "interface_pi_gpio.h"
+#endif //HAVE_RPI
 #include "interface_sht3x.h"
 #include "job_sched.h"
 #include "logic_compare.h"
@@ -195,6 +197,7 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_host(%s, %s, %f)\n", id, name, scan);
 				}
+#ifdef HAVE_RPI
 				if (strcmp(type, "pi_gpio") == 0)
 				{
 					if (id and name and json_is_number(jscan))
@@ -205,6 +208,7 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_pi_gpio(%s, %s, %f)\n", id, name, scan);
 				}
+#endif // HAVE_RPI
 				if (strcmp(type, "sht3x") == 0)
 				{
 					if (id and name and json_is_number(jscan) and i2c_dev and json_is_integer(ji2c_id))

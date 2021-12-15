@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.10)
 cmake_policy(SET CMP0076 NEW)
 
 option(HAVE_S7 "Build with Siemens S7 support" ON)
+option(HAVE_RPI "Build with Raspberry Pi IO support and CPU temperature" ON)
 
 project(tcFarmControl VERSION 1.0.0)
 add_executable(tcFarmControl
@@ -13,8 +14,13 @@ IF(HAVE_S7)
 	list(APPEND EXTRA_LIBS snap7)
 endif()
 
+IF(HAVE_RPI)
+	list(APPEND EXTRA_SRC interface_pi_gpio.cpp)
+endif()
+
 target_link_libraries(tcFarmControl 
 	PUBLIC dl pthread curl modbus jansson microhttpd mariadbclient usb stdc++fs ${EXTRA_LIBS})
+
 configure_file(config.h.in config.h)
 
 target_include_directories(tcFarmControl 
@@ -51,7 +57,6 @@ target_sources(tcFarmControl PUBLIC
 	interface_macp.cpp
 	interface_maria.cpp
 	interface_mb.cpp
-	interface_pi_gpio.cpp
 	interface_ping.cpp
 	interface_rwl.cpp
 	interface_sht3x.cpp

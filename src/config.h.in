@@ -7,4 +7,5 @@
 #define version_str "@tcFarmControl_VERSION_MAJOR@.@tcFarmControl_VERSION_MINOR@.@tcFarmControl_VERSION_PATCH@"
 
 #cmakedefine HAVE_S7
+#cmakedefine HAVE_RPI
 

@@ -33,6 +33,10 @@ cd snap7-iot-arm-1.4.2/build/unix
 make -f arm_v7_x64_linux.mk
 sudo make -f arm_v7_x64_linux.mk install
 
+Options:
+HAVE_S7	Builds interface_S1200, links with libsnap7
+HAVE_RPI Builds interface_pi_gpio and cpu temperature and frequency readout for Raspberry Pi specific.
+
 Building farmcontrol:
 cd build
 cmake ../src -DHAVE_S7=OFF
