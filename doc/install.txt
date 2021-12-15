@@ -11,13 +11,13 @@ libcurl4-openssl-dev
 gnuplot
 nmap
 libusb-dev
+cmake
 
 Optional packages:
 matchbox (on screen keyboard)
 
 Clone the repo:
-git clone ssh://jeindhoven@10.0.0.33/home/jeindhoven/tcFarmControl
-
+git clone ssh://jeindhoven@10.0.0.33/home/jeindhoven/git/tcFarmControl
 
 And manually install: libsnap7 (1.4.2)
 wget https://sourceforge.net/projects/snap7/files/1.4.2/
@@ -33,9 +33,9 @@ cd snap7-iot-arm-1.4.2/build/unix
 make -f arm_v7_x64_linux.mk
 sudo make -f arm_v7_x64_linux.mk install
 
-
-Building farmcontrol
-mkdir obj
+Building farmcontrol:
+cd build
+cmake ../src
 make
 
 Postbuild config:

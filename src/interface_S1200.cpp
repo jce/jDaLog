@@ -1,3 +1,7 @@
+#define byte byte_override
+#include "snap7.h"
+#undef byte
+
 #include "interface_S1200.h"
 #include "stdio.h"
 #include <string>
@@ -24,7 +28,6 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 	latency = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 	//S1200 = new TS7Client();
 	//Cli_Create();
-
 
        // S7Object PLC;
         PLC = Cli_Create();

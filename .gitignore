@@ -11,10 +11,14 @@ jansson/
 libmicrohttpd/
 mongoose/
 old/
-snap7*
+#snap7*
+snap7-iot-arm-1.4.2.tar.gz
+snap7-iot-arm-1.4.2.tar.gz
+snap7-iot-arm-1.4.2/build/temp/
 tinyexpr/
 data_backup/
 version.h
+build/*
 
 config.json
 *.ignore

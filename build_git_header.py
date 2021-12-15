@@ -1,6 +1,6 @@
 import subprocess
 
-header_file_name = "version.h"
+header_file_name = "git_header.h"
 
 def get_git_revision_hash():
     return subprocess.check_output(['git', 'rev-parse', 'HEAD']).decode('ascii').strip()

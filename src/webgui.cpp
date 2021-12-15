@@ -8,7 +8,7 @@
 #include "inttypes.h" // Macros like SCNu16
 #include "main.h"
 #include "mongoose.h"
-#include "version.h"
+#include "git_header.h"
 #include "webgui.h"
 #include "stringStore.h"
 #include "in.h"

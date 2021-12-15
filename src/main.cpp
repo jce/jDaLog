@@ -6,7 +6,7 @@
 #include "in_to_maria.h"
 #include "main.h"
 #include "mongoose.h"
-#include "version.h"
+#include "git_header.h"
 #include "webgui.h"
 //#include "webgui2.h"
 //#include "webgui_mac.h"

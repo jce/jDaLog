@@ -1,0 +1,96 @@
+cmake_minimum_required(VERSION 3.10)
+cmake_policy(SET CMP0076 NEW)
+
+project(tcFarmControl VERSION 1.0.0)
+add_executable(tcFarmControl
+	${PROJECT_BINARY_DIR}/git_header.h
+)
+
+target_link_libraries(tcFarmControl 
+	PUBLIC dl pthread curl modbus snap7 jansson microhttpd mariadbclient usb stdc++fs)
+configure_file(config.h.in config.h)
+
+target_include_directories(tcFarmControl 
+	PUBLIC "${PROJECT_BINARY_DIR}"
+	)
+
+set_property(TARGET tcFarmControl PROPERTY CXX_STANDARD 17)
+set_property(TARGET tcFarmControl PROPERTY C_STANDARD 99)
+set_property(TARGET tcFarmControl PROPERTY COMPILE_FLAGS "-W -Wall -g -O0 -Wno-psabi")
+
+#set(CMAKE_C_STANDARD 99)
+#set(CMAKE_C_STANDARD_REQUIRED ON)
+#set(CMAKE_C_EXTENSIONS OFF)
+
+#set(CMAKE_CXX_STANDARD 17)
+#set(CMAKE_CXX_STANDARD_REQUIRED ON)
+#set(CMAKE_CXX_EXTENSIONS OFF)
+
+#set(CMAKE_C_FLAGS "-I. -W -Wall -g -O0 -Wno-psabi")
+#set(CMAKE_CPP_FLAGS "-I. -W -Wall -g -O0 -Wno-psabi -std=c++17")
+
+target_sources(tcFarmControl PUBLIC
+	callback.c
+	filters.c
+	job_sched.c
+	libk8055.c
+	mongoose.c
+	tcmath.c
+	timefunc.c
+	tinyexpr.c
+	equator.cpp
+	floatLog.cpp
+	in.cpp
+	in_from_dir.cpp
+	interface_adam6052.cpp
+	interface.cpp
+	interface_darksky.cpp
+	interface_fijnstof.cpp
+	interface_fridge.cpp
+	interface_fritz.cpp
+	interface_GS308E.cpp
+	interface_host.cpp
+	interface_hs110.cpp
+	interface_k8055.cpp
+	interface_macp.cpp
+	interface_maria.cpp
+	interface_mb.cpp
+	interface_pi_gpio.cpp
+	interface_ping.cpp
+	interface_rwl.cpp
+	interface_S1200.cpp
+	interface_sht3x.cpp
+	interface_solarlog.cpp
+	interface_tgTemp.cpp
+	interface_xmrstak.cpp
+	in_to_maria.cpp
+	logic_compare.cpp
+	logic.cpp
+	logic_fijnstof.cpp
+	logic_km.cpp
+	logic_modulator.cpp
+	logic_onOffRegulator.cpp
+	logic_or.cpp
+	logic_pi_reg.cpp
+	logic_power.cpp
+	logic_rain.cpp
+	logic_tunnel.cpp
+	main.cpp
+	mytime.cpp
+	out.cpp
+	out_expr.cpp
+	stringStore.cpp
+	webgui.cpp
+	webgui_intable.cpp
+	webgui_mac.cpp
+	webin.cpp
+)
+
+set_source_files_properties(interface_S1200.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-iot-arm-1.4.2/examples/cpp/")
+
+add_custom_command(
+	OUTPUT ${PROJECT_BINARY_DIR}/git_header.h
+	COMMAND python ${PROJECT_SOURCE_DIR}/../build_git_header.py
+)
+
+
