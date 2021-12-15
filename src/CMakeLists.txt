@@ -1,13 +1,20 @@
 cmake_minimum_required(VERSION 3.10)
 cmake_policy(SET CMP0076 NEW)
 
+option(HAVE_S7 "Build with Siemens S7 support" ON)
+
 project(tcFarmControl VERSION 1.0.0)
 add_executable(tcFarmControl
 	${PROJECT_BINARY_DIR}/git_header.h
 )
 
+IF(HAVE_S7)
+	list(APPEND EXTRA_SRC interface_S1200.cpp)
+	list(APPEND EXTRA_LIBS snap7)
+endif()
+
 target_link_libraries(tcFarmControl 
-	PUBLIC dl pthread curl modbus snap7 jansson microhttpd mariadbclient usb stdc++fs)
+	PUBLIC dl pthread curl modbus jansson microhttpd mariadbclient usb stdc++fs ${EXTRA_LIBS})
 configure_file(config.h.in config.h)
 
 target_include_directories(tcFarmControl 
@@ -17,17 +24,6 @@ target_include_directories(tcFarmControl
 set_property(TARGET tcFarmControl PROPERTY CXX_STANDARD 17)
 set_property(TARGET tcFarmControl PROPERTY C_STANDARD 99)
 set_property(TARGET tcFarmControl PROPERTY COMPILE_FLAGS "-W -Wall -g -O0 -Wno-psabi")
-
-#set(CMAKE_C_STANDARD 99)
-#set(CMAKE_C_STANDARD_REQUIRED ON)
-#set(CMAKE_C_EXTENSIONS OFF)
-
-#set(CMAKE_CXX_STANDARD 17)
-#set(CMAKE_CXX_STANDARD_REQUIRED ON)
-#set(CMAKE_CXX_EXTENSIONS OFF)
-
-#set(CMAKE_C_FLAGS "-I. -W -Wall -g -O0 -Wno-psabi")
-#set(CMAKE_CPP_FLAGS "-I. -W -Wall -g -O0 -Wno-psabi -std=c++17")
 
 target_sources(tcFarmControl PUBLIC
 	callback.c
@@ -58,7 +54,6 @@ target_sources(tcFarmControl PUBLIC
 	interface_pi_gpio.cpp
 	interface_ping.cpp
 	interface_rwl.cpp
-	interface_S1200.cpp
 	interface_sht3x.cpp
 	interface_solarlog.cpp
 	interface_tgTemp.cpp
@@ -84,6 +79,7 @@ target_sources(tcFarmControl PUBLIC
 	webgui_intable.cpp
 	webgui_mac.cpp
 	webin.cpp
+	${EXTRA_SRC}
 )
 
 set_source_files_properties(interface_S1200.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-iot-arm-1.4.2/examples/cpp/")

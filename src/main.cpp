@@ -1,3 +1,5 @@
+#include "config.h"
+
 #include "stdio.h"
 #include <list>
 #include <string>
@@ -22,7 +24,9 @@
 #include "mytime.h" // now()
 #include "mysql/mysql.h"
 #include "interface_adam6052.h"
-#include "interface_S1200.h"
+#ifdef HAVE_S7
+	#include "interface_S1200.h"
+#endif // HAVE_S7
 #include "interface_macp.h"
 #include "webin.h"
 //#include "interface_xmrstak.h"
@@ -122,6 +126,7 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_solarlog(%s, %s, %f, %s)\n", id, name, scan, address);
 				}
+#ifdef HAVE_S7
 				if (strcmp(type, "S1200") == 0)
 				{
 					if (id and name and json_is_number(jscan) and address)
@@ -129,6 +134,7 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_S1200(%s, %s, %f, %s)\n", id, name, scan, address);
 				}
+#endif // HAVE_S7
 				if (strcmp(type, "hs110") == 0)
 				{
 					if (id and name and json_is_number(jscan) and address)

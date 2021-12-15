@@ -35,7 +35,7 @@ sudo make -f arm_v7_x64_linux.mk install
 
 Building farmcontrol:
 cd build
-cmake ../src
+cmake ../src -DHAVE_S7=OFF
 make
 
 Postbuild config:
