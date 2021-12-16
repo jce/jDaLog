@@ -34,8 +34,10 @@ make -f arm_v7_x64_linux.mk
 sudo make -f arm_v7_x64_linux.mk install
 
 Options:
-HAVE_S7	Builds interface_S1200, links with libsnap7
+HAVE_S7	Builds interface_S1200, links with libsnap7.
 HAVE_RPI Builds interface_pi_gpio and cpu temperature and frequency readout for Raspberry Pi specific.
+HAVE_USB Builds interface_k8055, links with libusb.
+HAVE_MARIA Builds with some legacy MariaDB stuff.
 
 Building farmcontrol:
 cd build

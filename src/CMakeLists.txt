@@ -3,6 +3,8 @@ cmake_policy(SET CMP0076 NEW)
 
 option(HAVE_S7 "Build with Siemens S7 support" ON)
 option(HAVE_RPI "Build with Raspberry Pi IO support and CPU temperature" ON)
+option(HAVE_USB "Build with libusb support (interface_K8055)" ON)
+option(HAVE_MARIA "Build with libmariadbclient support" OFF)
 
 project(tcFarmControl VERSION 1.0.0)
 add_executable(tcFarmControl
@@ -18,8 +20,18 @@ IF(HAVE_RPI)
 	list(APPEND EXTRA_SRC interface_pi_gpio.cpp)
 endif()
 
+IF(HAVE_USB)
+	list(APPEND EXTRA_SRC interface_k8055.cpp libk8055.c)
+	list(APPEND EXTRA_LIBS usb)
+endif()
+
+IF(HAVE_MARIA)
+	list(APPEND EXTRA_SRC interface_maria.cpp in_to_maria.cpp)
+	list(APPEND EXTRA_LIBS mariadbclient)
+endif()
+
 target_link_libraries(tcFarmControl 
-	PUBLIC dl pthread curl modbus jansson microhttpd mariadbclient usb stdc++fs ${EXTRA_LIBS})
+	PUBLIC dl pthread curl modbus jansson microhttpd stdc++fs ${EXTRA_LIBS})
 
 configure_file(config.h.in config.h)
 
@@ -35,7 +47,6 @@ target_sources(tcFarmControl PUBLIC
 	callback.c
 	filters.c
 	job_sched.c
-	libk8055.c
 	mongoose.c
 	tcmath.c
 	timefunc.c
@@ -53,9 +64,7 @@ target_sources(tcFarmControl PUBLIC
 	interface_GS308E.cpp
 	interface_host.cpp
 	interface_hs110.cpp
-	interface_k8055.cpp
 	interface_macp.cpp
-	interface_maria.cpp
 	interface_mb.cpp
 	interface_ping.cpp
 	interface_rwl.cpp
@@ -63,7 +72,6 @@ target_sources(tcFarmControl PUBLIC
 	interface_solarlog.cpp
 	interface_tgTemp.cpp
 	interface_xmrstak.cpp
-	in_to_maria.cpp
 	logic_compare.cpp
 	logic.cpp
 	logic_fijnstof.cpp

@@ -5,7 +5,6 @@
 #include <string>
 #include "string.h"
 #include "floatLog.h"
-#include "in_to_maria.h"
 #include "main.h"
 #include "mongoose.h"
 #include "git_header.h"
@@ -22,7 +21,6 @@
 #include "interface_host.h"
 #include "interface_solarlog.h"
 #include "mytime.h" // now()
-#include "mysql/mysql.h"
 #include "interface_adam6052.h"
 #ifdef HAVE_S7
 	#include "interface_S1200.h"
@@ -33,7 +31,11 @@
 #include <signal.h>
 #include "interface_darksky.h"
 #include <curl/curl.h>
-#include "interface_maria.h"
+#ifdef HAVE_MARIA
+	#include "interface_maria.h"
+	#include "in_to_maria.h"
+	#include "mysql/mysql.h"
+#endif // HAVE_MARIA
 #include "interface_fijnstof.h"
 #include "logic_fijnstof.h"
 #include "logic_rain.h"
@@ -50,7 +52,9 @@
 #include "logic_compare.h"
 #include "logic_modulator.h"
 #include "interface_mb.h"
-#include "interface_k8055.h"
+#ifdef HAVE_USB
+	#include "interface_k8055.h"
+#endif // HAVE_USB
 #include "interface_GS308E.h"
 #include "logic_pi_reg.h"
 #include "interface_fritz.h"
@@ -216,6 +220,7 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_sht3x(%s, %s, %f, %s, %d)\n", id, name, scan, i2c_dev, i2c_id);
 				}
+#ifdef HAVE_MARIA
 				if (strcmp(type, "maria") == 0)
 				{
 					if (id and name and json_is_number(jscan))
@@ -223,6 +228,7 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_maria(%s, %s, %f)\n", id, name, scan);
 				}
+#endif // HAVE_MARIA
 				if (strcmp(type, "mb") == 0)
 				{
 					if (id and name)
@@ -237,6 +243,7 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_gs308e(%s, %s)\n", id, name);
 				}
+#ifdef HAVE_USB
 				if (strcmp(type, "k8055") == 0)
 				{
 					if (id and name)
@@ -244,6 +251,7 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_k8055(%s, %s)\n", id, name);
 				}
+#endif // HAVE_USB
 				if (strcmp(type, "fritz") == 0)
 				{
 					if (id and name)
@@ -494,7 +502,9 @@ int main(){
 	// https://curl.haxx.se/libcurl/c/curl_global_init.html
 	// JCE, 25-9-2018
 	curl_global_init(CURL_GLOBAL_ALL);
+#ifdef HAVE_MARIA
 	mysql_library_init(0, NULL, NULL);
+#endif // HAVE_MARIA
 
 	// Startup
 	printf("welcome to tcFarmControl " GIT_SHORT_HASH_WITH_MODIFIED "\n");
@@ -613,7 +623,9 @@ int main(){
 	for (auto wi = webinmap.begin(); wi != webinmap.end(); wi++)
 		delete(wi->second);
 
+#ifdef HAVE_MARIA
 	mysql_library_end();
+#endif // HAVE_MARIA
 
 	printf("tcFarmControl " GIT_SHORT_HASH_WITH_MODIFIED " has shutdown. byebye.\n");
 	return 0;

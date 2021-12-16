@@ -8,4 +8,6 @@
 
 #cmakedefine HAVE_S7
 #cmakedefine HAVE_RPI
+#cmakedefine HAVE_USB
+#cmakedefine HAVE_MARIA
 
