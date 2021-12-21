@@ -1,0 +1,91 @@
+How to convert tcFarmcControl cmake project into an eclipse project.
+
+Installation.
+Pi: sudo apt install gdbserver
+Windows toolchain:
+https://gnutoolchains.com/raspberry/
+used _gcc8.3.0-r4 for build tools, but the sysroot-synchronize tool comes from gcc6.3.0-r5
+10.2.1 is not recommended as there is a libc / mutex / pthread timedlock incompatibility somewhere.
+installing: all users, dont add to path, specific dir like C:\SysGCC\raspberry_gcc8.3.0-r4
+Synchronize sysroot of 8.3.0-r4: https://gnutoolchains.com/raspberry/tutorial/sysroot
+copy C:\SysGCC\raspberry_gcc6.3.0-r5\TOOLS to C:\SysGCC\raspberry_8.3.0-r4\TOOLS
+Run the sysroot tool (UpdateSysroot.bat), select the proper development raspberry pi and credentials. Get coffee.
+
+Eclipse:
+https://www.eclipse.org/downloads/
+just install the latest eclipse, choose "cdt" during installation.
+A pre-build script uses python. Both 2 and 3 seem to work fine.
+
+Git Extensions:
+https://gitextensions.github.io/
+clone ssh://user@source_host/~/git/tcFarmControl in C:\code
+
+file -> open projects from file system -> C:\code\tcFarmcontrol (untag the src folder)
+select project in project overview.
+file -> new -> convert to c++ project ( Thanks https://stackoverflow.com/questions/18693159/eclipse-this-project-is-not-a-cdt-project )
+project type: Executable, Cross GCC
+
+Project natures should now be:
+C Nature
+C++ Nature
+CDT Builder Project
+Scanner Configuration Nature
+
+project -> properties -> C/C++ build -> Settings -> Tool Settings -> Corss Settings:
+Prefix arm-linux-gnueabihf-
+Path C:\SysGCC\raspberry\bin
+
+project: exclude from build:
+src\webgui_autograph.cpp
+snap7-iot-arm-1.4.2
+
+CMake defines are now project defines.
+project -> properties -> C/++ build -> Settings -> Tool Settings -> Cross GCCC and C++ (so: do this twice) -> preprocessor add Defined symbols:
+HAVE_S7
+HAVE_RPI
+HAVE_USB
+HAVE_MARIA
+_GNU_SOURCE
+
+project -> properties -> C/++ build -> Settings -> Tool Settings -> Cross GCC and C++ (so: do this twice) -> includes add:
+"${workspace_loc:/${ProjName}/snap7-iot-arm-1.4.2/examples/cpp}"
+"${workspace_loc:/${ProjName}/eclipse}"
+"C:\SysGCC\raspberry_gcc8.3.0-r4\arm-linux-gnueabihf\sysroot\usr\include" (note: this is the toolchain include directory. This can differ based on your toolchain directory)
+
+project -> properties -> C/++ build -> Settings -> Tool Settings -> Linker -> Libraries add:
+usb
+pthread
+dl
+curl
+modbus
+jansson
+stdc++fs
+snap7
+mariadbclient
+microhttpd
+
+Search path (-L):
+"C:\SysGCC\raspberry_gcc8.3.0-r4\arm-linux-gnueabihf\sysroot\usr\lib"
+
+C dialect: C99
+C++ dialect: C++17
+
+C++ Compiler -> Miscellaneous -> other flags, add: -Wno-psabi
+
+Eclipse doesnt understand bash's id_rsa. Generate new key via eclipse under different name (rsa_eclipse).
+Then start bash:
+cd .ssh
+ssh-copy-id -i id_rsa_eclipse.pub username@target-pi-ip
+
+Edit debug target:
+C/C++ Remote Application.
+build config: auto, "Debug". Set remote path.
+set debugger C:\SysGCC\raspberry\bin\arm-linux-gnueabihf-gdb.exe
+Does not seem to work with the "normal" eclipse debug icon. only with the second icon halfway the toolbar.
+
+CMake generated config.h is now premade in eclipse\config.h
+
+build_git_header.py creates eclipse\git_header.h in a separate pre-build step:
+cd ..\eclipse & python ..\build_git_header.py
+
+It seems having a pre-build step disables parallel build.
