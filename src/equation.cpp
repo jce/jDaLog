@@ -1,28 +1,98 @@
-#include "equator.h"
+#include "equation.h"
 
 #include "string.h"
 
-equator::equator()
+equation::equation()
 {
 }
 
-equator::~equator()
+equation::~equation()
 {
 	for (int i = 0; i < nr_vars; i++)
 		free ((vars+i)->var);
 	free(vars);
 	free(expression);
 	te_free(expr);
-	//cb_free(&on_eval);
-	//cb_free(&on_invalid);
-	//cb_free(&on_valid);
+	cb_free(&on_update);
+	cb_free(&on_change);
+	cb_free(&on_turn_invalid);
+	cb_free(&on_turn_valid);
 }
 
-double_bool equator::eval()
+const char* equation::get_expression()
+{
+	return expression;
+}
+
+int equation::get_nr_vars()
+{
+	return nr_vars;
+}
+
+bool equation::get_have_default_value()
+{
+	return have_default_value;
+}
+
+double equation::get_default_value()
+{
+	return default_value;
+}
+
+const var_in_double* equation::get_vars()
+{
+	return vars;
+}
+
+bool equation::get_is_valid()
+{
+	return nr_ins == nr_ins_valid;
+}
+
+double_bool equation::get_value()
 {
 	double_bool rv;
-	int valid_ins;
+	rv.value = result;
+	rv.valid = get_is_valid();
+	return rv;
+}
 
+void equation::get_summary(vector<flStat> *stats, unsigned int len, double start, double stop)
+{
+	// This can be done using the existing equation object, or by creating a new object.
+	// Lets reuse the existing.
+
+	// Prepare input data arrays
+	double* indata = (double*) malloc(sizeof(double) * len * nr_vars);
+	vector<flStat> summary(len);
+	if (! indata)
+		return;
+	for (int var = 0; var < nr_vars; var++)
+	{
+		if (vars[var].i)
+		{
+			vars[var].i->getDataSummary( summary, len, start, stop);
+			for (unsigned int i = 0; i < len; i++)
+				indata[len*var + i] = summary[i].avg;
+		}
+		else
+			for (unsigned int i = 0; i < len; i++)
+				indata[len*var + i] = vars[var].d;
+	}
+
+	// Lock the expression, evaluate for given input data
+	pthread_mutex_lock(&mutex);
+	for (unsigned int i = 0; i < len; i++)
+	{
+		for (int var = 0; var < nr_vars; var++)
+			vars[var].d = indata[len * var + i];
+		(*stats)[i].avg = te_eval(expr);
+	}
+	pthread_mutex_unlock(&mutex);
+}
+
+void equation::eval()
+{
 	pthread_mutex_lock(&mutex);
 	for (int i = 0; i < nr_vars; i++)
 		if (vars[i].i)
@@ -30,21 +100,43 @@ double_bool equator::eval()
 			valid_ins += vars[i].i->isValid();
 			vars[i].d = vars[i].i->getValue();
 		}
-	rv.value = te_eval(expr);
-	rv.valid = nr_ins == valid_ins;
+	result = te_eval(expr);
 	pthread_mutex_unlock(&mutex);
-
-	return rv;
 }
 
-double* equator::get_var_address(const char *var)
+void equation::in_updates()
 {
-	for (int i = 0; i < nr_vars; i++)
-		if (strcmp((vars+i)->var, var) == 0)
-			return & (vars+i)->d;
-	return NULL;
+	eval();	// An source mighe emit an on_update before on_change. A receiver can already use the value on on_update.
+	cb_call(on_update);
 }
 
+void equation::in_changes()
+{
+	double old_result = result;
+	eval();
+	if (result != old_result)
+		cb_call(on_change);
+}
+
+void equation::in_turns_invalid()
+{
+	int old_nr_ins_valid = nr_ins_valid;
+	nr_ins_valid--;
+	if (old_nr_ins_valid == nr_ins)
+		cb_call(on_turn_invalid);
+}
+
+void equation::in_turns_valid()
+{
+	nr_ins_valid++;
+	if (nr_ins_valid == nr_ins)
+		cb_call(on_turn_valid);
+}
+
+void equation::register_callback_on_update(void (*f)(void*), void *p)			{cb_add(&on_update, f, p);}
+void equation::register_callback_on_change(void (*f)(void*), void *p)			{cb_add(&on_change, f, p);}
+void equation::register_callback_on_turn_invalid(void (*f)(void*), void *p)		{cb_add(&on_turn_invalid, f, p);}
+void equation::register_callback_on_turn_valid(void (*f)(void*), void *p)		{cb_add(&on_turn_valid, f, p);}
 
 // Equator factory
 //
@@ -60,16 +152,16 @@ double* equator::get_var_address(const char *var)
 //		}
 // }
 
-equator* equator_from_json(json_t *json)
+equation* equation_from_json(json_t *json)
 {
-	equator *eq = new equator();
+	equation *eq = new equation();
     te_variable *te_vars = NULL;
 	bool ok = true;
 	eq->expression = strdup(json_string_value(json_object_get(json, "expr")));
 	json_t *default_j = json_object_get(json, "default");
-	eq->have_default_val = json_number_value(default_j);
-	if (eq->have_default_val)
-		eq->default_val = json_number_value(default_j);
+	eq->have_default_value = json_number_value(default_j);
+	if (eq->have_default_value)
+		eq->default_value = json_number_value(default_j);
 
     json_t *vars_j = json_object_get(json, "var");
     const char* var_descr;

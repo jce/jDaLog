@@ -51,10 +51,11 @@ target_sources(tcFarmControl PUBLIC
 	tcmath.c
 	timefunc.c
 	tinyexpr.c
-	equator.cpp
+	equation.cpp
 	floatLog.cpp
 	in.cpp
 	in_from_dir.cpp
+	in_equation.cpp
 	interface_adam6052.cpp
 	interface.cpp
 	interface_darksky.cpp
@@ -86,7 +87,6 @@ target_sources(tcFarmControl PUBLIC
 	main.cpp
 	mytime.cpp
 	out.cpp
-	out_expr.cpp
 	stringStore.cpp
 	webgui.cpp
 	webgui_intable.cpp
