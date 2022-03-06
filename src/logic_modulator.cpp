@@ -64,7 +64,7 @@ void logic_modulator::run()
 	// There should only be one of these calls at a time.
 	// Calls originate from multiple sources, the scheduler is not the only source.
 	pthread_mutex_lock(&mutex);
-	jos_remove(pool, cc_run, this);
+	jos_remove(pool, cc_logic_modulator_run, this);
 
 	// Time and time delta.
 	double tnew = get_time_monotonic();
@@ -94,7 +94,7 @@ void logic_modulator::run()
 		if(out_val < 0.5)
 		{
 			DBG(d_run, " The output is already off. Wait to the projected next transition.\n");
-			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_logic_modulator_run, this);
 			pthread_mutex_unlock(&mutex);
 			return;
 		}
@@ -103,7 +103,7 @@ void logic_modulator::run()
 		if(bid_value(time_on_min) and (t - last_transition) < time_on_min.d)
 		{
 			DBG(d_run, " The minimum on time is not yet expired.\n");
-			jos_run_at(pool, time_on_min.d + last_transition, cc_run, this);
+			jos_run_at(pool, time_on_min.d + last_transition, cc_logic_modulator_run, this);
 			pthread_mutex_unlock(&mutex);
 			return;
 		}
@@ -114,7 +114,7 @@ void logic_modulator::run()
 		last_transition = t;
 		
 		// Delay to next step.
-		jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+		jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_logic_modulator_run, this);
 	}
 	else
 	{
@@ -125,7 +125,7 @@ void logic_modulator::run()
 		if(out_val >= 0.5)
 		{
 			DBG(d_run, " The output is already on. Wait to the projected next transition.\n");
-			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+			jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_logic_modulator_run, this);
 			pthread_mutex_unlock(&mutex);
 			return;
 		}
@@ -134,7 +134,7 @@ void logic_modulator::run()
 		if(bid_value(time_off_min) and (t - last_transition) < time_off_min.d)
 		{
 			DBG(d_run, " Minimum off time is not yet expired.\n");
-			jos_run_at(pool, time_off_min.d + last_transition, cc_run, this);
+			jos_run_at(pool, time_off_min.d + last_transition, cc_logic_modulator_run, this);
 			pthread_mutex_unlock(&mutex);
 			return;
 		}
@@ -145,7 +145,7 @@ void logic_modulator::run()
 		last_transition = t;
 		
 		// Delay to next step.
-		jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_run, this);
+		jos_run_at(pool, t + time_to_next(sp_val, out_val, e), cc_logic_modulator_run, this);
 	}
 	pthread_mutex_unlock(&mutex);
 }
@@ -155,8 +155,8 @@ void logic_modulator::setOut(out *o, float f)
 	DBG(d_so, "setOut(out = %p, f = %f)\n", o, f);
 	if (o == out_sp)	
 		out_sp->setValue(f);
-	jos_remove(pool, cc_run, this);
-	jos_run(pool, cc_run, this);
+	jos_remove(pool, cc_logic_modulator_run, this);
+	jos_run(pool, cc_logic_modulator_run, this);
 }
 
 int logic_modulator::make_page(struct mg_connection *conn)

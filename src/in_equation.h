@@ -17,7 +17,13 @@ class in_equation: public in{
 		in_equation(const in_equation& obj_temp) = delete;
 		in_equation& operator=(const in_equation& temp_obj) = delete;
 
-		const equation *eq;
+		void getDataSummary(vector<flStat>&, unsigned int size, double from, double to);
+
+		equation *eq;
+
+		void call_on_equation_result_update(); 	CC(in_equation, call_on_equation_result_update); 
+		void call_on_equation_result_change(); 	CC(in_equation, call_on_equation_result_change); 
+		void call_on_turn_valid();			 	CC(in_equation, call_on_turn_valid); 
 	};
 
 #endif // HAVE_IN_EQUATION_H

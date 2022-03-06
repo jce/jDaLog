@@ -115,8 +115,8 @@ void in::setValue(float v, double t)
 	_isKnown = true;
 	if (t == 0) t = now();
 
-	jos_remove(pool, cc_turn_invalid, this);
-	jos_run_in(pool, valid_time, cc_turn_invalid, this);
+	jos_remove(pool, cc_in_turn_invalid, this);
+	jos_run_in(pool, valid_time, cc_in_turn_invalid, this);
 
 	_time = t;
 	_logger->append(t, v);

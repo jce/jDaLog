@@ -64,7 +64,7 @@ logic_pi_reg::logic_pi_reg(const string d, const string n, in *_meas, out *_act,
 	e = new in(d + "_e", n + " error", meas->getUnits(), meas->getDecimals());
 	esum = new in(d + "_esum", n + " error sum", meas->getUnits() + "s", meas->getDecimals());
 	tprev = get_time_monotonic();
-	meas->register_callback_on_update(cc_run, this);
+	meas->register_callback_on_update(cc_logic_pi_reg_run, this);
 }
 
 logic_pi_reg::~logic_pi_reg()

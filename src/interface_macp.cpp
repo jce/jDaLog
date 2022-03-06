@@ -138,7 +138,7 @@ void interface_macp::setOut(out*, float)
 
 logic_mac_c::logic_mac_c(const string d, const string n, in* f, map<string, in*> &m): logic(d,n), found_new_mac(f), macs_auto(m)
 {
-	found_new_mac->register_callback_on_change(cc_on_found_new_mac_change, this);
+	found_new_mac->register_callback_on_change(cc_logic_mac_c_on_found_new_mac_change, this);
 }	
 
 void logic_mac_c::on_found_new_mac_change()

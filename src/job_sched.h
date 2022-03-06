@@ -65,7 +65,7 @@ size_t jos_printn(jos_pool*, char*, size_t);
 // Creates a C Callable function void <_CLASS_>::cc_<_FNC_>(void*) which will in turn call
 // _FNC_ of a given instance of _CLASS_. Register to jos with
 // jos_run(pool, class::fnc, (void*) this);
-#define CC(_CLASS_, _FNC_) static void cc_##_FNC_(void* p) { ((_CLASS_*) p) -> _FNC_(); }
+#define CC(_CLASS_, _FNC_) static void cc_##_CLASS_##_##_FNC_(void* p) { ((_CLASS_*) p) -> _FNC_(); }
 
 }
 #endif
