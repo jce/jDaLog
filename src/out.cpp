@@ -152,7 +152,7 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 		{
 			int nr_vars = json_object_size(vars_j);
 			int i = 0;
-			var_in_double *vars = (var_in_double*) malloc(sizeof(var_in_double) * nr_vars);
+			var_in_double_old *vars = (var_in_double_old*) malloc(sizeof(var_in_double_old) * nr_vars);
 			if (!vars)
 				continue;
 			bool ok = true;

@@ -1,27 +1,31 @@
-#include "stdio.h"
-#include <cstdlib> // system()
-#include <list>
-#include <set>
-#include <string>
-#include "string.h"
+
+#include "equation.h"
 #include "floatLog.h"
-#include "inttypes.h" // Macros like SCNu16
+#include "git_header.h"
+#include "in.h"
+#include "in_equation.h"
+#include "logic.h"
 #include "main.h"
 #include "mongoose.h"
-#include "git_header.h"
-#include "webgui.h"
-#include "stringStore.h"
-#include "in.h"
 #include "mytime.h"
-#include "timefunc.h"
-#include "math.h" // floor()
-#include "sys/stat.h" // mkdir
 #include "out.h"
-#include "logic.h"
-#include <vector>
-#include "webin.h"
-//#include "webgui_autograph.h"
+#include "stringStore.h"
+#include "timefunc.h"
+#include "webgui.h"
 #include "webgui_intable.h"
+#include "webin.h"
+
+#include <cstdlib> // system()
+#include <inttypes.h> // Macros like SCNu16
+#include <list>
+#include <math.h> // floor()
+#include <set>
+#include <stdio.h>
+#include <string>
+#include <string.h>
+#include <sys/stat.h> // mkdir
+#include <vector>
+//#include "webgui_autograph.h"
 
 //#define debug
 //#define debug_mg
@@ -511,6 +515,20 @@ int make_in_remove_reply(struct mg_connection *conn, size_t removed)
 	return 1;
 }
 
+int make_equation_section(struct mg_connection *conn, equation *eq)
+{
+	mg_printf(conn, "Equation: %s<br>\n", eq->get_expression());
+	mg_printf(conn, "<table><tr><th>Variable</th><th>Value</th><th>Source</th></tr>\n");
+	const var_in_double *vars = eq->get_vars();
+	int nr_vars = eq->get_nr_vars();
+	for (int i = 0; i < nr_vars; i++)
+	{
+		mg_printf(conn, "<tr><td>%s</td><td>%f</td><td>%s</td><tr>\n", vars[i].var, vars[i].d, make_in_link_or_constant(vars[i].i).c_str());
+	}	
+	mg_printf(conn, "</table>\n");
+	return 1;
+}
+
 int make_in_page(struct mg_connection *conn, in *i)
 {
 	// headers
@@ -526,12 +544,18 @@ int make_in_page(struct mg_connection *conn, in *i)
 
 	// The age of this particular measurement
 	mg_printf(conn, "measurement age: %.3f seconds<br>\n", i->getAge());
-		
+	
 	// The validity of this measurement
 	if (i->isValid())
 		mg_printf(conn, "this in is considered valid<br>\n");
 	else
 		mg_printf(conn, "this in is considered invalid<br>\n");
+
+	in_equation *ie = dynamic_cast<in_equation*>(i);
+	if (ie)
+	{
+		make_equation_section(conn, ie->eq);
+	}
 
 	string line;
 	line = make_image_line(plotLine(i, now() - 3600, now(), def_w, def_h));
@@ -777,6 +801,7 @@ int make_out_page(struct mg_connection *conn, string outName){
 		mg_printf(conn, "<INPUT type=\"submit\" name=\"blah\" value=\"manual:\"><INPUT type=\"TEXT\" name=\"set\" value=\"%.*f\"<br>", dec, myOut->getManOut());
 	mg_printf(conn, "</form>");
 
+	// Equation section
 	mg_printf(conn, "Equation: %s<br>\n", myOut->expression.c_str());
 	mg_printf(conn, "<table><tr><th>Variable</th><th>Value</th><th>Source</th></tr>\n");
 	for (int i = 0; i < myOut->nr_vars; i++)
@@ -784,6 +809,7 @@ int make_out_page(struct mg_connection *conn, string outName){
 		mg_printf(conn, "<tr><td>%s</td><td>%f</td><td>%s</td><tr>\n", myOut->vars[i].var, myOut->vars[i].d, make_in_link_or_constant(myOut->vars[i].i).c_str());
 	}	
 	mg_printf(conn, "</table>\n");
+	// End equation section
 
 	string line = make_image_line(plotLine(myOut, now() - 299, now() + 1, def_w, def_h)); // function rounds time, losing the most recent record. Thus, to 1 sec in the future. JCE, 25-7-13
 	mg_printf(conn, line.c_str());

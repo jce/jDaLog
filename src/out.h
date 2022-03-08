@@ -17,11 +17,11 @@ using namespace std;
 // The In has a separate name and descriptor. The second is used for file identification, so a namechange wont result in losing all measurement data. JCE, 20-6-13
 
 #define VAR_LEN 32
-typedef struct var_in_double{
+typedef struct var_in_double_old{
 	char var[VAR_LEN];
 	in *i;
 	double d;
-} var_in_double;
+} var_in_double_old;
 
 class out: public in {	// Een out is een in, maar dan aangepast. Namelijk er moet een setter bij. setout ofzo...
 	public:
@@ -46,7 +46,7 @@ class out: public in {	// Een out is een in, maar dan aangepast. Namelijk er moe
 	friend void out_conf(json_t*);
 
 		std::string expression;			// for reference
-		var_in_double *vars = NULL;		// Source data for the vars table
+		var_in_double_old *vars = NULL;	// Source data for the vars table
 		te_expr *expr = NULL;			// Tinyexpr equation
 		int nr_vars = 0;				// Number of variables in vars_ins array.
 		int nr_ins = 0;					// Number of ins the equation depends on.

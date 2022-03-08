@@ -13,8 +13,8 @@
 
 using namespace std;
 
-//#define DBG(...) printf(__VA_ARGS__);
-#define DBG(...)
+#define DBG(...) printf(__VA_ARGS__);
+//#define DBG(...)
 
 // In version that derives its value from an equation. Equations use only constants and ins.
 
@@ -31,8 +31,9 @@ in_equation::~in_equation()
 	delete eq;
 }
 
-void in_equation::getDataSummary(vector<flStat>&, unsigned int, double, double)
+void in_equation::getDataSummary(vector<flStat> &stats, unsigned int len, double from, double to)
 {
+	eq->get_summary(&stats, len, from, to);
 }
 
 void in_equation::call_on_equation_result_update()
@@ -47,4 +48,45 @@ void in_equation::call_on_turn_valid()
 {
 }
 
+
+void build_in_equations(json_t *input_data)
+{
+	if (! json_is_object(input_data))
+		return;
+	json_t *json, *jdecimals;
+	const char *id;
+	const char *name;
+	const char *unit;
+	int decimals;
+	equation *eq;
+
+	json_object_foreach(input_data, id, json)
+	{
+		name = NULL;
+		unit = NULL;
+		decimals = 0;
+		eq = NULL;
+
+		if (json_is_object(json))
+		{
+			name = 	json_string_value(json_object_get(json, "name"));
+			if (!name)
+				name = id;
+			unit =	json_string_value(json_object_get(json, "unit"));
+			if (!unit)
+				unit = "";
+			jdecimals = json_object_get(json, "decimals");
+			if (json_is_number(jdecimals))
+				decimals = json_number_value(jdecimals);
+			else
+				decimals = 0;
+			eq = equation_from_json(json);
+			
+			if (id and eq)
+				new in_equation(id, eq, name, unit, decimals);
+			else
+				printf("Could not build in_equation for %s\n", id);
+		}
+	}
+}
 

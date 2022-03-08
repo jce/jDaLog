@@ -77,9 +77,5 @@ private:
     friend equation* equation_from_json(json_t*);
 };
 
-
-
-
-
 #endif // HAVE_EQUATOR_H
 

@@ -2,6 +2,11 @@
 
 #include "string.h"
 
+//#define DBG(...) printf(__VA_ARGS__);printf("\n");
+#define DBG(...)
+
+using namespace std;
+
 equation::equation()
 {
 }
@@ -59,6 +64,7 @@ double_bool equation::get_value()
 
 void equation::get_summary(vector<flStat> *stats, unsigned int len, double start, double stop)
 {
+	DBG("Calling get_summary()");
 	// This can be done using the existing equation object, or by creating a new object.
 	// Lets reuse the existing.
 
@@ -107,6 +113,7 @@ void equation::eval()
 void equation::in_updates()
 {
 	eval();	// An source mighe emit an on_update before on_change. A receiver can already use the value on on_update.
+	DBG("Calling on_update callbacks");
 	cb_call(on_update);
 }
 
@@ -115,7 +122,10 @@ void equation::in_changes()
 	double old_result = result;
 	eval();
 	if (result != old_result)
+	{
+		DBG("Calling on_change callbacks");
 		cb_call(on_change);
+	}
 }
 
 void equation::in_turns_invalid()
@@ -123,14 +133,20 @@ void equation::in_turns_invalid()
 	int old_nr_ins_valid = nr_ins_valid;
 	nr_ins_valid--;
 	if (old_nr_ins_valid == nr_ins)
+	{
+		DBG("Calling on_turn_invalid callbacks");
 		cb_call(on_turn_invalid);
+	}
 }
 
 void equation::in_turns_valid()
 {
 	nr_ins_valid++;
 	if (nr_ins_valid == nr_ins)
+	{
+		DBG("Calling on_turn_valid callbacks");
 		cb_call(on_turn_valid);
+	}
 }
 
 void equation::register_callback_on_update(void (*f)(void*), void *p)			{cb_add(&on_update, f, p);}
@@ -232,7 +248,6 @@ equation* equation_from_json(json_t *json)
             te_vars[i].address = &eq->vars[i].d;
             te_vars[i].name = eq->vars[i].var;
         }
-
 	}
 
     // Try and compile the expression
@@ -249,8 +264,18 @@ equation* equation_from_json(json_t *json)
 
 	if (!ok)
 	{
+		// TODO: cleanup of both equation as var_in_double
 		delete eq;
 		eq = NULL;
+	}
+
+	// The equation needs callbacks from the source ins.
+	for (int i = 0; i < eq->nr_vars; i++)
+	{
+		eq->vars[i].i -> register_callback_on_update(equation::cc_equation_in_updates, eq); 
+		eq->vars[i].i -> register_callback_on_change(equation::cc_equation_in_changes, eq);
+		eq->vars[i].i -> register_callback_on_turn_invalid(equation::cc_equation_in_turns_invalid, eq);
+		eq->vars[i].i -> register_callback_on_turn_valid(equation::cc_equation_in_turns_valid, eq);
 	}
 	return eq;
 }

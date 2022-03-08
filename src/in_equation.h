@@ -26,4 +26,7 @@ class in_equation: public in{
 		void call_on_turn_valid();			 	CC(in_equation, call_on_turn_valid); 
 	};
 
+// Feed this the part of the config.json that contains the array with in_equation descriptions.
+void build_in_equations(json_t *json);
+
 #endif // HAVE_IN_EQUATION_H
