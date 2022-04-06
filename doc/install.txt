@@ -13,6 +13,11 @@ nmap
 libusb-dev
 cmake
 
+on Debian 11 x64:
+libmicrohttpd12 libmicrohttpd-dev net-tools curl
+then as root in /usr/bin: ln -s /usr/sbin/arp
+And you need snap7-full i think?
+
 Optional packages:
 matchbox (on screen keyboard)
 

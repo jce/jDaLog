@@ -1,18 +1,24 @@
 #ifndef HAVE_INTERFACE_S1200_H
 #define HAVE_INTERFACE_S1200_H
 
-#include "interface.h"
-#include "stdio.h"
-#include <string>
+
+#define byte byte_override
+#include "snap7.h"
+#undef byte
+
 #include "in.h"
+#include "interface.h"
 #include "out.h"
 #include "stringStore.h"
+
+#include "stdio.h"
+#include <string>
 
 //using namespace std;
 
 // Base class for interfaces. An interface is responsible for acquiring the values/datas for in's. In the future also for setting out's. This is the base class, every in should be an expansion of this. Dont know if this one should be instantiated as well, but should be possible for testing purposes. JCE, 20-6-13
 
-typedef unsigned int S7Object;
+//typedef unsigned int S7Object;
 
 class interface_S1200 : public interface{
 	public:

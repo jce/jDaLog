@@ -95,11 +95,12 @@ target_sources(tcFarmControl PUBLIC
 	${EXTRA_SRC}
 )
 
-set_source_files_properties(interface_S1200.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-iot-arm-1.4.2/examples/cpp/")
+set_source_files_properties(interface_S1200.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-full-1.4.2/release/Wrappers/c-cpp/")
+set_source_files_properties(main.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-full-1.4.2/release/Wrappers/c-cpp/")
 
 add_custom_command(
 	OUTPUT ${PROJECT_BINARY_DIR}/git_header.h
-	COMMAND python ${PROJECT_SOURCE_DIR}/../build_git_header.py
+	COMMAND python3 ${PROJECT_SOURCE_DIR}/../build_git_header.py
 )
 
 

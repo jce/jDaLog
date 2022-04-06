@@ -7,7 +7,7 @@ SUBSYSTEMS=="usb", ATTRS{idVendor}=="10cf", ATTRS{idProduct}=="5500", GROUP="usb
 reload udev
 /etc/init.d/udev reload
 
-add yorself to the usb group
+add yourself to the usb group
 sudo usermod -a -G usb username
 
 Then you are not yet part of this group. Relog or restart?

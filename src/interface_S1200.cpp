@@ -1,6 +1,6 @@
-#define byte byte_override
-#include "snap7.h"
-#undef byte
+//#define byte byte_override
+//#include "snap7.h"
+//#undef byte
 
 #include "interface_S1200.h"
 #include "stdio.h"
