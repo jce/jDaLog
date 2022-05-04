@@ -78,6 +78,9 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 	rain_bucket_tips = new in(getDescriptor() + "_rbt", getName() + " Rain bucket tips", "", 0);
 	rain_count = new in(getDescriptor() + "_rac", getName() + " Rain total count", "mm", 1);
 
+	room_CO = new in(getDescriptor() + "_rco", getName() + " room CO", "PPM", 1);
+	room_smoke_temp = new in(getDescriptor() + "_rst", getName() + " room smoke temperature", "degC", 1);
+
 //	Q0_0 = new out(getDescriptor() + "_Q0_0", getName() + " Q0.0", "", 0, (void*)this);
 
 	writecounter = 0;
@@ -87,6 +90,8 @@ interface_S1200::~interface_S1200(){
 	Cli_Disconnect(PLC);
 
 //	delete Q0_0;
+	delete room_smoke_temp;
+	delete room_CO;
 
 	delete rain_count; 
 	delete rain_bucket_tips;
@@ -322,6 +327,15 @@ void interface_S1200::getIns(){
 			memcpy(&f, data + 80, 4);
 			f = beftoh(f);
 			rain_count->setValue(f, t);	
+
+			// Added, JCE, 4-5-2022
+			memcpy(&f, data + 84, 4);
+			f = beftoh(f);
+			room_CO->setValue(f, t);
+	
+			memcpy(&f, data + 88, 4);
+			f = beftoh(f);
+			room_smoke_temp->setValue(f, t);	
 		}
 	}
 
