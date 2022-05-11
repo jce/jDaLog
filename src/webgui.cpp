@@ -30,7 +30,7 @@
 //#define debug
 //#define debug_mg
 
-//#define DBG(...) printf(__VA_ARGS__);
+//#define DBG(...) printf(__VA_ARGS__); printf("\n");
 #define DBG(...)
 
 using namespace std;
@@ -69,13 +69,37 @@ void deleteOldFiles(){
 		else i++;}}
 //=============================================================================================================
 
-void fprintt(FILE *fp, double a){
-	time_t b = a;
-	struct tm t;
-	t = {};
-	localtime_r(&b, &t);			// Added "_r". JCE, 2-10-2018
-	int ms = (a - floor(a)) * 1000; // Assumption: Time is always aligned on the second... JCE, 14-9-2018
-	fprintf(fp, "%u-%u-%u %u:%u:%u.%03u", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, ms);}
+void fprintt(FILE *fp, double a, float cycle = 0)
+{
+	if (cycle == 0)	// Clock time
+	{
+		time_t b = a;
+		struct tm t;
+		t = {};
+		localtime_r(&b, &t);			// Added "_r". JCE, 2-10-2018
+		int ms = (a - floor(a)) * 1000; // Assumption: Time is always aligned on the second... JCE, 14-9-2018
+		fprintf(fp, "%u-%u-%u_%u:%u:%u.%03u", t.tm_year + 1900, t.tm_mon + 1, t.tm_mday, t.tm_hour, t.tm_min, t.tm_sec, ms);
+	}
+	else // Cyclic time
+	{
+		int msec = fmod(a * 1000, 1);
+		a = a/ 1;
+		int sec = fmod(a, 60);
+		a = a / 60;
+		int min = fmod(a, 60);
+		a = a / 60;
+		int hour = fmod(a, 24);
+		int day = a / 24 + 1;
+		if (cycle >= 24*60*60)
+			fprintf(fp, "%u_%u:%u:%u.%03u", day, hour, min, sec, msec);
+		else if (cycle >= 60*60)
+			fprintf(fp, "%u:%u:%u.%03u", hour, min, sec, msec);
+		else if (cycle >= 60)
+			fprintf(fp, "%u:%u.%03u", min, sec, msec);
+		else
+			fprintf(fp, "%u.%03u", sec, msec);
+	} 
+}
 
 //struct stats{int nr; float min; double sum; float max;};
 struct inWithData
@@ -241,7 +265,7 @@ string plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsign
 		fprintf(fp, "set output \"%s\"\n", imageName);
 		fprintf(fp, "set title \"%s\"\n", title.c_str());
 		fprintf(fp, "set xdata time\n");
-		fprintf(fp, "set timefmt \"%%Y-%%m-%%d %%H:%%M:%%S\"\n");
+		fprintf(fp, "set timefmt \"%%Y-%%m-%%d_%%H:%%M:%%S\"\n");
 		fprintf(fp, "set xrange [\"");
 		fprintt(fp, tmin);
 		fprintf(fp, "\":\"");
@@ -278,7 +302,7 @@ string plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsign
 				}
 				else			
 					plotline += ", \\\n\t";
-				plotline += "\"-\" using 1:3:4";
+				plotline += "\"-\" using 1:2:3";
 				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
 				plotline += " with filledcu lc rgb \""+linecolor[colornr]+"\"";
 				if (haveY2)
@@ -289,7 +313,7 @@ string plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsign
 					else
 						plotline += "x1y2";
 				}
-				plotline += ", \\\n\t\"\" using 1:3";
+				plotline += ", \\\n\t\"\" using 1:2";
 				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
 				plotline += " with lines lc rgb \""+linecolor[colornr]+"\"";
 				if (haveY2)
@@ -325,8 +349,7 @@ string plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsign
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, t + interval / 2);
-						fprintf(fp, " %.8f %.8f", iwdli->stats[i].min, iwdli->stats[i].max);	
-						fprintf(fp, " # %f\n", t);
+						fprintf(fp, " %.8f %.8f\n", iwdli->stats[i].min, iwdli->stats[i].max);	
 					}
 				}
 				if (!iwdli->haveData) fprintf(fp, "1970-1-1 0:0:0 0 0\n");
@@ -342,8 +365,279 @@ string plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsign
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, t + interval / 2);
-						fprintf(fp, " %.8f", iwdli->stats[i].avg);	
-						fprintf(fp, " # %f\n", t);
+						fprintf(fp, " %.8f\n", iwdli->stats[i].avg);	
+					}
+				}
+				if (!iwdli->haveData) fprintf(fp, "1970-1-1 0:0:0 0 0\n");
+			}
+		}
+		fclose(fp);
+		
+		DBG("gps written: %s\n", scriptName); 	
+		// Klaar. start gnuplot.
+		char systemCommand[1100];
+		snprintf(systemCommand, 1100, "gnuplot \"%s\"", scriptName);
+		system(systemCommand);
+		
+
+		// Weg met de gpl script file
+		//remove(scriptName);
+		setFileLife(scriptName, now() + 3600);
+
+		// noem deze file naam in verband met autodelete
+		setFileLife(imageName, now() + 3600);
+		return imageUrl;}
+	return "no URL";
+	}
+
+// Plot data in a cyclical way. inlist, tmin, tmax, x, y, title are just
+// as for plotLines, interval is the cyclical interval.
+// Coloring should follow a gradient. Older lines are lighter colored.
+string plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned int y, string title, double cycle)
+{
+	DBG("plotcycle(list of %ld, %lf, %lf, %d, %d, %s, %lf", ins.size(), tmin, tmax, x, y, title.c_str(), cycle);
+	char imageName[1025], scriptName[1025], imageUrl[1025];
+	string names;
+	bool haveKey(ins.size() > 1);
+	double firstcycle = floor(tmin / cycle);
+	double lastcycle = ceil(tmax / cycle);
+	unsigned int cycles = lastcycle - firstcycle + 1;
+		double bins = x * 0.7 * cycles;
+	if (haveKey) bins = x * 0.4 * cycles;
+
+	// build the filename(s)
+	uint16_t pn = plotnr++; 
+	snprintf(imageName, 1024, "http/graphs/%x.png", pn);
+	snprintf(scriptName, 1024, "http/graphs/%x.gps", pn);
+	snprintf(imageUrl, 1024, "/graphs/%x.png", pn);
+	// Leave if file already exists.
+	FILE* fp = fopen(imageName, "r");
+	if (fp)
+	{
+		fclose(fp);
+		return imageUrl;
+	}
+	string path = "http/";	
+	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
+	path += "graphs/";
+	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
+	fp = fopen(scriptName, "w");
+	if (fp)
+	{
+		// Assign ins to y_axes.
+		list<y_ax> y_axes;
+		for(auto ini=ins.begin(); ini!=ins.end(); ini++)
+		{
+			string units;
+			units = (*ini)->getUnits();
+			bool foundyax(false);
+			for(auto yi=y_axes.begin(); yi!=y_axes.end(); yi++)
+				if (yi->units == units)
+				{		
+					inWithData iwd;
+					iwd.inp = (*ini);
+					iwd.stats.resize(bins);
+					iwd.statLen = bins;
+					iwd.valid_time = (*ini)->get_valid_time();
+					iwd.from = tmin - iwd.valid_time;
+					iwd.to = tmax + iwd.valid_time;
+					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
+					yi->iwdl.push_back(iwd);
+					foundyax = true;
+				}
+			if (not foundyax)
+			{
+				inWithData iwd;
+				iwd.inp = (*ini);
+				iwd.stats.resize(bins);
+				iwd.statLen = bins;
+				iwd.valid_time = (*ini)->get_valid_time();
+				iwd.from = tmin - iwd.valid_time;
+				iwd.to = tmax + iwd.valid_time;
+				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
+				list<inWithData> iwdl;								
+				iwdl.push_back(iwd);
+				y_ax y;
+				y.units = units;
+				y.iwdl = iwdl;
+				y.ymin =  -1;
+				y.yrange = 2;
+				y.ymax = 1;
+				y.haveData = false;
+				y_axes.push_back(y);
+			}
+		}
+		// Now a list of y-axes exist. Per axis, calculate ymin, yrange and ymax.
+		for(auto yi=y_axes.begin(); yi!=y_axes.end(); yi++)
+		{
+			for(auto iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++)
+			{
+				for(unsigned i = 0; i < iwdli->statLen; i++)
+				{
+					if (iwdli->stats[i].nr)
+					{
+						iwdli->haveData = true;
+						if (yi->haveData == false)
+						{
+							yi->ymin = iwdli->stats[i].min;
+							yi->ymax = iwdli->stats[i].max;
+							yi->haveData = true;
+						}
+						else
+						{
+							if (yi->ymin > iwdli->stats[i].min)
+								yi->ymin = iwdli->stats[i].min;
+							if (yi->ymax < iwdli->stats[i].max)
+								yi->ymax = iwdli->stats[i].max;
+						}									
+					}
+				}
+			}
+			// ymin and ymax are now known, move them away from limits a little
+			if (yi->ymax != yi->ymin)
+			{ // range > 0 -> ymax != ymin. JCE, 16-7-13
+				yi->yrange = yi->ymax - yi->ymin;
+				yi->ymin -= 0.01 * yi->yrange;
+				yi->ymax += 0.01 * yi->yrange;
+			}
+			else
+			{	// ymin == ymax
+				double margin(1);
+				if (yi->ymax > 1000)
+					margin = 0.01 * yi->ymax;
+				yi->ymin -= margin;
+				yi->ymax += margin;
+			}
+		}
+
+		// So much for the multitude of axes. This only works for up to 2.
+		bool haveY2(y_axes.size() > 1);
+		y_ax y1, y2;
+		y1 = *y_axes.begin();
+		if (haveY2) y2 = (*(++y_axes.begin()));
+
+		// Constructing the gnuplot file.			
+		fprintf(fp, "# gnuplot script generated by tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED " (" GIT_SHORT_HASH ")\n");
+		fprintf(fp, "set terminal png size %u,%u truecolor\n", x, y); // truecolor option creates anti-aliasing. JCE< 5-7-13
+		fprintf(fp, "set output \"%s\"\n", imageName);
+		fprintf(fp, "set title \"%s\"\n", title.c_str());
+		fprintf(fp, "set xdata time\n");
+		fprintf(fp, "set timefmt \"");
+		if ( cycle >= 24*60*60 ) fprintf(fp, "%%j_");
+		if ( cycle >= 60*60 ) fprintf(fp, "%%H:");
+		if ( cycle >= 60 ) fprintf(fp, "%%M:");
+		fprintf(fp, "%%S\"\n");
+		fprintf(fp, "set xrange [\"");
+		fprintt(fp, 0, cycle);
+		fprintf(fp, "\":\"");
+		fprintt(fp, cycle, cycle);
+		fprintf(fp, "\"]\n");		
+		
+		fprintf(fp, "set format x \"");
+		if ( cycle > 24*60*60 ) fprintf(fp, "%%d ");
+		if ( cycle > 60*60 ) fprintf(fp, "%%H:");
+		if ( cycle > 60 ) fprintf(fp, "%%M:");
+		fprintf(fp, "%%S\"\n");
+		
+		fprintf(fp, "set yrange [%.8f:%.8f]\n", y1.ymin, y1.ymax);
+		fprintf(fp, "set ylabel \"%s\"\n", y1.units.c_str());
+		if (haveY2)
+		{
+			fprintf(fp, "set y2range [%.8f:%.8f]\n", y2.ymin, y2.ymax);
+			fprintf(fp, "set y2label \"%s\"\n", y2.units.c_str());
+			fprintf(fp, "set y2tics\n");
+		}
+		if (haveKey)	
+			fprintf(fp, "set key out vert right\n");
+		else
+			fprintf(fp, "set key off\n");
+			
+		fprintf(fp, "set grid\n");
+		fprintf(fp, "set style fill transparent solid %f noborder\n", 0.10);
+		string linecolor[] = {"blue", "red", "black", "green", "magenta", "brown", "spring-green", "cyan", "dark-orange", "violet", "sienna4", "steelblue", "dark-spring-green", "goldenrod"};
+		unsigned int colornr(0);
+		string plotline;
+		bool first = true;
+		for(auto yi=y_axes.begin(); yi!=y_axes.end(); yi++)
+		{
+			for(auto iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++)
+			{
+				// Deze moet getekend. Plot line
+				if (first)
+				{ 
+					plotline += "plot\t";
+					first = false;
+				}
+				else			
+					plotline += ", \\\n\t";
+				plotline += "\"-\" using 1:2:3";
+				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
+				plotline += " with filledcu lc rgb \""+linecolor[colornr]+"\"";
+				if (haveY2)
+				{
+					plotline += " axes ";
+					if (iwdli->inp->getUnits() == y1.units)
+						plotline += "x1y1";
+					else
+						plotline += "x1y2";
+				}
+				plotline += ", \\\n\t\"\" using 1:2";
+				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
+				plotline += " with lines lc rgb \""+linecolor[colornr]+"\"";
+				if (haveY2)
+				{
+					plotline += " axes ";
+					if (iwdli->inp->getUnits() == y1.units)
+						plotline += "x1y1";
+					else
+						plotline += "x1y2";
+				}
+				colornr++; if (colornr >= 14) colornr = 0;
+			}
+		}
+		plotline += "\n";
+		fprintf(fp, plotline.c_str());
+
+		// Data content
+		for(auto yi=y_axes.begin(); yi!=y_axes.end(); yi++)
+		{
+			for(auto iwdli=yi->iwdl.begin(); iwdli!=yi->iwdl.end(); iwdli++)
+			{	
+				double interval = (iwdli->to - iwdli->from) / bins;
+				double t;
+				
+				if (yi != y_axes.begin() or iwdli != yi->iwdl.begin())
+					fprintf(fp, "e\n");	
+				double prevt = 0;
+				
+				// range		
+				for (unsigned i = 0; i <  iwdli->statLen; i++)
+				{
+					if (iwdli->stats[i].nr)
+					{			
+						t = iwdli->from + i * interval;
+						if (prevt and ((t - prevt > iwdli->valid_time and t - prevt > (1.1 * interval)) or ( floor((t + interval / 2) / cycle) != floor((prevt + interval / 2) / cycle) ) ))
+							fprintf(fp, "\n");
+						prevt = t;
+						fprintt(fp, fmod(t + interval / 2, cycle), cycle);
+						fprintf(fp, " %.8f %.8f\n", iwdli->stats[i].min, iwdli->stats[i].max);	
+					}
+				}
+				if (!iwdli->haveData) fprintf(fp, "1970-1-1 0:0:0 0 0\n");
+				
+				// average
+				fprintf(fp, "e\n");
+				prevt = 0;
+				for (unsigned i = 0; i <  iwdli->statLen; i++)
+				{
+					if (iwdli->stats[i].nr)
+					{	
+						t = iwdli->from + i * interval;		
+						if (prevt and ((t - prevt > iwdli->valid_time and t - prevt > (1.1 * interval)) or ( floor((t + interval / 2) / cycle) != floor((prevt + interval / 2) / cycle) ) ))
+							fprintf(fp, "\n");
+						prevt = t;
+						fprintt(fp, fmod(t + interval / 2, cycle), cycle);
+						fprintf(fp, " %.8f\n", iwdli->stats[i].avg);	
 					}
 				}
 				if (!iwdli->haveData) fprintf(fp, "1970-1-1 0:0:0 0 0\n");
@@ -508,6 +802,16 @@ int make_in_graph_page(struct mg_connection *conn, in *i, double from, double to
 	return 1;
 }
 
+int make_in_cycle_page(struct mg_connection *conn, in *i, double from, double to, float cycle, uint16_t w=def_w, uint16_t h=def_h)
+{
+	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
+	string line;
+	list<in*> inlist({i});
+	line = make_image_line(plotcycle(inlist, from, to, w, h, i->getName(), cycle));
+	mg_printf(conn, line.c_str());
+	return 1;
+}
+
 int make_in_remove_reply(struct mg_connection *conn, size_t removed)
 {
 	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
@@ -567,7 +871,29 @@ int make_in_page(struct mg_connection *conn, in *i)
 	line = make_image_line(plotLine(i, now() - 4*7*24*3600, now(), def_w, def_h));
 	mg_printf(conn, line.c_str());
 
-	// Maybe i'll get the html or javascript fixed for this eventually.
+	char from[30], to[30];
+	double tnow = now();
+	write_human_time(from, tnow-24*3600);
+	write_human_time(to, tnow);
+	line = make_link(string("/in/") + i->getDescriptor() + "/cycle/3600/" + from + "/" + to + "/2000/600", "cyclic graph last day per hour");
+	mg_printf(conn, line.c_str());
+	mg_printf(conn, "<br>\n");
+
+	write_human_time(from, tnow-7*24*3600);
+	line = make_link(string("/in/") + i->getDescriptor() + "/cycle/86400/" + from + "/" + to + "/2000/600", "cyclic graph last week per day");
+	mg_printf(conn, line.c_str());
+	mg_printf(conn, "<br>\n");
+
+	write_human_time(from, tnow-4*7*24*3600);
+	line = make_link(string("/in/") + i->getDescriptor() + "/cycle/86400/" + from + "/" + to + "/2000/600", "cyclic graph last month per day");
+	mg_printf(conn, line.c_str());
+	mg_printf(conn, "<br>\n");
+	
+	write_human_time(from, tnow-4*7*24*3600);
+	line = make_link(string("/in/") + i->getDescriptor() + "/cycle/604800/" + from + "/" + to + "/2000/600", "cyclic graph last month per week");
+	mg_printf(conn, line.c_str());
+	mg_printf(conn, "<br>\n");	
+	
 	mg_printf(conn, "A section of log data can be viewed as a list. Append /table/ or /table_h/(from)/(to) to the url. The times can be unix timestamps or human readable date/time: dd-mm-yyyy hh:mm:ss.<br>");
 	mg_printf(conn, "A graph of a section of log data can be generated. Append /graph/(from)/(to)[/w/h] to the url. From and to can be unix timestamps or human readable time/date.<br>");
 	mg_printf(conn, "Data can be removed from the dataset (takes some time) with /remove_(time_from, time_to, time_from_to, value_over, value_under, value_between)/(number or human readable datetime[/number or human readable datetime]. Removes data including the given limit(s)<br>");
@@ -988,41 +1314,65 @@ static int begin_request(struct mg_connection *conn)
 		const char *slash2 = slash1 ? strpbrk(slash1+1, "/") : NULL;
 		const char *slash3 = slash2 ? strpbrk(slash2+1, "/") : NULL;
 		const char *slash4 = slash3 ? strpbrk(slash3+1, "/") : NULL;
+		const char *slash5 = slash4 ? strpbrk(slash4+1, "/") : NULL;
 
 		if (slash1)
-			i = get_in(string(uri, slash1 - uri));
+			i = get_in(string(uri, slash1 - uri)); // http://a.b.c.d/in/in-name/more_follows
 		else
-			i = get_in(uri);
-		if (!i) {return 0;}
+			i = get_in(uri); // http://a.b.c.d/in/in-name						
+		if (!i)
+			return 0;
 		if (slash2)
 		{
+			// http://a.b.c.d/in/in-name/table/*end*
 			if (slash3 && !strncmp(slash1, "/table/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
 			{
 				mg_printf(conn, table_fromto(i, from, to).c_str());
 				return 1;
 			}
+			// http://a.b.c.d/in/in-name/table_h/*end*
 			if (slash3 && !strncmp(slash1, "/table_h/", 9) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
 			{
 				mg_printf(conn, table_fromto_h(i, from, to).c_str());
 				return 1;
 			}
+			// http://a.b.c.d/in/in-name/table/start/end
 			if (slash3 && sscanf(slash1, "/table/%lf/%lf", &from, &to) == 2)
 			{
 				mg_printf(conn, table_fromto(i, from, to).c_str());
 				return 1;
 			}
+			// http://a.b.c.d/in/in-name/table_h/start/end
 			if (slash3 && sscanf(slash1, "/table_h/%lf/%lf", &from, &to) == 2)
 			{
 				mg_printf(conn, table_fromto_h(i, from, to).c_str());
 				return 1;
 			}
+			
+			// Specific graph pages
 			uint16_t w, h;
+			// http://a.b.c.d/in/in-name/graph/24-7-2001 18:00:33/31-7-2001 16:35:00/width/heigth
 			if (slash4 && !strncmp(slash1, "/graph/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to) && sscanf(slash4, "/%" SCNu16 "/%" SCNu16, &w, &h) == 2)
 				return make_in_graph_page(conn, i, from, to, w, h);			
+			// http://a.b.c.d/in/in-name/graph/24-7-2001 18:00:33/31-7-2001 16:35:00
 			if (slash3 && !strncmp(slash1, "/graph/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
-				return make_in_graph_page(conn, i, from, to);			
+				return make_in_graph_page(conn, i, from, to);
+			// http://a.b.c.d/in/in-name/graph/from/to			
 			if (sscanf(slash1, "/graph/%lf/%lf", &from, &to) == 2)
-				return make_in_graph_page(conn, i, from, to);			
+				return make_in_graph_page(conn, i, from, to);
+					
+			// Cyclic graph pages
+			float cycle;
+			// http://a.b.c.d/in/in-name/cycle/cycletime/24-7-2001 18:00:33/31-7-2001 16:35:00/width/heigth
+			if (slash5 && !strncmp(slash1, "/cycle/", 7) && sscanf(slash2, "/%f", &cycle) == 1 && read_human_time(slash3+1, &from) && read_human_time(slash4+1, &to) && sscanf(slash5, "/%" SCNu16 "/%" SCNu16, &w, &h) == 2)
+				return make_in_cycle_page(conn, i, from, to, cycle, w, h);			
+			// http://a.b.c.d/in/in-name/cycle/cycletime/24-7-2001 18:00:33/31-7-2001 16:35:00
+			if (slash4 && !strncmp(slash1, "/cycle/", 7) && sscanf(slash2, "/%f", &cycle) == 1 && read_human_time(slash3+1, &from) && read_human_time(slash4+1, &to))
+				return make_in_cycle_page(conn, i, from, to, cycle);
+			// http://a.b.c.d/in/in-name/cycle/cycletime/from/to			
+			if (slash4 && sscanf(slash1, "/cycle/%f/%lf/%lf", &cycle, &from, &to) == 3)
+				return make_in_cycle_page(conn, i, from, to, cycle);
+						
 			// Trim commands, human readable
 			if (slash2 && !strncmp(slash1, "/remove_time_from/", 16) && read_human_time(slash2+1, &from))
 				return make_in_remove_reply(conn, i->remove_time_from(from));			
@@ -1080,9 +1430,6 @@ static int begin_request(struct mg_connection *conn)
 
 	if (!strcmp(ri->uri, "/") or !strcmp(ri->uri, "/index.htm") or !strcmp(ri->uri, "/index.html")){
 		return make_root_page(conn);}
-
-	//return webgui_autograph(ri->uri);
-	//return webgui_autograph(string(ri->uri)); 
 
 	#ifdef debug_mg
 		printf("Mongoose: finished request %s\n", ri->uri);
