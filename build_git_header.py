@@ -1,4 +1,5 @@
 import subprocess
+import wordhash
 
 header_file_name = "git_header.h"
 
@@ -31,6 +32,7 @@ def get_git_working_tree_clean_from_header_file():
 
 def write_header_file():
 	header = open(header_file_name, "w")
+	words = wordhash.shorthash_to_words(get_git_revision_short_hash())
 	header.write('''// Automatically generated file by ''' + __file__ + ''' 
 
 #ifndef HAVE_VERSION_H
@@ -41,6 +43,8 @@ def write_header_file():
 #define GIT_WORKING_TREE_CLEAN ''' + get_git_working_tree_clean() + '''
 #define GIT_WORKING_TREE "''' + ( "clean" if get_git_working_tree_clean() == "1" else "modified" ) + '''"
 #define GIT_SHORT_HASH_WITH_MODIFIED "''' + get_git_revision_short_hash() + ( " modified" if get_git_working_tree_clean() != "1" else "") + '''" 
+#define GIT_SHORT_WORDHASH "''' + words[0] + " " + words[1] + " " + words[2] + '''" 
+#define GIT_SHORT_WORDHASH_WITH_MODIFIED "''' + words[0] + " " + words[1] + " " + words[2] + ( " modified" if get_git_working_tree_clean() != "1" else "") + '''" 
 
 #endif // HAVE_VERSION_H
 '''

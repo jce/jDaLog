@@ -28,3 +28,5 @@ config.json
 *.backup
 *.swp
 
+git_header.h
+__pycache__/
