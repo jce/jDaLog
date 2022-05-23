@@ -508,7 +508,7 @@ int main(){
 #endif // HAVE_MARIA
 
 	// Startup
-	printf("welcome to tcFarmControl " GIT_SHORT_HASH_WITH_MODIFIED "\n");
+	printf("welcome to tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED " (" GIT_SHORT_HASH ")\n");
 
 	// Read configuration
     json_t *json;
@@ -629,7 +629,7 @@ int main(){
 	mysql_library_end();
 #endif // HAVE_MARIA
 
-	printf("tcFarmControl " GIT_SHORT_HASH_WITH_MODIFIED " has shutdown. byebye.\n");
+	printf("tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED " (" GIT_SHORT_HASH ") has shutdown. byebye.\n");
 	return 0;
 	}
 
