@@ -81,6 +81,8 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 	room_CO = new in(getDescriptor() + "_rco", getName() + " room CO", "PPM", 1);
 	room_smoke_temp = new in(getDescriptor() + "_rst", getName() + " room smoke temperature", "degC", 1);
 
+	rain_rate = new in(getDescriptor() + "_rr", getName() + " rain rate", "mm/h", 2);
+
 //	Q0_0 = new out(getDescriptor() + "_Q0_0", getName() + " Q0.0", "", 0, (void*)this);
 
 	writecounter = 0;
@@ -90,6 +92,8 @@ interface_S1200::~interface_S1200(){
 	Cli_Disconnect(PLC);
 
 //	delete Q0_0;
+	delete rain_rate;
+
 	delete room_smoke_temp;
 	delete room_CO;
 
@@ -207,6 +211,10 @@ void interface_S1200::getIns(){
 		uptime = be32toh(uptime);
 		uptime_in->setValue(uptime, t);		
 
+		// Added, JCE, 4-5-2022
+		memcpy(&f, data + 92, 4);
+		f = beftoh(f);
+		rain_rate->setValue(f, t);
 
 		if (rv == 0 and scanCA == scanCB and magicNr == MAGICNR and version == 1 and scancounter != scanCA and uptime > 10)
 		{

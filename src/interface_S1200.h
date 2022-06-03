@@ -41,6 +41,7 @@ class interface_S1200 : public interface{
 		in *uptime_in; // JCE, 30-4-2019	
 		in *rain_bucket_tips, *rain_count; // JCE, 22-6-2019
 		in *room_CO, *room_smoke_temp;	// JCE, 4-5-2022
+		in *rain_rate; // JCE, 3-6-2022
 
 		//out *Q0_0;
 		// Data.h
