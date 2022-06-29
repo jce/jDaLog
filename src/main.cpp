@@ -547,29 +547,12 @@ int main(){
 	build_in_equations(json_object_get(json, "in_equation"));
 	out_conf(json_object_get(json, "out"));
 	bool check_files = json_is_true(json_object_get(json, "check_files"));
-	
-	//uint16_t port = 8090;
 	json_t *webgui_j = json_object_get(json, "webgui");
-	if (json_is_object(webgui_j))
-	{
-		json_t *def_w_j, *def_h_j;// *port_j
-		//port_j = json_object_get(webgui_j, "port");
-		def_w_j = json_object_get(webgui_j, "def_w");
-		def_h_j = json_object_get(webgui_j, "def_h");
-		//if (json_is_integer(port_j))
-		//	port = json_integer_value(port_j);
-		if (json_is_integer(def_w_j))
-			def_w = json_integer_value(def_w_j);
-		if (json_is_integer(def_h_j))
-			def_h = json_integer_value(def_h_j);
-	}
-
+	config_webgui(webgui_j);
 	haveControl = new in("prog_ctrl", "Program has control", "");
 	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
 	lrain = new logic_rain("lrain", "LRain");
 	lpower = new logic_power("lpower", "LPower");
-	//pwrsum = new in("pwrsum", "Power sum", "W", 3);
-	//kWhsum = new in("kwhsum", "kWh sum", "kWh", 3);
 
 	if (not globalControl)
 		webGuiStart("8094");

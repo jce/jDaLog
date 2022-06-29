@@ -91,6 +91,7 @@ target_sources(tcFarmControl PUBLIC
 	webgui.cpp
 	webgui_intable.cpp
 	webgui_mac.cpp
+	webgui_page.cpp
 	webin.cpp
 	${EXTRA_SRC}
 )
@@ -99,8 +100,12 @@ set_source_files_properties(interface_S1200.cpp PROPERTIES INCLUDE_DIRECTORIES "
 set_source_files_properties(main.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-full-1.4.2/release/Wrappers/c-cpp/")
 
 add_custom_command(
-	OUTPUT ${PROJECT_BINARY_DIR}/git_header.h
+	OUTPUT 
+		${PROJECT_BINARY_DIR}/__git_header.h
+		${PROJECT_BINARY_DIR}/git_header.h
 	COMMAND python3 ${PROJECT_SOURCE_DIR}/../build_git_header.py
 )
 
-
+add_custom_target(always_run ALL
+	DEPENDS	${PROJECT_BINARY_DIR}/__git_header.h 
+	)
