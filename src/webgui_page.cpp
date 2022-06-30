@@ -39,6 +39,8 @@ int build_page_data_from_json(json_t* json)
 		}
 		page[string(key)] = {.html = string(json_string_value(value))};
 		page[string(key)].has_form = page[string(key)].html.find("fc_input") != string::npos ;
+		page[string(key)].has_header = page[string(key)].html.find("fc_noheader") == string::npos ;
+		page[string(key)].has_footer = page[string(key)].html.find("fc_nofooter") == string::npos ;
 	}
 	return 1;
 }
@@ -46,6 +48,20 @@ int build_page_data_from_json(json_t* json)
 bool page_exists(const string &url)
 {
 	return page.count(url);
+}
+
+bool page_has_header(const string &url)
+{
+	if (not page_exists(url))
+		return false;
+	return page[url].has_header;
+}
+
+bool page_has_footer(const string &url)
+{
+	if (not page_exists(url))
+		return false;
+	return page[url].has_footer;
 }
 
 // Given a string
@@ -155,11 +171,11 @@ string build_page(const string &url, vector<std::string> options)
 				unsigned int w = def_w;
 				unsigned int h = def_h;
 
-				par = parameter_lookup(tagstr, "w");
+				par = parameter_lookup(tagstr, "width");
 				if (par != "")
 					try { w = stod(par); } catch (...) {}
 
-				par = parameter_lookup(tagstr, "h");
+				par = parameter_lookup(tagstr, "height");
 				if (par != "")
 					try { h = stod(par);	} catch (...) {}			
 

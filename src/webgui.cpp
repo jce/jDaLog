@@ -696,6 +696,16 @@ static int log_message(const struct mg_connection *conn, const char *message) {
 
 stringStore *noteStore;
 
+double make_simple_header(struct mg_connection *conn, unsigned int autoRefreshTime = 0)
+{
+	
+	double t = now();
+	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
+	if (autoRefreshTime)
+		mg_printf(conn, "<meta http-equiv=\"refresh\" content=\"%u\">\n", autoRefreshTime);
+	return t;
+}
+
 double make_header(struct mg_connection *conn, unsigned int autoRefreshTime = 0){
 	double t = now();
 	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
@@ -1301,7 +1311,12 @@ int make_configured_page(struct mg_connection *conn, string url)
 	int post_data_len = mg_read(conn, post_data, SIZE);
 	bool scan = post_data_len > 0;
 	
-	double now = make_header(conn);
+	double t;
+	if (page_has_header(url))
+		t = make_header(conn);
+	else
+		t = make_simple_header(conn); // Sorry, but this also provides
+		// some html headers, that are required.
 	
 	while(scan)
 	{
@@ -1314,7 +1329,9 @@ int make_configured_page(struct mg_connection *conn, string url)
 	}
 	
 	mg_printf(conn, build_page(url, options).c_str());
-	make_footer(conn, now);
+	
+	if (page_has_footer(url))
+		make_footer(conn, t);
 	
 	return 1;
 } 

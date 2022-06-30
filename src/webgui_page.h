@@ -13,6 +13,8 @@ typedef struct s_page
 {
 	std::string html;
 	bool has_form = false;
+	bool has_header = true;
+	bool has_footer = true;
 } t_page;
 
 //extern std::map<std::string, t_page> page;
@@ -23,6 +25,10 @@ int build_page_data_from_json(json_t*);
 
 // Check if a page exists with this URL.
 bool page_exists(const string&);
+
+// Check if a page has a header and/or footer
+bool page_has_header(const string&);
+bool page_has_footer(const string&);
 
 // Build the page for given URL and 
 // post data (implitit numeric id:content)
