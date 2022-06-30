@@ -262,12 +262,15 @@ string plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsign
 		fprintf(fp, "\":\"");
 		fprintt(fp, tmax);
 		fprintf(fp, "\"]\n");		
-		//fprintf(fp, "set format x \"%%Y-%%m-%%d\\n%%k:%%M:%%.3S\"\n");			// Added, JCE, 17-9-2018		
-		fprintf(fp, "set format x \"%%d-%%m-%%Y");									// Added, JCE, 17-9-2018		
-		if ((tmax-tmin) < 7*86400)fprintf(fp, "\\n%%k:%%M");						// Added, JCE, 17-9-2018		
-		if ((tmax-tmin) < 3600)fprintf(fp, ":%%S");									// Added, JCE, 17-9-2018		
-		fprintf(fp, "\n");															// Added, JCE, 17-9-2018		
-		//fprintf(fp, "set xlabel \"1-2-1998\"\n");									// Added, JCE, 17-9-2018		
+
+		fprintf(fp, "set format x \"");
+		if ( tmax-tmin > 24*60*60 - 10	) fprintf(fp, "%%d-%%m");
+		if ( tmax-tmin > 364*24*60*60 	) fprintf(fp, "-%%Y");
+		if ( tmax-tmin > 24*60*60 - 10	) fprintf(fp, " ");
+		if ( tmax-tmin > 60 			) fprintf(fp, "%%H:%%M");
+		if ( tmax-tmin <= 3600 - 10 	) fprintf(fp, ":%%S\"\n");
+		fprintf(fp, "\n");		
+
 		fprintf(fp, "set yrange [%.8f:%.8f]\n", y1.ymin, y1.ymax);
 		fprintf(fp, "set ylabel \"%s\"\n", y1.units.c_str());
 		if (haveY2){ 	fprintf(fp, "set y2range [%.8f:%.8f]\n", y2.ymin, y2.ymax);
