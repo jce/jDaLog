@@ -61,7 +61,7 @@ interface_pi_gpio::~interface_pi_gpio()
 {
 	for (auto o = outputs.begin(); o != outputs.end(); o++)
 	{
-		printf("%p %d\n", o->first, o->second);
+		//printf("%p %d\n", o->first, o->second);
 		//setOut(o->first, 0);
 		gpioWrite(o->second, 0);
 	}		

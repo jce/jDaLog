@@ -23,15 +23,6 @@ struct flStat
 	float max;		// Largest sample.
 };
 
-// C-style struct with list of measurements
-/*typedef struct recordlist
-{
-	size_t num;		// Number of records in the rec array.
-	double tmin;	// Start of the interval.
-	double tmax;	// End of the interval.
-	record rec[];	// All records that occur in the interval.
-} recordlist;*/
-
 class floatLog
 {
 	public:
@@ -94,7 +85,7 @@ class floatLog
 		pthread_mutex_t memMutex = PTHREAD_MUTEX_INITIALIZER;
 		size_t records_in_file(); // Not protected by a mutex!
 		void read_last_from_file();
-		record last;
+		record last = {0.0, 0.0};
 
 		FILE *fp;
 		void openfile_read();

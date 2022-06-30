@@ -73,25 +73,25 @@ void floatLog::read_last_from_file()
 {
 	pthread_mutex_lock(&fileMutex);
 	openfile_read();
-		if (fp)
+	if (fp)
+	{
+		// seek 1 record before end
+       	fseek(fp, 0, SEEK_END);
+       	size_t pos = ftell(fp) / RSIZE;
+		if (pos == 0)
 		{
-			// seek 1 record before end
-        	fseek(fp, 0, SEEK_END);
-        	size_t pos = ftell(fp) / RSIZE;
-			if (pos == 0)
-			{
-				last.t = 0;
-				last.v = 0;
-				fclose(fp);
-				pthread_mutex_unlock(&fileMutex);
-				return;
-			}
-        	fseek(fp, (pos - 1) * RSIZE, SEEK_SET);
-			// read record
-			fread(&last.t, sizeof(double), 1, fp);
-			fread(&last.v, sizeof(float), 1, fp) ;
+			last.t = 0;
+			last.v = 0;
 			fclose(fp);
+			pthread_mutex_unlock(&fileMutex);
+			return;
 		}
+       	fseek(fp, (pos - 1) * RSIZE, SEEK_SET);
+		// read record
+		fread(&last.t, sizeof(double), 1, fp);
+		fread(&last.v, sizeof(float), 1, fp) ;
+		fclose(fp);
+	}
 	pthread_mutex_unlock(&fileMutex);
 }
 
