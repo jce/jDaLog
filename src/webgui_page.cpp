@@ -154,7 +154,7 @@ string build_page(const string &url, vector<std::string> options)
 				i = get_in(parameter_lookup(tagstr, "in4"));if (i) ins.push_back(i);
 				
 				double tmin = now() - 3600;
-				string par = parameter_lookup(tagstr, "t");
+				string par = parameter_lookup(tagstr, "time");
 
 				if (par != "")
 					try { tmin = now() - stod(par); } catch (...) {}
