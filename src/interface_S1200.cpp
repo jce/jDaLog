@@ -83,6 +83,14 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 
 	rain_rate = new in(getDescriptor() + "_rr", getName() + " rain rate", "mm/h", 2);
 
+	water_tank_level = new in(getDescriptor() + "_wtl", getName() + " water tank level", "m", 3);
+	water_tank_volume = new in(getDescriptor() + "_wtv", getName() + " water tank volume", "m3", 3);
+
+	Bed_B1 = new in(getDescriptor() + "_b1", getName() + " bed 1", "Ohm", 3);
+	Bed_B2 = new in(getDescriptor() + "_b2", getName() + " bed 2", "Ohm", 3);
+	Bed_B3 = new in(getDescriptor() + "_b3", getName() + " bed 3", "Ohm", 3);
+	Bed_B4 = new in(getDescriptor() + "_b4", getName() + " bed 4", "Ohm", 3);
+
 //	Q0_0 = new out(getDescriptor() + "_Q0_0", getName() + " Q0.0", "", 0, (void*)this);
 
 	writecounter = 0;
@@ -91,7 +99,14 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 interface_S1200::~interface_S1200(){
 	Cli_Disconnect(PLC);
 
-//	delete Q0_0;
+	delete Bed_B4;
+	delete Bed_B3;
+	delete Bed_B2;
+	delete Bed_B1;
+
+	delete water_tank_volume;
+	delete water_tank_level;
+
 	delete rain_rate;
 
 	delete room_smoke_temp;
@@ -166,29 +181,30 @@ double bedtoh(double d){
 	return out_f;
 	}
 
-void interface_S1200::getIns(){
+void interface_S1200::getIns()
+{
+
+	interaction_counter++;
+	interaction_30 = interaction_counter == 30;
+	if (interaction_30)
+		interaction_counter = 0;
+
 	char data[65535];
 	double d = 0;
 	float f = 0;
 	uint32_t rv, u = 0, scanCA = 0, scanCB = 0, magicNr = 0, uptime = 0, rain_ticks = 0;
 	uint16_t version = 0;
 	
-	// Open connection every scan... JCE, 15-10-2016
-	//Cli_ConnectTo(PLC, _ipstr.c_str(), 0, 1);
-
 	// Read part
 	double start = now();
-    //printf(" %X\n", Cli_DBRead(PLC, 85, 0, 26, &data));
-	//printf("\n\nhallo ik ga het risicogebied in...\n");
-    rv = Cli_DBRead(PLC, 85, 0, 114, &data);
-	//printf("rv: %i\n", rv);
+    rv = Cli_DBRead(PLC, 85, 0, 164, &data);
 	if (rv != 0) {
 		Cli_Disconnect(PLC);
 		Cli_ConnectTo(PLC, _ipstr.c_str(), 0, 1);
-        	rv = Cli_DBRead(PLC, 85, 0, 114, &data);
+        	rv = Cli_DBRead(PLC, 85, 0, 164, &data);
 		}
-	//printf(" %X\n", Cli_DBRead(PLC, 85, 0, sizeof(DBHeader), &data));
 	double end = now();
+
 	double t = (start + end) / 2;
 	bool b_roomIOOnline = false, b_roomMotionTop, b_roomMotionDesk, b_roomDoorOpen, b_roomMotionCorridor, b_roomPresence;
 	bool rainSensorOK = false, roomTemperatureReadoutOK = false;
@@ -203,7 +219,7 @@ void interface_S1200::getIns(){
 		version = be16toh(version);
 		memcpy(&scanCA, data + 6, 4);
 		scanCA = be32toh(scanCA);
-		memcpy(&scanCB, data + 110, 4);
+		memcpy(&scanCB, data + 160, 4);
 		scanCB = be32toh(scanCB);
 
 		// JCE, 30-4-2019: Added uptime hack, many measurements start as "0" adding erronous results to the logdata.
@@ -215,6 +231,18 @@ void interface_S1200::getIns(){
 		memcpy(&f, data + 92, 4);
 		f = beftoh(f);
 		rain_rate->setValue(f, t);
+
+		// Added, JCE, 8-7-2022
+		if (interaction_30)
+		{		
+			memcpy(&f, data + 96, 4);
+			f = beftoh(f);
+			water_tank_level->setValue(f, t);
+
+			memcpy(&f, data + 100, 4);
+			f = beftoh(f);
+			water_tank_volume->setValue(f, t);
+		}	
 
 		if (rv == 0 and scanCA == scanCB and magicNr == MAGICNR and version == 1 and scancounter != scanCA and uptime > 10)
 		{
@@ -335,15 +363,33 @@ void interface_S1200::getIns(){
 			memcpy(&f, data + 80, 4);
 			f = beftoh(f);
 			rain_count->setValue(f, t);	
-
+		
 			// Added, JCE, 4-5-2022
 			memcpy(&f, data + 84, 4);
 			f = beftoh(f);
 			room_CO->setValue(f, t);
-	
+
 			memcpy(&f, data + 88, 4);
 			f = beftoh(f);
-			room_smoke_temp->setValue(f, t);	
+			room_smoke_temp->setValue(f, t);
+
+			// Added, JCE, 7-9-2022
+			memcpy(&f, data + 104, 4);
+			f = beftoh(f);
+			Bed_B1->setValue(f, t);
+
+			memcpy(&f, data + 108, 4);
+			f = beftoh(f);
+			Bed_B2->setValue(f, t);
+
+			memcpy(&f, data + 112, 4);
+			f = beftoh(f);
+			Bed_B3->setValue(f, t);
+
+			memcpy(&f, data + 116, 4);
+			f = beftoh(f);
+			Bed_B4->setValue(f, t);
+
 		}
 	}
 

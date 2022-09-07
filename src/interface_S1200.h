@@ -42,6 +42,8 @@ class interface_S1200 : public interface{
 		in *rain_bucket_tips, *rain_count; // JCE, 22-6-2019
 		in *room_CO, *room_smoke_temp;	// JCE, 4-5-2022
 		in *rain_rate; // JCE, 3-6-2022
+		in *water_tank_level, *water_tank_volume; // JCE, 8-7-2022
+		in *Bed_B1, *Bed_B2, *Bed_B3, *Bed_B4; // JCE, 7-9-2022
 
 		//out *Q0_0;
 		// Data.h
@@ -71,6 +73,8 @@ class interface_S1200 : public interface{
 		uint32_t scancounter, writecounter;
 		double lastReadTime;
 		float lastScanTime;
+		int interaction_counter = 0;	// For generating a 30-interactions-pulse.
+		bool interaction_30 = false;	// True once every 30 interactions.
 	};
 
 #endif // HAVE_INTERFACE_S1200_H
