@@ -40,7 +40,7 @@ class interface_S1200 : public interface{
 		in *sheepWaterPulse, *sheepFoodPresence; // Abstracted pulses from water, actual sheep-is-eating detection. JCE, 22-9-2018	
 		in *uptime_in; // JCE, 30-4-2019	
 		in *rain_bucket_tips, *rain_count; // JCE, 22-6-2019
-		in *room_CO, *room_smoke_temp;	// JCE, 4-5-2022
+		in *room_CO, *room_smoke_temp, *room_stove_fan_sp;	// JCE, 4-5-2022
 		in *rain_rate; // JCE, 3-6-2022
 		in *water_tank_level, *water_tank_volume; // JCE, 8-7-2022
 		in *Bed_B1, *Bed_B2, *Bed_B3, *Bed_B4; // JCE, 7-9-2022

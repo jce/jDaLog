@@ -80,6 +80,7 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 
 	room_CO = new in(getDescriptor() + "_rco", getName() + " room CO", "PPM", 1);
 	room_smoke_temp = new in(getDescriptor() + "_rst", getName() + " room smoke temperature", "degC", 1);
+	room_stove_fan_sp = new in(getDescriptor() + "_rsfs", getName() + " room stove fan setpoint", "0-24", 0);
 
 	rain_rate = new in(getDescriptor() + "_rr", getName() + " rain rate", "mm/h", 2);
 
@@ -109,6 +110,7 @@ interface_S1200::~interface_S1200(){
 
 	delete rain_rate;
 
+	delete room_stove_fan_sp;
 	delete room_smoke_temp;
 	delete room_CO;
 
@@ -372,6 +374,8 @@ void interface_S1200::getIns()
 			memcpy(&f, data + 88, 4);
 			f = beftoh(f);
 			room_smoke_temp->setValue(f, t);
+
+			room_stove_fan_sp->setValue(* (uint8_t*) (data + 48), t);
 
 			// Added, JCE, 7-9-2022
 			memcpy(&f, data + 104, 4);
