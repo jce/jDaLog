@@ -83,6 +83,7 @@ target_sources(tcFarmControl PUBLIC
 	logic_pi_reg.cpp
 	logic_power.cpp
 	logic_rain.cpp
+	#logic_sleep.cpp
 	logic_tunnel.cpp
 	main.cpp
 	mytime.cpp
