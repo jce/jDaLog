@@ -44,6 +44,7 @@ class interface_S1200 : public interface{
 		in *rain_rate; // JCE, 3-6-2022
 		in *water_tank_level, *water_tank_volume; // JCE, 8-7-2022
 		in *Bed_B1, *Bed_B2, *Bed_B3, *Bed_B4; // JCE, 7-9-2022
+		in *room_temp_sp, *room_temp_history; // JCE, 23-10-2022
 
 		//out *Q0_0;
 		// Data.h

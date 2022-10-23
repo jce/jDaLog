@@ -92,6 +92,9 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 	Bed_B3 = new in(getDescriptor() + "_b3", getName() + " bed 3", "Ohm", 3);
 	Bed_B4 = new in(getDescriptor() + "_b4", getName() + " bed 4", "Ohm", 3);
 
+	room_temp_sp = new in(getDescriptor() + "_temp_sp", getName() + " room temp sp", "degC", 1);
+	room_temp_history = new in(getDescriptor() + "_temp_hist", getName() + " room temp history", "degC", 1);
+
 //	Q0_0 = new out(getDescriptor() + "_Q0_0", getName() + " Q0.0", "", 0, (void*)this);
 
 	writecounter = 0;
@@ -99,6 +102,9 @@ interface_S1200::interface_S1200(const string d, const string n, float i, const 
 
 interface_S1200::~interface_S1200(){
 	Cli_Disconnect(PLC);
+	
+	delete room_temp_history;
+	delete room_temp_sp;
 
 	delete Bed_B4;
 	delete Bed_B3;
@@ -229,22 +235,6 @@ void interface_S1200::getIns()
 		uptime = be32toh(uptime);
 		uptime_in->setValue(uptime, t);		
 
-		// Added, JCE, 4-5-2022
-		memcpy(&f, data + 92, 4);
-		f = beftoh(f);
-		rain_rate->setValue(f, t);
-
-		// Added, JCE, 8-7-2022
-		if (interaction_30)
-		{		
-			memcpy(&f, data + 96, 4);
-			f = beftoh(f);
-			water_tank_level->setValue(f, t);
-
-			memcpy(&f, data + 100, 4);
-			f = beftoh(f);
-			water_tank_volume->setValue(f, t);
-		}	
 
 		if (rv == 0 and scanCA == scanCB and magicNr == MAGICNR and version == 1 and scancounter != scanCA and uptime > 10)
 		{
@@ -280,7 +270,35 @@ void interface_S1200::getIns()
 			hyflofft->setValue(f, t);
 
 
+			// Added, JCE, 4-5-2022
+			memcpy(&f, data + 92, 4);
+			f = beftoh(f);
+			rain_rate->setValue(f, t);
 
+			// Added, JCE, 8-7-2022
+			if (interaction_30)
+			{		
+				memcpy(&f, data + 96, 4);
+				f = beftoh(f);
+				water_tank_level->setValue(f, t);
+	
+				memcpy(&f, data + 100, 4);
+				f = beftoh(f);
+				water_tank_volume->setValue(f, t);
+			}	
+
+			// If the temperature setpoint is used
+			if (data[35] & (1 << 0))
+			{
+				memcpy(&f, data + 120, 4);
+				f = beftoh(f);
+				room_temp_sp->setValue(f, t);	
+			}
+
+			// Room historic temperature		
+			memcpy(&f, data + 124, 4);
+			f = beftoh(f);
+			room_temp_history->setValue(f, t);	
 
 			b_roomIOOnline = data[34] & (1 << 0);
 			roomIOOnline->setValue(b_roomIOOnline, t);
