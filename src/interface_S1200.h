@@ -78,4 +78,8 @@ class interface_S1200 : public interface{
 		bool interaction_30 = false;	// True once every 30 interactions.
 	};
 
+float htobef(float);
+float beftoh(float);
+double bedtoh(double);
+
 #endif // HAVE_INTERFACE_S1200_H

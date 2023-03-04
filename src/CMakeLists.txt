@@ -13,6 +13,7 @@ add_executable(tcFarmControl
 
 IF(HAVE_S7)
 	list(APPEND EXTRA_SRC interface_S1200.cpp)
+	list(APPEND EXTRA_SRC interface_2B)
 	list(APPEND EXTRA_LIBS snap7)
 endif()
 
@@ -98,6 +99,7 @@ target_sources(tcFarmControl PUBLIC
 )
 
 set_source_files_properties(interface_S1200.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-full-1.4.2/release/Wrappers/c-cpp/")
+set_source_files_properties(interface_2B.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-full-1.4.2/release/Wrappers/c-cpp/")
 set_source_files_properties(main.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-full-1.4.2/release/Wrappers/c-cpp/")
 
 add_custom_command(

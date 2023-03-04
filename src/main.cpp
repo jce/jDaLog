@@ -25,6 +25,7 @@
 #include "interface_adam6052.h"
 #ifdef HAVE_S7
 	#include "interface_S1200.h"
+	#include "interface_2B.h"
 #endif // HAVE_S7
 #include "interface_macp.h"
 #include "webin.h"
@@ -140,6 +141,13 @@ void build_interfaces(json_t *arr)
 						new interface_S1200(id, name, scan, address);
 					else
 						printf("could not build interface_S1200(%s, %s, %f, %s)\n", id, name, scan, address);
+				}
+				if (strcmp(type, "2B") == 0)
+				{
+					if (id and name and json_is_number(jscan) and address)
+						new interface_2B(id, name, scan, address);
+					else
+						printf("could not build interface_2B(%s, %s, %f, %s)\n", id, name, scan, address);
 				}
 #endif // HAVE_S7
 				if (strcmp(type, "hs110") == 0)

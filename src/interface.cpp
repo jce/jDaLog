@@ -150,6 +150,9 @@ interface::~interface(){
 		printf("Deleting interface %s...\n", _descr.c_str());
 	#endif
 	//interfaces.erase(_descr);
+	for(auto i = ins.begin(); i != ins.end(); i++)
+		delete(i->second);
+
 	_name->~stringStore();
 	_note->~stringStore();
 	#ifdef debug
