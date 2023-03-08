@@ -36,9 +36,9 @@
 	BOOL(	1,	2, 	"lka",	"licht kamer")\
 	BOOL(	1,	3, 	"lke",	"licht keuken")\
 	BOOL(	1,	4, 	"lh",	"licht hal")\
-	UI16(	10,		"bt", 	"temperatuur buiten",	 		"degC", 	2, 	0.01) \
-	UI16(	12,		"kmt", 	"temperatuur ketel midden", 	"degC", 	2, 	0.01) \
-	UI16(	14,		"kbt", 	"temperatuur ketel boven",	 	"degC", 	2, 	0.01) \
+	I16(	10,		"bt", 	"temperatuur buiten",	 		"degC", 	2, 	0.01) \
+	I16(	12,		"kmt", 	"temperatuur ketel midden", 	"degC", 	2, 	0.01) \
+	I16(	14,		"kbt", 	"temperatuur ketel boven",	 	"degC", 	2, 	0.01) \
 // READVALUES
 
 using namespace std;
@@ -51,13 +51,13 @@ interface_2B::interface_2B(const string d, const string n, float i, const string
 
 	ins["latency"] = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 
-	#define UI16(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
+	#define I16(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
 		ins[_DESCR_] = new in(getDescriptor() + "_" + _DESCR_, getName() + " " + _NAME_, _UNIT_, _DECIMALS_);
 	#define BOOL(_DBOFFSET_, _BITOFFSET_, _DESCR_, _NAME_) \
 		ins[_DESCR_] = new in(getDescriptor() + "_" + _DESCR_, getName() + " " + _NAME_);
 	READVALUES	
 	#undef BOOL
-	#undef UI16
+	#undef I16
 
 	writecounter = 0;
 }
@@ -96,13 +96,13 @@ void interface_2B::getIns()
 	if(rv == 0)
 	{
 		DBG("data read: %016lx", * (uint64_t*) data);
-		#define UI16(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
-			ins[_DESCR_]->setValue( (float) be16toh(*(uint16_t*) (data+_DBOFFSET_)) * _FACTOR_, t);
+		#define I16(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
+			ins[_DESCR_]->setValue( (float) be16toh(*(int16_t*) (data+_DBOFFSET_)) * _FACTOR_, t);
 		#define BOOL(_DBOFFSET_, _BITOFFSET_, _DESCR_, _NAME_) \
 			ins[_DESCR_]->setValue((bool) (data[_DBOFFSET_] & (1 << _BITOFFSET_)) , t);
 		READVALUES	
 		#undef BOOL
-		#undef UI16
+		#undef I16
 		//ins["temp_buiten"]->setValue( (float) be16toh(*(uint16_t*) (data+2)) / 100, t);
 		//ins["temp_ketel"]->setValue(  (float) be16toh(*(uint16_t*) (data+4)) / 100, t);
 	/*
