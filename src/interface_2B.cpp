@@ -22,23 +22,27 @@
 
 #define DB_NR		8
 #define READ_SIZE	32
+#define RUNTIME_MIN	2
 // type( offset_in_db, descriptor_addition_string, public_name_addition_string, unit_string, decimals, factor )
 #define READVALUES \
-	BOOL(	0,	0, 	"bs",	"beweging slaapkamer")\
-	BOOL(	0,	1, 	"bb",	"beweging badkamer")\
-	BOOL(	0,	2, 	"bka",	"beweging kamer")\
-	BOOL(	0,	3, 	"bke",	"beweging keuken")\
-	BOOL(	0,	5, 	"dw",	"deurbel Wilgenlaan 2")\
-	BOOL(	0,	6, 	"kkw",	"knopje keuken Wilgenlaan 2")\
-	BOOL(	0,	7, 	"tf",	"toilet flush")\
-	BOOL(	1,	0, 	"ls",	"licht slaapkamer")\
-	BOOL(	1,	1, 	"lb",	"licht badkamer")\
-	BOOL(	1,	2, 	"lka",	"licht kamer")\
-	BOOL(	1,	3, 	"lke",	"licht keuken")\
-	BOOL(	1,	4, 	"lh",	"licht hal")\
-	I16(	10,		"bt", 	"temperatuur buiten",	 		"degC", 	2, 	0.01) \
-	I16(	12,		"kmt", 	"temperatuur ketel midden", 	"degC", 	2, 	0.01) \
-	I16(	14,		"kbt", 	"temperatuur ketel boven",	 	"degC", 	2, 	0.01) \
+	I32(	0,		"rt",	"runtime",						"s",		0,	1)\
+	BOOL(	4,	0, 	"bs",	"beweging slaapkamer")\
+	BOOL(	4,	1, 	"bb",	"beweging badkamer")\
+	BOOL(	4,	2, 	"bka",	"beweging kamer")\
+	BOOL(	4,	3, 	"bke",	"beweging keuken")\
+	BOOL(	4,	5, 	"dw",	"deurbel Wilgenlaan 2")\
+	BOOL(	4,	6, 	"kkw",	"knopje keuken Wilgenlaan 2")\
+	BOOL(	4,	7, 	"tf",	"toilet flush")\
+	BOOL(	5,	0, 	"ls",	"licht slaapkamer")\
+	BOOL(	5,	1, 	"lb",	"licht badkamer")\
+	BOOL(	5,	2, 	"lka",	"licht kamer")\
+	BOOL(	5,	3, 	"lke",	"licht keuken")\
+	BOOL(	5,	4, 	"lh",	"licht hal")\
+	BOOL(	5,	5, 	"wp",	"wifi power")\
+	BOOL(	5,	6, 	"cp",	"circulatie pump power")\
+	I16(	14,		"bt", 	"temperatuur buiten",	 		"degC", 	2, 	0.01) \
+	I16(	16,		"kmt", 	"temperatuur ketel midden", 	"degC", 	2, 	0.01) \
+	I16(	18,		"kbt", 	"temperatuur ketel boven",	 	"degC", 	2, 	0.01) \
 // READVALUES
 
 using namespace std;
@@ -51,15 +55,16 @@ interface_2B::interface_2B(const string d, const string n, float i, const string
 
 	ins["latency"] = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 
-	#define I16(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
-		ins[_DESCR_] = new in(getDescriptor() + "_" + _DESCR_, getName() + " " + _NAME_, _UNIT_, _DECIMALS_);
 	#define BOOL(_DBOFFSET_, _BITOFFSET_, _DESCR_, _NAME_) \
 		ins[_DESCR_] = new in(getDescriptor() + "_" + _DESCR_, getName() + " " + _NAME_);
+	#define I16(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
+		ins[_DESCR_] = new in(getDescriptor() + "_" + _DESCR_, getName() + " " + _NAME_, _UNIT_, _DECIMALS_);
+	#define I32(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
+		ins[_DESCR_] = new in(getDescriptor() + "_" + _DESCR_, getName() + " " + _NAME_, _UNIT_, _DECIMALS_);
 	READVALUES	
-	#undef BOOL
+	#undef I32
 	#undef I16
-
-	writecounter = 0;
+	#undef BOOL
 }
 
 interface_2B::~interface_2B()
@@ -96,13 +101,26 @@ void interface_2B::getIns()
 	if(rv == 0)
 	{
 		DBG("data read: %016lx", * (uint64_t*) data);
-		#define I16(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
-			ins[_DESCR_]->setValue( (float) be16toh(*(int16_t*) (data+_DBOFFSET_)) * _FACTOR_, t);
-		#define BOOL(_DBOFFSET_, _BITOFFSET_, _DESCR_, _NAME_) \
-			ins[_DESCR_]->setValue((bool) (data[_DBOFFSET_] & (1 << _BITOFFSET_)) , t);
-		READVALUES	
-		#undef BOOL
-		#undef I16
+
+		int32_t runtime = be32toh(*(uint32_t*) (data + 0));
+		if (runtime >= RUNTIME_MIN and runtime > last_runtime)
+		{
+			#define BOOL(_DBOFFSET_, _BITOFFSET_, _DESCR_, _NAME_) \
+				ins[_DESCR_]->setValue((bool) (data[_DBOFFSET_] & (1 << _BITOFFSET_)) , t);
+			#define I16(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
+				ins[_DESCR_]->setValue( (int16_t) be16toh(*(uint16_t*) (data+_DBOFFSET_)) * _FACTOR_, t);
+			#define I32(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
+				ins[_DESCR_]->setValue( (int32_t) be32toh(*(uint32_t*) (data+_DBOFFSET_)) * _FACTOR_, t);
+			READVALUES	
+			#undef I32
+			#undef I16
+			#undef BOOL
+		}
+		last_runtime = runtime;
+
+		// offset 16
+		//DBG("%i", (int16_t) be16toh(*(uint16_t*) (data+16)));
+
 		//ins["temp_buiten"]->setValue( (float) be16toh(*(uint16_t*) (data+2)) / 100, t);
 		//ins["temp_ketel"]->setValue(  (float) be16toh(*(uint16_t*) (data+4)) / 100, t);
 	/*

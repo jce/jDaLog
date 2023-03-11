@@ -34,7 +34,7 @@ class interface_2B : public interface{
 	private:
 		const std::string _ipstr;
         S7Object PLC;
-		uint32_t scancounter, writecounter;
+		int16_t last_runtime;
 		double lastReadTime;
 		float lastScanTime;
 		int interaction_counter = 0;	// For generating a 30-interactions-pulse.
