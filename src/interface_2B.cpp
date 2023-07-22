@@ -30,6 +30,7 @@
 	BOOL(	4,	1, 	"bb",	"beweging badkamer")\
 	BOOL(	4,	2, 	"bka",	"beweging kamer")\
 	BOOL(	4,	3, 	"bke",	"beweging keuken")\
+	BOOL(	4,	4, 	"bh",	"beweging hal")\
 	BOOL(	4,	5, 	"dw",	"deurbel Wilgenlaan 2")\
 	BOOL(	4,	6, 	"kkw",	"knopje keuken Wilgenlaan 2")\
 	BOOL(	4,	7, 	"tf",	"toilet flush")\
@@ -40,9 +41,15 @@
 	BOOL(	5,	4, 	"lh",	"licht hal")\
 	BOOL(	5,	5, 	"wp",	"wifi power")\
 	BOOL(	5,	6, 	"cp",	"circulatie pump power")\
+	BOOL(	5,	7, 	"dbu",	"deur buiten")\
+	BOOL(	6,	0, 	"dh",	"deur hal")\
+	BOOL(	6,	1, 	"dk",	"deur keuken")\
+	BOOL(	6,	2, 	"ds",	"deur slaapkamer")\
+	BOOL(	6,	3, 	"dba",	"deur badkamer")\
 	I16(	14,		"bt", 	"temperatuur buiten",	 		"degC", 	2, 	0.01) \
 	I16(	16,		"kmt", 	"temperatuur ketel midden", 	"degC", 	2, 	0.01) \
 	I16(	18,		"kbt", 	"temperatuur ketel boven",	 	"degC", 	2, 	0.01) \
+	I32(	24,		"wm", 	"watermeter",	 				"L", 		1, 	0.5) \
 // READVALUES
 
 using namespace std;

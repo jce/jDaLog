@@ -60,6 +60,8 @@
 #include "interface_GS308E.h"
 #include "logic_pi_reg.h"
 #include "interface_fritz.h"
+#include "interface_S7.h"
+
 
 using namespace std;
 //#define debug
@@ -102,6 +104,11 @@ void build_interfaces(json_t *arr)
 			type = 	json_string_value(json_object_get(json, "type"));
 			if (type)
 			{
+			
+				#define INTERFACE(_TYPE_, _FACTORY_) if (strcmp( #_TYPE_, type) == 0 ) _FACTORY_(json);
+				INTERFACES
+				#undef INTERFACE
+
 				id = 		json_string_value(json_object_get(json, "id"));
 				name = 		json_string_value(json_object_get(json, "name"));
 				key = 		json_string_value(json_object_get(json, "key"));

@@ -14,6 +14,7 @@ add_executable(tcFarmControl
 IF(HAVE_S7)
 	list(APPEND EXTRA_SRC interface_S1200.cpp)
 	list(APPEND EXTRA_SRC interface_2B)
+	list(APPEND EXTRA_SRC interface_S7)
 	list(APPEND EXTRA_LIBS snap7)
 endif()
 

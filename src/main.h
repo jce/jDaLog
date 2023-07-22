@@ -17,4 +17,11 @@ extern jos_pool *pool;
 
 extern bool globalControl;	// If this bool is set, all outputs are controlled by this program. Otherwise it is listening only.
 
+#define STR(_X_) #_X_
+
+#define INTERFACES \
+	/*			type,		factory function			*/\
+	INTERFACE(	S7,			interface_S7_from_json		) \
+	// End INTERFACES
+
 #endif // HAVE_MAIN_H
