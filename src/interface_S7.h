@@ -37,7 +37,6 @@ typedef enum S7_regtype
 		S7_int32,
 		S7_uint64,
 		S7_int64,
-		S7_float16,
 		S7_float32,
 		S7_float64,
 		S7_regnum
@@ -60,18 +59,13 @@ typedef struct S7_io
 		struct S7_key key;
 		S7_regtype type;
 		float read_interval;
-		double next_scheduled_time;
-		std::string identifier;
-		std::string name;
-		std::string units;
-		uint16_t decimals;
+		double next_scheduled_time = 0;
 		double a, b;
 		in* i = NULL;
 		//bool has_validity_bit;
 		//uint16_t validity_offset;
 		//uint16_t validity_bit_offset;
-		//struct S7_io *adj_before;
-		//struct S7_io *adj_after;
+		~S7_io();
 	} S7_io;
 
 class interface_S7 : public interface{
@@ -93,7 +87,8 @@ class interface_S7 : public interface{
 		S7_io *schedule = NULL;	// S7_io structures in chronological order
 		double next_multiple(double, double);
 		void init_schedule();
-		void reschedule(S7_io*, double);	
+		void reschedule(S7_io*, double);	 
+		in *latency;
 
 	friend void interface_S7_from_json(const json_t*);
 	};

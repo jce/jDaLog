@@ -39,14 +39,13 @@ const char* S7_regtype_str[S7_regnum] =
 		"int32",
 		"uint64",
 		"int64",
-		"float16",
 		"float32",
 		"float64"
 	};
 
 const int S7_regtype_len[S7_regnum] = 
 	{
-		1, 1, 1, 2, 2, 4, 4, 8, 8, 2, 4, 8
+		1, 1, 1, 2, 2, 4, 4, 8, 8, 4, 8
 	};
 
 bool operator<(const S7_key& l, const S7_key& r)
@@ -56,65 +55,45 @@ bool operator<(const S7_key& l, const S7_key& r)
 			(l.db == r.db && l.byte == r.byte && l.bit < r.bit);
 }
 
+S7_io::~S7_io()
+{
+	delete i;
+}
+
 interface_S7::interface_S7(const string d, const string n, float i, const string _ipstr, S7_conntype c, uint16_t r, uint16_t s):interface(d, n, i), ipstr(_ipstr), conntype(c), rack(r), slot(s)
 {
 	ins["latency"] = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
+	latency = ins["latency"];
 }
 
 interface_S7::~interface_S7()
 {
+	run_flg = false;
 }
 
 void interface_S7::getIns()
 {
-	/*
-	interaction_counter++;
-	interaction_30 = interaction_counter == 30;
-	if (interaction_30)
-		interaction_counter = 0;
+}
 
-	uint8_t data[READ_SIZE];
-	uint32_t rv;
-	
-	// Read part
-	double start = now();
-    rv = Cli_DBRead(PLC, DB_NR, 0, READ_SIZE, &data);
-	if (rv != 0) 
+void dbg_list_item(S7_io *list)
+{
+		DBG("next: %p, key: db%d, %d.%d, type: %d, interval: %f, scheduled: %f, id: %s, name: %s, unit: %s, decimals: %d, a: %f, b: %f, in: %p", list->next, list->key.db, list->key.byte, list->key.bit, list->type, list->read_interval, list->next_scheduled_time, list->i->getDescriptor().c_str(), list->i->getName().c_str(), list->i->getUnits().c_str(), list->i->getDecimals(), list->a, list->b, list->i);
+}
+
+void dbg_list(S7_io *list)
+{
+	DBG("displaying list at %p", list);
+	while (list)
 	{
-		DBG("Reading PLC data failed, rv=%i", rv);
-		Cli_Disconnect(PLC);
-		Cli_ConnectTo(PLC, _ipstr.c_str(), 0, 2);
-        	rv = Cli_DBRead(PLC, DB_NR, 0, READ_SIZE, &data);
-		}
-	double end = now();
-
-	double t = (start + end) / 2;
-	ins["latency"]->setValue((end-start)/1*1000, t); // 1 request, scale = ms
-	if(rv == 0)
-	{
-		DBG("data read: %016lx", * (uint64_t*) data);
-
-		int32_t runtime = be32toh(*(uint32_t*) (data + 0));
-		if (runtime >= RUNTIME_MIN and runtime > last_runtime)
-		{
-			#define BOOL(_DBOFFSET_, _BITOFFSET_, _DESCR_, _NAME_) \
-				ins[_DESCR_]->setValue((bool) (data[_DBOFFSET_] & (1 << _BITOFFSET_)) , t);
-			#define I16(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
-				ins[_DESCR_]->setValue( (int16_t) be16toh(*(uint16_t*) (data+_DBOFFSET_)) * _FACTOR_, t);
-			#define I32(_DBOFFSET_, _DESCR_, _NAME_, _UNIT_, _DECIMALS_, _FACTOR_) \
-				ins[_DESCR_]->setValue( (int32_t) be32toh(*(uint32_t*) (data+_DBOFFSET_)) * _FACTOR_, t);
-			READVALUES	
-			#undef I32
-			#undef I16
-			#undef BOOL
-		}
-		last_runtime = runtime;
+		dbg_list_item(list);
+		list = list->next;
 	}
-*/
 }
 
 void interface_S7::start()
 {
+	init_schedule();
+	//dbg_list(schedule);
     PLC = Cli_Create();
 	switch(conntype) 
 	{
@@ -130,15 +109,89 @@ void interface_S7::start()
 			break;
 	}
     Cli_ConnectTo(PLC, ipstr.c_str(), rack, slot);
-	// build_outreg();
-	// link_adj_reg_contexts();
-	// init_schedule();
+	run_flg = true;
 	interface::start();
 }
 
+
 void interface_S7::run()
 {
+	#define MSG_SIZE_MAX 1024
+	
+	uint8_t msg[MSG_SIZE_MAX];
+	double t, tin, latency_start, latency_end;
+	uint16_t db, start, len;
+	while (run_flg)
+	{
+		t = now_mt();
+		tin = now();
+		if (t < schedule->next_scheduled_time)
+			t = schedule->next_scheduled_time;	// Prevent double calls if sleep returns early.
+		db = schedule->key.db;
+		start = schedule->key.byte;
+		#define END (schedule->key.byte + S7_regtype_len[schedule->type])
+		S7_io *transaction = NULL, *item;
 
+		// Take the subset of scheduled items that fit in the largest message and put them in 
+		// a separate transaction list.
+		while (schedule and schedule->next_scheduled_time <= t and schedule->key.db == db and (END - start) <= MSG_SIZE_MAX)
+		{
+			len = END - start;
+			item = transaction;
+			transaction = schedule;
+			schedule = schedule->next;
+			transaction->next = item;
+		}
+		
+		//DBG("Requesting db %d, start %d, len %d", db, start, len);	
+		//dbg_list(transaction);
+		// Request the memory section for transaction.
+		latency_start = now_mt();
+		while ( Cli_DBRead(PLC, db, start, len, &msg) != 0 and run_flg)
+		{
+			DBG("Reconnect");
+			Cli_Disconnect(PLC);	
+			sleep(1);
+			Cli_ConnectTo(PLC, ipstr.c_str(), rack, slot);
+			latency_start = now_mt();
+		}
+		latency_end = now_mt();
+		latency->setValue((latency_end - latency_start) * 1000, tin);
+
+		// Translate the message to inputs
+		while ( transaction and run_flg )
+		{
+			// Process input
+			uint8_t *p = msg + transaction->key.byte - start;
+			double val;
+			switch (transaction->type)
+			{
+				case S7_bool:	val = (bool) (*p & ( 1 << transaction->key.bit)); break;
+				case S7_uint8: 	val = (uint8_t) *p; break;
+				case S7_int8:	val = (int8_t) *p; break;
+				case S7_uint16:	val = (uint16_t) be16toh( *(uint16_t*) p ); break;
+				case S7_int16:	val = (int16_t) be16toh( *(uint16_t*) p ); break;
+				case S7_uint32:	val = (uint32_t) be32toh( *(uint32_t*) p ); break;
+				case S7_int32:	val = (int32_t) be32toh( *(uint32_t*) p ); break;
+				case S7_uint64:	val = (uint64_t) be16toh( *(uint64_t*) p ); break;
+				case S7_int64:	val = (int64_t) be16toh( *(uint64_t*) p ); break;
+				case S7_float32:{uint32_t x; x = be32toh ( *(int32_t*) p); val = * (float*) &x;} break;
+				case S7_float64:{uint64_t x; x = be64toh ( *(int64_t*) p); val = * (double*) &x;} break;
+				default: break;
+			}
+			val = transaction->a * val + transaction->b;
+			transaction->i->setValue(val, tin);
+			
+			// reschedule the S7_io
+			item = transaction;
+			transaction = transaction->next;
+			reschedule(item, t);
+		}
+
+		// Sleep until next scheduled time
+		if (run_flg)
+			usleep((schedule->next_scheduled_time - t) * 1000000);
+	}
 }
 
 double interface_S7::next_multiple(double val, double interval)
@@ -149,9 +202,11 @@ double interface_S7::next_multiple(double val, double interval)
 
 void interface_S7::init_schedule()
 {
+	
 	double t = now_mt();
 	for (auto i = interface_S7::ios.begin(); i != interface_S7::ios.end(); i++)
 	{
+		//dbg_list_item( &(i->second) );
 		reschedule( &(i->second), t );
 	}
 }
@@ -162,7 +217,10 @@ void interface_S7::reschedule(S7_io *si, double t)
 	S7_io **i = &schedule;
 	while ( (*i) && *i != si)
 		i = & (*i)->next;
-	*i = si->next;
+	if (*i)
+	{
+		*i = si->next;
+	}
 
 	// Calculate next time
 	si->next_scheduled_time = next_multiple(t, si->read_interval);
@@ -178,6 +236,9 @@ void interface_S7::reschedule(S7_io *si, double t)
 				)
 			)
 		  )
+	{
+		i = & (*i)->next;
+	}
 	si->next = (*i);
 	(*i) = si;
 }
@@ -252,15 +313,14 @@ void interface_S7_from_json(const json_t *json)
 				key.db = db;
 				key.byte = byte;
 				key.bit = bit;
-			S7_io io;
-				io.key = key;
-				io.type = type;
-				io.read_interval = interval;
-				io.i = new in(inid_full, inname_full, unit, decimals);
-				io.i->set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
-				io.a = a;
-				io.b = b;
-			S7->ios[key] = io;
+			S7->ios[key].key = key;
+			S7->ios[key].type = type;
+			S7->ios[key].read_interval = interval;
+			S7->ios[key].a = a;
+			S7->ios[key].b = b;
+			S7->ios[key].key = key;
+			S7->ios[key].i = new in(inid_full, inname_full, unit, decimals);
+			S7->ios[key].i->set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
 		}
 	}
 }
