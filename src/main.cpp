@@ -18,14 +18,12 @@
 #include "in.h" 
 #include "in_equation.h" 
 #include "interface.h"
-#include "interface_rwl.h"
 #include "interface_host.h"
 #include "interface_solarlog.h"
 #include "mytime.h" // now()
 #include "interface_adam6052.h"
 #ifdef HAVE_S7
-	#include "interface_S1200.h"
-	#include "interface_2B.h"
+	#include "interface_S7.h"
 #endif // HAVE_S7
 #include "interface_macp.h"
 #include "webin.h"
@@ -57,10 +55,8 @@
 #ifdef HAVE_USB
 	#include "interface_k8055.h"
 #endif // HAVE_USB
-#include "interface_GS308E.h"
 #include "logic_pi_reg.h"
 #include "interface_fritz.h"
-#include "interface_S7.h"
 
 
 using namespace std;
@@ -69,13 +65,12 @@ using namespace std;
 // The main.cpp file. This file serves as incubator for new additions / components. JCE, 17-6-13
 
 bool run(true);
-bool globalControl(true);	// The inverse of isDevelopmentVersion heh. JCE, 25-9-13
 jos_pool *pool;
 
-in *haveControl;
-logic *lfijnstof, *lrain;
-logic *lpower;
-in *pwrsum = NULL, *kWhsum = NULL;
+//in *haveControl;
+//logic *lfijnstof, *lrain;
+//logic *lpower;
+//in *pwrsum = NULL, *kWhsum = NULL;
 
 // Signal handling.
 void handle_signal(int signal){
@@ -104,7 +99,6 @@ void build_interfaces(json_t *arr)
 			type = 	json_string_value(json_object_get(json, "type"));
 			if (type)
 			{
-			
 				#define INTERFACE(_TYPE_, _FACTORY_) if (strcmp( #_TYPE_, type) == 0 ) _FACTORY_(json);
 				INTERFACES
 				#undef INTERFACE
@@ -142,20 +136,6 @@ void build_interfaces(json_t *arr)
 						printf("could not build interface_solarlog(%s, %s, %f, %s)\n", id, name, scan, address);
 				}
 #ifdef HAVE_S7
-				if (strcmp(type, "S1200") == 0)
-				{
-					if (id and name and json_is_number(jscan) and address)
-						new interface_S1200(id, name, scan, address);
-					else
-						printf("could not build interface_S1200(%s, %s, %f, %s)\n", id, name, scan, address);
-				}
-				if (strcmp(type, "2B") == 0)
-				{
-					if (id and name and json_is_number(jscan) and address)
-						new interface_2B(id, name, scan, address);
-					else
-						printf("could not build interface_2B(%s, %s, %f, %s)\n", id, name, scan, address);
-				}
 #endif // HAVE_S7
 				if (strcmp(type, "hs110") == 0)
 				{
@@ -163,13 +143,6 @@ void build_interfaces(json_t *arr)
 						new interface_hs110(id, name, scan, address);
 					else
 						printf("could not build interface_hs110(%s, %s, %f, %s)\n", id, name, scan, address);
-				}
-				if (strcmp(type, "rwl") == 0)
-				{
-					if (id and name and json_is_number(jscan) and address)
-						new interface_rwl(id, name, scan, address);
-					else
-						printf("could not build interface_rwl(%s, %s, %f, %s)\n", id, name, scan, address);
 				}
 				if (strcmp(type, "fijnstof") == 0)
 				{
@@ -251,13 +224,6 @@ void build_interfaces(json_t *arr)
 						interface_mb_from_json(id, name, json);
 					else
 						printf("could not build interface_mb(%s, %s)\n", id, name);
-				}
-				if (strcmp(type, "GS308E") == 0)
-				{
-					if (id and name)
-						interface_gs308e_from_json(id, name, json);
-					else
-						printf("could not build interface_gs308e(%s, %s)\n", id, name);
 				}
 #ifdef HAVE_USB
 				if (strcmp(type, "k8055") == 0)
@@ -420,6 +386,7 @@ void build_logics(json_t *arr)
 	}
 }
 
+/*
 void loop1s()
 {
 	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
@@ -444,9 +411,9 @@ void loop1s()
 		kWhsum->setValue(hs110_rm_tot->getValue() + hs110_fr_tot->getValue() + hs110_wp_tot->getValue());
 	}
 }
+*/
 
 void loop60s(){
-	haveControl->setValue(globalControl);
 	touchAllWebins();
 }
 
@@ -472,36 +439,6 @@ void sort_all_in_files()
 		i->second->sort_file();
 	}
 	printf("Binary data file checking complete.\n");
-}
-
-void debug_plot_stuff()
-{
-	in *i = get_in("S1200_rmc");
-	in *j = get_in("S1200_rmt");
-	// list<in*>, tmin, tmax, x-pixels, y-pixels, title
-	plotLines(i, j, now()-28*24*3600, now(), 1200, 400, "test");
-	jos_run(pool, (void (*)(void*)) debug_plot_stuff, NULL);
-}
-void debug_plot_stuff2()
-{
-	in *i = get_in("host_disk_usedp");
-	in *j = get_in("hs110_wp_whr");
-	// list<in*>, tmin, tmax, x-pixels, y-pixels, title
-	plotLines(i, j, now()-28*24*3600, now(), 1200, 400, "test");
-	jos_run(pool, (void (*)(void*)) debug_plot_stuff2, NULL);
-}
-void debug_plot_stuff3()
-{
-	in *i = get_in("mac_jce_phone");
-	in *j = get_in("mac_jce_desktop");
-	// list<in*>, tmin, tmax, x-pixels, y-pixels, title
-	plotLines(i, j, now()-28*24*3600, now(), 1200, 400, "test");
-	jos_run(pool, (void (*)(void*)) debug_plot_stuff3, NULL);
-}
-
-void print_ptr(void *p)
-{
-	printf("print_ptr(%p)\n", p);
 }
 
 int main(){
@@ -564,21 +501,13 @@ int main(){
 	bool check_files = json_is_true(json_object_get(json, "check_files"));
 	json_t *webgui_j = json_object_get(json, "webgui");
 	config_webgui(webgui_j);
-	haveControl = new in("prog_ctrl", "Program has control", "");
-	lfijnstof = new logic_fijnstof("lfijnstof", "Lfijnstof");
-	lrain = new logic_rain("lrain", "LRain");
-	lpower = new logic_power("lpower", "LPower");
-
-	if (not globalControl)
-		webGuiStart("8094");
-	else
-		webGuiStart();
+	webGuiStart();
 	
 	touchAllWebins();
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->start();
 	
-	jos_run_every(pool, 1, 		(void (*)(void*)) loop1s, NULL);
+	//jos_run_every(pool, 1, 		(void (*)(void*)) loop1s, NULL);
 	jos_run_every(pool, 60, 	(void (*)(void*)) loop60s, NULL);
 	jos_run_every(pool, 3600, 	(void (*)(void*)) loopstoreio, NULL);
 	if (check_files)
@@ -589,8 +518,6 @@ int main(){
 
 	usleep(100000);
 	printf("running... (press control+C to stop)\n");
-	//(void) getc (stdin);
-	// Wait for signal...
 	while(run){sleep(1000);}
 	printf("shuttind down...\n");
 	run = false;
@@ -603,7 +530,6 @@ int main(){
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->join();
 
-	// webgui.h / webgui.cp
 	// Stops all jobs, including those from interfaces.
 	jos_delete_pool(pool);
 	webGuiStop();
@@ -611,15 +537,6 @@ int main(){
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		delete i->second;
 	
-	if(kWhsum)
-		delete kWhsum;
-	if (pwrsum)
-		delete pwrsum;
-	delete lpower;
-	delete lrain;
-	delete lfijnstof;
-	delete haveControl;
-
 	for (auto wi = webinmap.begin(); wi != webinmap.end(); wi++)
 		delete(wi->second);
 

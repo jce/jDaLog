@@ -54,10 +54,6 @@ interface_mb::~interface_mb()
 
 void interface_mb::setOut(out *o, float v)
 {
-
-	if (!globalControl) 
-		return;
-
 	if (outreg.count(o) == 0)
 		return;
 

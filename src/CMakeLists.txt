@@ -12,8 +12,6 @@ add_executable(tcFarmControl
 )
 
 IF(HAVE_S7)
-	list(APPEND EXTRA_SRC interface_S1200.cpp)
-	list(APPEND EXTRA_SRC interface_2B)
 	list(APPEND EXTRA_SRC interface_S7)
 	list(APPEND EXTRA_LIBS snap7)
 endif()
@@ -62,19 +60,13 @@ target_sources(tcFarmControl PUBLIC
 	interface.cpp
 	interface_darksky.cpp
 	interface_fijnstof.cpp
-	interface_fridge.cpp
 	interface_fritz.cpp
-	interface_GS308E.cpp
 	interface_host.cpp
 	interface_hs110.cpp
 	interface_macp.cpp
 	interface_mb.cpp
-	interface_ping.cpp
-	interface_rwl.cpp
 	interface_sht3x.cpp
 	interface_solarlog.cpp
-	interface_tgTemp.cpp
-	interface_xmrstak.cpp
 	logic_compare.cpp
 	logic.cpp
 	logic_fijnstof.cpp
@@ -85,7 +77,6 @@ target_sources(tcFarmControl PUBLIC
 	logic_pi_reg.cpp
 	logic_power.cpp
 	logic_rain.cpp
-	#logic_sleep.cpp
 	logic_tunnel.cpp
 	main.cpp
 	mytime.cpp

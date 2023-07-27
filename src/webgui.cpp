@@ -716,10 +716,6 @@ double make_header(struct mg_connection *conn, unsigned int autoRefreshTime = 0)
 	if (autoRefreshTime)
 		mg_printf(conn, "<meta http-equiv=\"refresh\" content=\"%u\">\n", autoRefreshTime);
 	mg_printf(conn, "</head><h1><a href=\"/\"><font color=\"#000000\"><span title=" GIT_SHORT_HASH ">tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED "</span></font></a>\n");
-	if (globalControl)
-		mg_printf(conn, " - <font color=\"#00FF00\">controlling</font>");
-	else
-		mg_printf(conn, " - <font color=\"#F00F00\">monitoring only</font>\n");
 	unsigned int outs = outsInManual();
 	if (outs){
 		mg_printf(conn, " - <a href=\"/manout\"><font color=\"#F00F00\">%u out", outs);
@@ -1115,10 +1111,10 @@ int make_out_page(struct mg_connection *conn, string outName){
 		mg_printf(conn, "this out is in manual mode, controlled by this webpage.<br>\n");
 	else
 		mg_printf(conn, "this out is in auto mode, controlled by the program logic.<br>\n");
-	if (myOut->getControl() and globalControl)
+	if (myOut->getControl())
 		mg_printf(conn, "this out is controlling the pyhsical interface or output.<br>\n");
 	else
-		mg_printf(conn, "this out is not controlling the physical interface or output. Can be auto mode without controlling logic, or global control disabled.<br>\n");
+		mg_printf(conn, "this out is not controlling the physical interface or output. Can be auto mode without controlling logic.<br>\n");
 	if (myOut->getControl())	
 		mg_printf(conn, "<form method=\"POST\">Set output<br><INPUT type=\"submit\" name=\"set\", value=\"auto (%.*f)\"><br>", dec, myOut->getOut());
 	else

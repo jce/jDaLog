@@ -234,9 +234,6 @@ prp(q, "p");
 
 void interface_hs110::setOut(out* o, float v)
 {
-	if (!globalControl)
-		return;
-	
 	char buf[HS110_BUFSIZE];
 
 	if (o == relay && v >= 0.5)

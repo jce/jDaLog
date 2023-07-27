@@ -52,7 +52,6 @@ typedef struct S7_key
 } S7_key;
 bool operator<(const S7_key& l, const S7_key& r);
 		
-
 typedef struct S7_io 
 	{
 		struct S7_io *next = NULL;			// Next scheduled item
@@ -65,14 +64,11 @@ typedef struct S7_io
 		//bool has_validity_bit;
 		//uint16_t validity_offset;
 		//uint16_t validity_bit_offset;
-		~S7_io();
 	} S7_io;
 
 class interface_S7 : public interface{
 	public:
 		interface_S7(const std::string, const std::string, float, const std::string, S7_conntype, uint16_t, uint16_t); // descr, name, ip-as-string, connection type, racknumber, slotnumber
-		~interface_S7();
-		void getIns();
 		std::map<std::string, in*> ins;
 		void start();
 		void run();

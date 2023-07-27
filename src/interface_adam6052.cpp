@@ -97,7 +97,6 @@ void interface_adam6052::getIns(){
 
 // out setter, JCE, 23-7-13
 void interface_adam6052::setOut(out* o, float v){
-	if (!globalControl) return;
 	makeModbusContext();
 	bool newState = true;
 	if (v < 0.5) newState = false;

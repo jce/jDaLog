@@ -15,13 +15,20 @@
 #define DEFAULT_SCHEDULER_NUM_THREADS 4
 extern jos_pool *pool;
 
-extern bool globalControl;	// If this bool is set, all outputs are controlled by this program. Otherwise it is listening only.
-
 #define STR(_X_) #_X_
+
+#ifdef HAVE_S7											
+#define S7INTERFACE \
+	INTERFACE(	S7,			interface_S7_from_json		)
+#else // HAVE_S7
+#define S7INTERFACE
+#endif // HAVE_S7
 
 #define INTERFACES \
 	/*			type,		factory function			*/\
-	INTERFACE(	S7,			interface_S7_from_json		) \
+														\
+	/* Partial lists based on precompiler options */	\
+	S7INTERFACE											\
 	// End INTERFACES
 
 #endif // HAVE_MAIN_H

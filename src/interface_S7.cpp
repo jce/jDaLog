@@ -16,8 +16,11 @@
 #include "out.h"
 #include "endian.h" 
 
-//#define DBG(...)
-#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+#define MAX_SLEEPTIME 1000000 /* us */
+#define MSG_SIZE_MAX 1024
+
+#define DBG(...)
+//#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
 
 using namespace std;
 
@@ -55,39 +58,10 @@ bool operator<(const S7_key& l, const S7_key& r)
 			(l.db == r.db && l.byte == r.byte && l.bit < r.bit);
 }
 
-S7_io::~S7_io()
-{
-	delete i;
-}
-
 interface_S7::interface_S7(const string d, const string n, float i, const string _ipstr, S7_conntype c, uint16_t r, uint16_t s):interface(d, n, i), ipstr(_ipstr), conntype(c), rack(r), slot(s)
 {
 	ins["latency"] = new in(getDescriptor() + "_lt", getName() + " latency", "ms", 3);
 	latency = ins["latency"];
-}
-
-interface_S7::~interface_S7()
-{
-	run_flg = false;
-}
-
-void interface_S7::getIns()
-{
-}
-
-void dbg_list_item(S7_io *list)
-{
-		DBG("next: %p, key: db%d, %d.%d, type: %d, interval: %f, scheduled: %f, id: %s, name: %s, unit: %s, decimals: %d, a: %f, b: %f, in: %p", list->next, list->key.db, list->key.byte, list->key.bit, list->type, list->read_interval, list->next_scheduled_time, list->i->getDescriptor().c_str(), list->i->getName().c_str(), list->i->getUnits().c_str(), list->i->getDecimals(), list->a, list->b, list->i);
-}
-
-void dbg_list(S7_io *list)
-{
-	DBG("displaying list at %p", list);
-	while (list)
-	{
-		dbg_list_item(list);
-		list = list->next;
-	}
 }
 
 void interface_S7::start()
@@ -113,11 +87,8 @@ void interface_S7::start()
 	interface::start();
 }
 
-
 void interface_S7::run()
 {
-	#define MSG_SIZE_MAX 1024
-	
 	uint8_t msg[MSG_SIZE_MAX];
 	double t, tin, latency_start, latency_end;
 	uint16_t db, start, len;
@@ -125,10 +96,11 @@ void interface_S7::run()
 	{
 		t = now_mt();
 		tin = now();
-		if (t < schedule->next_scheduled_time)
-			t = schedule->next_scheduled_time;	// Prevent double calls if sleep returns early.
-		db = schedule->key.db;
-		start = schedule->key.byte;
+		if( schedule )
+		{
+			db = schedule->key.db;
+			start = schedule->key.byte;
+		}
 		#define END (schedule->key.byte + S7_regtype_len[schedule->type])
 		S7_io *transaction = NULL, *item;
 
@@ -142,22 +114,24 @@ void interface_S7::run()
 			schedule = schedule->next;
 			transaction->next = item;
 		}
-		
-		//DBG("Requesting db %d, start %d, len %d", db, start, len);	
-		//dbg_list(transaction);
-		// Request the memory section for transaction.
-		latency_start = now_mt();
-		while ( Cli_DBRead(PLC, db, start, len, &msg) != 0 and run_flg)
-		{
-			DBG("Reconnect");
-			Cli_Disconnect(PLC);	
-			sleep(1);
-			Cli_ConnectTo(PLC, ipstr.c_str(), rack, slot);
+	
+		if( transaction )
+		{	
+			// Request the memory section for transaction.
+			DBG("Requesting db %d, start %d, len %d", db, start, len);	
 			latency_start = now_mt();
+			while ( Cli_DBRead(PLC, db, start, len, &msg) != 0 and run_flg)
+			{
+				DBG("Reconnect");
+				Cli_Disconnect(PLC);	
+				sleep(1);
+				Cli_ConnectTo(PLC, ipstr.c_str(), rack, slot);
+				latency_start = now_mt();
+			}
+			latency_end = now_mt();
+			latency->setValue((latency_end - latency_start) * 1000, tin);
 		}
-		latency_end = now_mt();
-		latency->setValue((latency_end - latency_start) * 1000, tin);
-
+		
 		// Translate the message to inputs
 		while ( transaction and run_flg )
 		{
@@ -187,10 +161,18 @@ void interface_S7::run()
 			transaction = transaction->next;
 			reschedule(item, t);
 		}
-
-		// Sleep until next scheduled time
+	
+		// Sleep until next scheduled time, or to a defined maximum time. This is to
+		// detect run_flg regularly.
 		if (run_flg)
-			usleep((schedule->next_scheduled_time - t) * 1000000);
+		{	
+			double sleeptime = MAX_SLEEPTIME;
+			if (schedule)
+				sleeptime = (schedule->next_scheduled_time - t) * 1000000;
+			if (sleeptime > MAX_SLEEPTIME)
+				sleeptime = MAX_SLEEPTIME;
+			usleep(sleeptime);
+		}
 	}
 }
 
@@ -202,11 +184,9 @@ double interface_S7::next_multiple(double val, double interval)
 
 void interface_S7::init_schedule()
 {
-	
 	double t = now_mt();
 	for (auto i = interface_S7::ios.begin(); i != interface_S7::ios.end(); i++)
 	{
-		//dbg_list_item( &(i->second) );
 		reschedule( &(i->second), t );
 	}
 }
@@ -321,30 +301,8 @@ void interface_S7_from_json(const json_t *json)
 			S7->ios[key].key = key;
 			S7->ios[key].i = new in(inid_full, inname_full, unit, decimals);
 			S7->ios[key].i->set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
+			S7->ins[inid_full] = S7->ios[key].i;
 		}
 	}
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
