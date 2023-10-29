@@ -101,21 +101,49 @@ void interface_S7::run()
 		tin = now();
 		if( schedule )
 		{
-			db = schedule->key.db;
-			start = schedule->key.byte;
+			db = schedule->db;
+			start = schedule->start;
 		}
-		#define END (schedule->key.byte + S7_regtype_len[schedule->type])
-		S7_io *transaction = NULL, *item;
 
+		//#define END (schedule->key.byte + S7_regtype_len[schedule->type])
+		S7_io *transaction = NULL, *item;
+		S7_io **sp = &schedule;
+		len = 0;
 		// Take the subset of scheduled items that fit in the largest message and put them in 
 		// a separate transaction list.
-		while (schedule and schedule->next_scheduled_time <= t and schedule->key.db == db and (END - start) <= MSG_SIZE_MAX)
+		// The second condition is to keep including short schedule items, even after a longer
+		// schedule item would not fit any more.
+		while (
+				(*sp) and 
+				(*sp)->next_scheduled_time <= t and 
+				(*sp)->db == db and 
+				(*sp)->start < start + MSG_SIZE_MAX
+			  )
 		{
-			len = END - start;
-			item = transaction;
-			transaction = schedule;
-			schedule = schedule->next;
-			transaction->next = item;
+			if ((*sp)->end < start + MSG_SIZE_MAX)
+			{
+				// moves item from sp to transaction, the next schedule item
+				// gets its place in schedule. sp temains the same.
+
+				// Calculate the new length.
+				if (len < start + (*sp)->end)
+					len = start + (*sp)->end;
+
+				// Remove this item from the schedule.
+				item = *sp;
+				*sp = (*sp)->next;
+
+				// Move (insert) this item to the transaction.
+				item->next = transaction;
+				transaction = item;
+			}
+			else
+			{
+				// This is a "skip", continue the schedule pointer. No
+				// items get moved. The next item could be shorter and still fit 
+				// in MSG_SIZE_MAX
+				sp = & (*sp)->next;
+			}
 		}
 	
 		if( transaction )
@@ -139,26 +167,29 @@ void interface_S7::run()
 		while ( transaction and run_flg )
 		{
 			// Process input
-			uint8_t *p = msg + transaction->key.byte - start;
-			double val;
-			switch (transaction->type)
+			if (not transaction->has_validbit or *(msg + transaction->validbyte - start) & (1 << transaction->validbit))
 			{
-				case S7_bool:	val = (bool) (*p & ( 1 << transaction->key.bit)); break;
-				case S7_uint8: 	val = (uint8_t) *p; break;
-				case S7_int8:	val = (int8_t) *p; break;
-				case S7_uint16:	val = (uint16_t) be16toh( *(uint16_t*) p ); break;
-				case S7_int16:	val = (int16_t) be16toh( *(uint16_t*) p ); break;
-				case S7_uint32:	val = (uint32_t) be32toh( *(uint32_t*) p ); break;
-				case S7_int32:	val = (int32_t) be32toh( *(uint32_t*) p ); break;
-				case S7_uint64:	val = (uint64_t) be16toh( *(uint64_t*) p ); break;
-				case S7_int64:	val = (int64_t) be16toh( *(uint64_t*) p ); break;
-				case S7_float32:{uint32_t x; x = be32toh ( *(int32_t*) p); val = * (float*) &x;} break;
-				case S7_float64:{uint64_t x; x = be64toh ( *(int64_t*) p); val = * (double*) &x;} break;
-				default: break;
-			}
-			val = transaction->a * val + transaction->b;
-			transaction->i->setValue(val, tin);
-			
+				uint8_t *p = msg + transaction->key.byte - start;
+				double val;
+				switch (transaction->type)
+				{
+					case S7_bool:	val = (bool) (*p & ( 1 << transaction->key.bit)); break;
+					case S7_uint8: 	val = (uint8_t) *p; break;
+					case S7_int8:	val = (int8_t) *p; break;
+					case S7_uint16:	val = (uint16_t) be16toh( *(uint16_t*) p ); break;
+					case S7_int16:	val = (int16_t) be16toh( *(uint16_t*) p ); break;
+					case S7_uint32:	val = (uint32_t) be32toh( *(uint32_t*) p ); break;
+					case S7_int32:	val = (int32_t) be32toh( *(uint32_t*) p ); break;
+					case S7_uint64:	val = (uint64_t) be16toh( *(uint64_t*) p ); break;
+					case S7_int64:	val = (int64_t) be16toh( *(uint64_t*) p ); break;
+					case S7_float32:{uint32_t x; x = be32toh ( *(int32_t*) p); val = * (float*) &x;} break;
+					case S7_float64:{uint64_t x; x = be64toh ( *(int64_t*) p); val = * (double*) &x;} break;
+					default: break;
+				}
+				val = transaction->a * val + transaction->b;
+				transaction->i->setValue(val, tin);
+			}			
+
 			// reschedule the S7_io
 			item = transaction;
 			transaction = transaction->next;
@@ -210,12 +241,21 @@ void interface_S7::reschedule(S7_io *si, double t)
 
 	// Add at the appropriate place in the schedule
 	i = &schedule;
-	while ( (*i) &&
+	while ( 
+			(*i) 
+			&&
 			(
-				(*i)->next_scheduled_time < si->next_scheduled_time ||
+				(*i)->next_scheduled_time < si->next_scheduled_time 
+				||
 				(
 					(*i)->next_scheduled_time == si->next_scheduled_time &&
-					(*i)->key < si->key
+					(*i)->db < si->db
+				) 
+				||
+				(
+					(*i)->next_scheduled_time == si->next_scheduled_time &&
+					(*i)->db == si->db &&
+					(*i)->start < si->start
 				)
 			)
 		  )
@@ -228,8 +268,9 @@ void interface_S7::reschedule(S7_io *si, double t)
 
 void interface_S7_from_json(const json_t *json)
 {
-	#define JSTR(_X_)	json_string_value(json_object_get(json, #_X_));
-	#define JNR(_X_)	json_number_value(json_object_get(json, #_X_));
+	#define JSTR(_X_)	json_string_value(json_object_get(json, #_X_))
+	#define JNR(_X_)	json_number_value(json_object_get(json, #_X_))
+	#define JIN(_X_)	json_is_number(json_object_get(json, #_X_))
 	const char *id = JSTR(id);
 	const char *name = JSTR(name);
 	if (not name)
@@ -244,14 +285,22 @@ void interface_S7_from_json(const json_t *json)
 	int defaultdb = JNR(db);
 	if (not defaultdb)
 		defaultdb = 1;
-	int defaultinterval = JNR(interval);
+	float defaultinterval = JNR(interval);
 	if (not defaultinterval)
 		defaultinterval = 1;
 	if (not id or not ip)
 		return;
+	uint16_t default_validbyte = 0, default_validbit = 0;
+	bool has_default_validbit = JIN(validbit);
+	if (has_default_validbit)
+	{
+		default_validbyte = JNR(validbit);
+		default_validbit = JNR(validbit) * 10 - default_validbyte * 10;
+	}	
 
 	interface_S7 *S7 = new interface_S7(id, name, 1, ip, conntype, rack, slot);
 
+	#undef JIN
 	#undef JNR
 	#undef JSTR
 	size_t idx;
@@ -259,8 +308,9 @@ void interface_S7_from_json(const json_t *json)
 	map<S7_key, S7_io> inmap;
 	json_array_foreach(json_object_get(json, "in"), idx, in_j)
 	{
-		#define JSTR(_X_)	json_string_value(json_object_get(in_j, #_X_));
-		#define JNR(_X_)	json_number_value(json_object_get(in_j, #_X_));
+		#define JSTR(_X_)	json_string_value(json_object_get(in_j, #_X_))
+		#define JNR(_X_)	json_number_value(json_object_get(in_j, #_X_))
+		#define JIN(_X_)	json_is_number(json_object_get(in_j, #_X_))
 		const char *regtypestr = JSTR(type);
 		S7_regtype type = S7_int16;
 		for( int j = S7_bool; j < S7_regnum; j++)
@@ -270,7 +320,7 @@ void interface_S7_from_json(const json_t *json)
 			db = defaultdb;
 		int byte = JNR(byte);
 		int bit = JNR(bit);
-		int interval = JNR(interval);
+		float interval = JNR(interval);
 		if (not interval)
 			interval = defaultinterval;
 		const char *inid = JSTR(id);
@@ -284,6 +334,34 @@ void interface_S7_from_json(const json_t *json)
 		if (a == 0)
 			a = 1;
 		const double b = JNR(b);
+		uint16_t validbyte = 0, validbit = 0;
+		bool has_validbit = JIN(validbit);
+		if (has_validbit)
+		{
+			validbyte = JNR(validbit);
+			validbit = JNR(validbit) * 10 - validbyte * 10;
+		}	
+		else if (has_default_validbit)
+		{
+			has_validbit = true;
+			validbyte = default_validbyte;
+			validbit = default_validbit;
+		}
+		uint16_t start = byte;	// The block to read starts at this byte
+		if (has_validbit and validbyte < start)
+			start = validbyte;
+		uint16_t end = byte + S7_regtype_len[type] - 1; // End is the last byte that has to be read.
+		if (has_validbit and validbyte > end)
+			end = validbyte;
+		uint16_t len = end - start + 1; // The length of the block to be read.
+
+		if (len > MSG_SIZE_MAX)
+		{
+			printf("in %s (%s) wants an atomic read larger than the maximum message size (%d bytes)\n", inname, inid, MSG_SIZE_MAX);
+			continue;
+		} 
+
+		#undef JIN
 		#undef JNR
 		#undef JSTR
 
@@ -298,10 +376,18 @@ void interface_S7_from_json(const json_t *json)
 				key.bit = bit;
 			S7->ios[key].key = key;
 			S7->ios[key].type = type;
+			S7->ios[key].db = db;
+			S7->ios[key].start = start;
+			S7->ios[key].end = end;
+			S7->ios[key].len = len;
 			S7->ios[key].read_interval = interval;
 			S7->ios[key].a = a;
 			S7->ios[key].b = b;
 			S7->ios[key].key = key;
+			S7->ios[key].has_validbit = has_validbit;
+			S7->ios[key].validbyte = validbyte;
+			S7->ios[key].validbit = validbit;
+			
 			S7->ios[key].i = new in(inid_full, inname_full, unit, decimals);
 			S7->ios[key].i->set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
 			S7->ins[inid_full] = S7->ios[key].i;

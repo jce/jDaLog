@@ -55,15 +55,19 @@ bool operator<(const S7_key& l, const S7_key& r);
 typedef struct S7_io 
 	{
 		struct S7_io *next = NULL;			// Next scheduled item
-		struct S7_key key;
-		S7_regtype type;
+		struct S7_key key;					// Address of the register to read.
+		S7_regtype type;					// S7 datatype of the register to read.
+		uint16_t db;
+		uint16_t start;						// The total atomical read block starts here.
+		uint16_t end;						// The total atomical read block ends here (last included byte).
+		uint16_t len;						// The total atomical read block is this length.
 		float read_interval;
 		double next_scheduled_time = 0;
 		double a, b;
 		in* i = NULL;
-		//bool has_validity_bit;
-		//uint16_t validity_offset;
-		//uint16_t validity_bit_offset;
+		bool has_validbit;					// Is a separate validity given? If this bit is true, then the register is valid.
+		uint16_t validbyte;					// Validity bit byte address (same DB as the key).
+		uint16_t validbit;					// Validity bit bit address.
 	} S7_io;
 
 class interface_S7 : public interface{
