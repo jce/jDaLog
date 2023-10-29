@@ -64,10 +64,14 @@ interface_S7::interface_S7(const string d, const string n, float i, const string
 	latency = ins["latency"];
 }
 
-void interface_S7::start()
+interface_S7::~interface_S7()
 {
-	init_schedule();
-	//dbg_list(schedule);
+	disconnect();
+}
+
+void interface_S7::connect()
+{
+	DBG("Connecting to PLC %s (%s)", getName().c_str(), ipstr.c_str());
     PLC = Cli_Create();
 	switch(conntype) 
 	{
@@ -86,6 +90,19 @@ void interface_S7::start()
 			break;
 	}
     Cli_ConnectTo(PLC, ipstr.c_str(), rack, slot);
+}
+
+void interface_S7::disconnect()
+{
+	Cli_Disconnect(PLC);	
+	Cli_Destroy(&PLC);
+	DBG("PLC %s (%s) disconnected", getName().c_str(), ipstr.c_str());
+}
+
+void interface_S7::start()
+{
+	init_schedule();
+	connect();	
 	run_flg = true;
 	interface::start();
 }
@@ -149,14 +166,13 @@ void interface_S7::run()
 		if( transaction )
 		{	
 			// Request the memory section for transaction.
-			DBG("Requesting db %d, start %d, len %d", db, start, len);	
+			DBG("PLC %s (%s) requesting db %d, start %d, len %d", getName().c_str(), ipstr.c_str(), db, start, len);
 			latency_start = now_mt();
 			while ( Cli_DBRead(PLC, db, start, len, &msg) != 0 and run_flg)
 			{
-				DBG("Reconnect");
-				Cli_Disconnect(PLC);	
-				sleep(1);
-				Cli_ConnectTo(PLC, ipstr.c_str(), rack, slot);
+				disconnect();
+				sleep(5);
+				connect();
 				latency_start = now_mt();
 			}
 			latency_end = now_mt();

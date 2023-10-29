@@ -73,6 +73,7 @@ typedef struct S7_io
 class interface_S7 : public interface{
 	public:
 		interface_S7(const std::string, const std::string, float, const std::string, S7_conntype, uint16_t, uint16_t); // descr, name, ip-as-string, connection type, racknumber, slotnumber
+		~interface_S7();	
 		std::map<std::string, in*> ins;
 		void start();
 		void run();
@@ -89,6 +90,8 @@ class interface_S7 : public interface{
 		void init_schedule();
 		void reschedule(S7_io*, double);	 
 		in *latency;
+		void connect();
+		void disconnect();
 
 	friend void interface_S7_from_json(const json_t*);
 	};
