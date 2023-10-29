@@ -19,8 +19,8 @@
 #define MAX_SLEEPTIME 1000000 /* us */
 #define MSG_SIZE_MAX 1024
 
-#define DBG(...)
-//#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+//#define DBG(...)
+#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
 
 using namespace std;
 
@@ -73,13 +73,16 @@ void interface_S7::start()
 	{
 		case S7_OP:
     		Cli_SetConnectionType(PLC, CONNTYPE_OP);
+			DBG("CONNTYPE_OP");
 			break;
 		case S7_basic:
     		Cli_SetConnectionType(PLC, CONNTYPE_BASIC);
+			DBG("CONNTYPE_BASIC");
 			break;
 		case S7_PG:
 		default:
     		Cli_SetConnectionType(PLC, CONNTYPE_PG);
+			DBG("CONNTYPE_PG");
 			break;
 	}
     Cli_ConnectTo(PLC, ipstr.c_str(), rack, slot);
