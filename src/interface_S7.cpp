@@ -94,6 +94,7 @@ void interface_S7::connect()
 
 void interface_S7::disconnect()
 {
+	DBG("PLC %s (%s) disconnecting", getName().c_str(), ipstr.c_str());
 	Cli_Disconnect(PLC);	
 	Cli_Destroy(&PLC);
 	DBG("PLC %s (%s) disconnected", getName().c_str(), ipstr.c_str());
@@ -111,21 +112,20 @@ void interface_S7::run()
 {
 	uint8_t msg[MSG_SIZE_MAX];
 	double t, tin, latency_start, latency_end;
-	uint16_t db, start, len;
+	uint16_t db, first, last;
 	while (run_flg)
 	{
+		last = 0;
 		t = now_mt();
 		tin = now();
 		if( schedule )
 		{
 			db = schedule->db;
-			start = schedule->start;
+			first = schedule->start;
 		}
 
-		//#define END (schedule->key.byte + S7_regtype_len[schedule->type])
 		S7_io *transaction = NULL, *item;
 		S7_io **sp = &schedule;
-		len = 0;
 		// Take the subset of scheduled items that fit in the largest message and put them in 
 		// a separate transaction list.
 		// The second condition is to keep including short schedule items, even after a longer
@@ -134,17 +134,17 @@ void interface_S7::run()
 				(*sp) and 
 				(*sp)->next_scheduled_time <= t and 
 				(*sp)->db == db and 
-				(*sp)->start < start + MSG_SIZE_MAX
+				(*sp)->start < first + MSG_SIZE_MAX
 			  )
 		{
-			if ((*sp)->end < start + MSG_SIZE_MAX)
+			if ((*sp)->end < first + MSG_SIZE_MAX)
 			{
 				// moves item from sp to transaction, the next schedule item
 				// gets its place in schedule. sp temains the same.
 
-				// Calculate the new length.
-				if (len < start + (*sp)->end)
-					len = start + (*sp)->end;
+				// Calculate the new last byte / end / length.
+				if (last < (*sp)->end)
+					last = (*sp)->end;
 
 				// Remove this item from the schedule.
 				item = *sp;
@@ -166,9 +166,9 @@ void interface_S7::run()
 		if( transaction )
 		{	
 			// Request the memory section for transaction.
-			DBG("PLC %s (%s) requesting db %d, start %d, len %d", getName().c_str(), ipstr.c_str(), db, start, len);
+			DBG("PLC %s (%s) requesting db %d, start %d, len %d", getName().c_str(), ipstr.c_str(), db, first, last-first+1);
 			latency_start = now_mt();
-			while ( Cli_DBRead(PLC, db, start, len, &msg) != 0 and run_flg)
+			while ( Cli_DBRead(PLC, db, first, last-first+1, &msg) != 0 and run_flg)
 			{
 				disconnect();
 				sleep(5);
@@ -183,9 +183,9 @@ void interface_S7::run()
 		while ( transaction and run_flg )
 		{
 			// Process input
-			if (not transaction->has_validbit or *(msg + transaction->validbyte - start) & (1 << transaction->validbit))
+			if (not transaction->has_validbit or *(msg + transaction->validbyte - first) & (1 << transaction->validbit))
 			{
-				uint8_t *p = msg + transaction->key.byte - start;
+				uint8_t *p = msg + transaction->key.byte - first;
 				double val;
 				switch (transaction->type)
 				{
