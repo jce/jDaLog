@@ -12,6 +12,7 @@ gnuplot
 nmap
 libusb-dev
 cmake
+libmicrohttpd-dev
 
 on Debian 11 x64:
 libmicrohttpd12 libmicrohttpd-dev net-tools curl

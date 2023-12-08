@@ -12,7 +12,7 @@ add_executable(tcFarmControl
 )
 
 IF(HAVE_S7)
-	list(APPEND EXTRA_SRC interface_S7)
+	list(APPEND EXTRA_SRC interface_S7.cpp)
 	list(APPEND EXTRA_LIBS snap7)
 endif()
 
@@ -57,6 +57,7 @@ target_sources(tcFarmControl PUBLIC
 	in_from_dir.cpp
 	in_equation.cpp
 	interface_adam6052.cpp
+	interface_circulac.cpp
 	interface.cpp
 	interface_darksky.cpp
 	interface_fijnstof.cpp

@@ -57,7 +57,7 @@
 #endif // HAVE_USB
 #include "logic_pi_reg.h"
 #include "interface_fritz.h"
-
+#include "interface_circulac.h"
 
 using namespace std;
 //#define debug
@@ -234,17 +234,35 @@ void build_interfaces(json_t *arr)
 						printf("could not build interface_k8055(%s, %s)\n", id, name);
 				}
 #endif // HAVE_USB
-				if (strcmp(type, "fritz") == 0)
-				{
-					if (id and name)
-						interface_fritz_from_json(id, name, json);
-					else
-						printf("could not build interface_fritz(%s, %s)\n", id, name);
-				}
+
+#define INTERFACE_GENERATORS \
+	/*IF(fritz)*/	\
+	/*IF(k8055)*/	\
+	IF(circulac)	\
+// end INTERFACE_GENERATORS
+
+#define IF(_X_) \
+{ \
+	if (strcmp(type, #_X_) == 0) \
+	{ \
+		if (not interface_##_X_##_from_json(json)) \
+		{ \
+		printf("could not build interface_" #_X_ "() from json:\n"); \
+		char *s = json_dumps(json, JSON_INDENT(2)); \
+		printf(s); \
+		printf("\n"); \
+		free(s); \
+		} \
+	} \
+}
+				INTERFACE_GENERATORS
+
+#undef INTERFACE_GENERATORS
 			}
 		}	
 	}	
 }
+
 
 void build_webins(json_t *arr)
 {

@@ -73,7 +73,8 @@ void findFloatAfter(const char* str, const char* cue, in *i, double t)
 	if (findFloatAfter(str, cue, f))
 		i->setValue(f, t);
 }
-void findFloatAfter(string str, const char* cue, in& i, double t)
+
+void findFloatAfter(string str, const char* cue, in *i, double t)
 {
 	findFloatAfter(str.c_str(), cue, i, t);
 }
