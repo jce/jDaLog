@@ -48,11 +48,11 @@ class interface: public outhost{
 	protected:
 		bool run_flg;
 		float interval; // [s] time between getIns calls.
+		std::map<std::string, in*> ins;	// JCE, 23-2-2023
 	private:
 		const std::string _descr;
 		stringStore *_name, *_note; // JCE, 20-6-13
 		pthread_t thread = 0;
-		std::map<std::string, in*> ins;	// JCE, 23-2-2023
 	};
 
 extern std::map<std::string, interface*> interfaces;

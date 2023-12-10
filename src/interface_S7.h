@@ -74,7 +74,7 @@ class interface_S7 : public interface{
 	public:
 		interface_S7(const std::string, const std::string, float, const std::string, S7_conntype, uint16_t, uint16_t); // descr, name, ip-as-string, connection type, racknumber, slotnumber
 		~interface_S7();	
-		std::map<std::string, in*> ins;
+		//std::map<std::string, in*> ins;
 		void start();
 		void run();
 	private:
