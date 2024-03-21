@@ -459,6 +459,18 @@ void sort_all_in_files()
 	printf("Binary data file checking complete.\n");
 }
 
+void prune_all_in_files()
+{
+	printf("Start pruning binary data files.\n");
+	for (auto i = inmap.begin(); i!= inmap.end(); i++)
+	{
+		if (!run)
+			return;
+		i->second->prune_file();
+	}
+	printf("Binary data file pruning complete.\n");
+}
+
 int main(){
 	// Signal handler
 	struct sigaction sa;
@@ -517,6 +529,7 @@ int main(){
 	build_in_equations(json_object_get(json, "in_equation"));
 	out_conf(json_object_get(json, "out"));
 	bool check_files = json_is_true(json_object_get(json, "check_files"));
+	bool prune_files = json_is_true(json_object_get(json, "prune_files"));
 	json_t *webgui_j = json_object_get(json, "webgui");
 	config_webgui(webgui_j);
 	webGuiStart();
@@ -530,6 +543,8 @@ int main(){
 	jos_run_every(pool, 3600, 	(void (*)(void*)) loopstoreio, NULL);
 	if (check_files)
 		jos_run(  pool,     	(void (*)(void*)) sort_all_in_files, NULL);
+	if (prune_files)
+		jos_run(  pool,     	(void (*)(void*)) prune_all_in_files, NULL);
 	//jos_run(pool, (void (*)(void*)) debug_plot_stuff, NULL);
 	//jos_run(pool, (void (*)(void*)) debug_plot_stuff2, NULL);
 	//jos_run(pool, (void (*)(void*)) debug_plot_stuff3, NULL);

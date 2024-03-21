@@ -49,6 +49,7 @@ class in{
 		void set_valid_time(float);	// Sets the time for what the measurement remains valid.
 		float get_valid_time();	// Reads the time that a measurement remains valid.
 		void sort_file();		// Sort the binary file.		
+		void prune_file();		// Prune the binary file.		
 		size_t remove_time_from(double);
 		size_t remove_time_to(double);
 		size_t remove_time_from_to(double, double);

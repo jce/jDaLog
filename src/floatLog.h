@@ -76,6 +76,7 @@ class floatLog
 
 		bool file_is_ok();		// Returns true if every sample in the file is later than the previous sample, none at t <= 0 and none in the future.
 		size_t sort_file();		// Sorts the file. Reads all to memory, so can consume much memory.
+		void prune_file(double);// Prunes the file, removing the middle of three unchanging records while preserving a maximum data gap of parameter 1: valid_time [s].
 
 	private:
 		void addDataToFloatLog(std::map<double, float> &);

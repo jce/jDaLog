@@ -255,6 +255,7 @@ float in::get_valid_time()
 }
 
 void in::sort_file()													{_logger->sort_file(); }
+void in::prune_file()													{_logger->prune_file(valid_time); }
 size_t in::remove_time_from(double d)									{return _logger->remove_time_from(d); }
 size_t in::remove_time_to(double d)										{return _logger->remove_time_to(d); }
 size_t in::remove_time_from_to(double d, double e)                      {return _logger->remove_time_from_to(d, e); }

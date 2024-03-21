@@ -287,7 +287,7 @@ void floatLog::writeToFile()
 	DBG("writeToFile()\n");
 	if (mode != to_file)
 	{
-		DBG("writeToFile() aborted tue to mode != to_file.\n");
+		DBG("writeToFile() aborted due to mode != to_file.\n");
 		return;
 	}
 
@@ -573,48 +573,6 @@ bool floatLog::file_is_ok()
 	return rv;
 }
 
-// Sort the binary file, rewriting all.
-/*void floatLog::sort_file()
-{
-	if (file_is_ok())
-		return;
-	printf("Sorting %s...\n", pathAndName.c_str());
-	map<double, float> m;
-	pthread_mutex_lock(&fileMutex);
-	fp = fopen(pathAndName.c_str(), "rb");
-	if (!fp)
-	{
-		printf("Reading file failed.\n");
-    	pthread_mutex_unlock(&fileMutex);
-		return;
-	} 
-    fseek(fp, 0, SEEK_END);
-	fclose(fp); 
-	FOR_ALL_IN_FILE_UNM(m[t] = v;); // Opens and closes the file internally
-	printf("Records before:  %14zu\n", m.size()); 
-	fp = fopen(pathAndName.c_str(), "wb"); // Overwriting!!
-   	if (!fp)
-	{
-		printf("Opening file for writing failed!\n");
-    	pthread_mutex_unlock(&fileMutex);
-		return;
-	}
-	double n = now();
-	size_t cnt = 0;
-	if (m.size())
-		for (auto i = m.begin(); i != m.end(); i++)
-			if (i->first > 1000 and i->first < n and isfinite(i->second))
-				{
-    			    fwrite(&i->first, sizeof(double), 1, fp);
-    			    fwrite(&i->second, sizeof(float), 1, fp);
-					cnt++;
-				}
-    fclose(fp);
-    pthread_mutex_unlock(&fileMutex);
-	printf("Records after:   %14zu\nRecords removed: %14zu\n", cnt, m.size() - cnt); 
-	printf("done\n");
-}*/
-
 floatLog::operationmode floatLog::get_operation_mode()
 {
 	return mode;
@@ -735,7 +693,52 @@ size_t floatLog::sort_file()
 	read_last_from_file();
 	return m.size() - cnt;
 }
+
+// Read the file to memory, remove the middle record in a series of three
+// when their values are identical and record 1 and 3 are less than or exactly
+// valid_time apart.
+void floatLog::prune_file(double valid_time)
+{
+	sort_file();
+	printf("Pruning %s ... ", pathAndName.c_str());
+	map<double, float> data;
+	size_t size_pre, size_post;
+	pthread_mutex_lock(&fileMutex);
+
+	// Read all data from the file.
+	FOR_ALL_IN_FILE_UNM( data[t] = v; );
+	size_pre = data.size();
+
+	// Drop unnecessary data from the map.
+	if (size_pre >= 3)
+	{
+		for (auto i = data.begin()++; i != data.end()--; i++)
+		{
+		// Previous and next
+		auto p(i); p--;
+		auto n(i); n++;
+		if (p->second == i->second and i->second == n->second)
+			if (n->first - p->first < valid_time)
+			{
+				data.erase(i);
+				i = p;
+			}
+		}
+	}
+	size_post = data.size();
+
+	// Overwrite the data in the input file
+	fp = fopen(pathAndName.c_str(), "wb");
+    for (auto i = data.begin(); i != data.end(); i++)
+		{
+            fwrite(& i->first, sizeof(double), 1, fp);
+            fwrite(& i->second, sizeof(float), 1, fp);
+		}
+    fclose(fp);
 	
+    pthread_mutex_unlock(&fileMutex);
+	printf("size before, after, removed, rempved %%: %zu %zu %zu %f %%\n", size_pre, size_post, size_pre - size_post, (float) (size_pre - size_post) / size_pre * 100);
+}	
 	
 	
 	

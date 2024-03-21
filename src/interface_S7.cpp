@@ -19,8 +19,8 @@
 #define MAX_SLEEPTIME 1000000 /* us */
 #define MSG_SIZE_MAX 1024
 
-//#define DBG(...)
-#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+#define DBG(...)
+//#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
 
 using namespace std;
 
@@ -306,6 +306,7 @@ void interface_S7_from_json(const json_t *json)
 	float defaultinterval = JNR(interval);
 	if (not defaultinterval)
 		defaultinterval = 1;
+	float defaultvalidtime = JNR(valid_time);
 	if (not id or not ip)
 		return;
 	uint16_t default_validbyte = 0, default_validbit = 0;
@@ -341,6 +342,9 @@ void interface_S7_from_json(const json_t *json)
 		float interval = JNR(interval);
 		if (not interval)
 			interval = defaultinterval;
+		float validtime = JNR(valid_time);
+		if (not validtime)
+			validtime = defaultvalidtime;
 		const char *inid = JSTR(id);
 		const char *inname = JSTR(name);
 		if (not inname)
@@ -412,7 +416,8 @@ void interface_S7_from_json(const json_t *json)
 			S7->ios[key].validbit = validbit;
 			
 			S7->ios[key].i = new in(inid_full, inname_full, unit, decimals);
-			S7->ios[key].i->set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
+			if (validtime)
+				S7->ios[key].i->set_valid_time(validtime);
 			S7->ins[inid_full] = S7->ios[key].i;
 		}
 	}
