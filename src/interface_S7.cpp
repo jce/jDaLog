@@ -221,6 +221,8 @@ void interface_S7::run()
 				sleeptime = (schedule->next_scheduled_time - t) * 1000000;
 			if (sleeptime > MAX_SLEEPTIME)
 				sleeptime = MAX_SLEEPTIME;
+			if (sleeptime < 0)
+				sleeptime = 0;
 			usleep(sleeptime);
 		}
 	}
@@ -351,17 +353,22 @@ void interface_S7_from_json(const json_t *json)
 			a = 1;
 		const double b = JNR(b);
 		uint16_t validbyte = 0, validbit = 0;
-		bool has_validbit = JIN(validbit);
-		if (has_validbit)
-		{
-			validbyte = JNR(validbit);
-			validbit = JNR(validbit) * 10 - validbyte * 10;
-		}	
-		else if (has_default_validbit)
+		bool has_validbit = false;
+		if (has_default_validbit)
 		{
 			has_validbit = true;
 			validbyte = default_validbyte;
 			validbit = default_validbit;
+		}
+		if (JIN(validbit))
+		{
+			has_validbit = true;
+			validbyte = JNR(validbit);
+			validbit = JNR(validbit) * 10 - validbyte * 10;
+		}	
+		if (json_is_false(json_object_get(in_j, "validbit")))
+		{
+			has_validbit = false;
 		}
 		uint16_t start = byte;	// The block to read starts at this byte
 		if (has_validbit and validbyte < start)

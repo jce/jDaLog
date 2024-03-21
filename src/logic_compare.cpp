@@ -39,6 +39,8 @@ int logic_compare::make_page(struct mg_connection *conn)
 	for (auto i = inlist.begin(); i != inlist.end(); i++)
 		mg_printf(conn, "%s ", make_in_link(*i).c_str());
 	mg_printf(conn, "<br><hr>\n");
+	line = make_image_line(plotLines(inlist, now() - 60, now(), w, h, ""));
+	mg_printf(conn, line.c_str());
 	line = make_image_line(plotLines(inlist, now() - 3600, now(), w, h, ""));
 	mg_printf(conn, line.c_str());
 	line = make_image_line(plotLines(inlist, now() - 24*3600, now(), w, h, ""));
