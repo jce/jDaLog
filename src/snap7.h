@@ -443,11 +443,11 @@ int S7API Cli_WriteMultiVars(S7Object Client, PS7DataItem Item, int ItemsCount);
 // Data I/O Lean functions
 int S7API Cli_DBRead(S7Object Client, int DBNumber, int Start, int Size, void *pUsrData);
 int S7API Cli_DBWrite(S7Object Client, int DBNumber, int Start, int Size, void *pUsrData);
-int S7API Cli_MBRead(S7Object Client, int Start, int Size, void *pUsrData);
+int S7API Cli_MBRead(S7Object Client, int Start, int Size, void *pUsrData);		// Memory area
 int S7API Cli_MBWrite(S7Object Client, int Start, int Size, void *pUsrData);
-int S7API Cli_EBRead(S7Object Client, int Start, int Size, void *pUsrData);
+int S7API Cli_EBRead(S7Object Client, int Start, int Size, void *pUsrData);		// Input process area
 int S7API Cli_EBWrite(S7Object Client, int Start, int Size, void *pUsrData);
-int S7API Cli_ABRead(S7Object Client, int Start, int Size, void *pUsrData);
+int S7API Cli_ABRead(S7Object Client, int Start, int Size, void *pUsrData);		// Output process area
 int S7API Cli_ABWrite(S7Object Client, int Start, int Size, void *pUsrData);
 int S7API Cli_TMRead(S7Object Client, int Start, int Amount, void *pUsrData);
 int S7API Cli_TMWrite(S7Object Client, int Start, int Amount, void *pUsrData);

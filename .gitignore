@@ -24,7 +24,7 @@ data_backup/
 version.h
 build/*
 
-config.json
+config.json*
 *.ignore
 *.backup
 *.swp

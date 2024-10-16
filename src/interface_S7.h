@@ -44,8 +44,19 @@ typedef enum S7_regtype
 extern const char* S7_regtype_str[S7_regnum];
 extern const int S7_regtype_len[S7_regnum];
 
+typedef enum S7_memtype
+	{
+		S7_mem_db,
+		S7_mem_i,
+		S7_mem_o,
+		S7_mem_m,
+		S7_mem_num
+	} S7_memtype;
+extern const char* S7_memtype_str[S7_mem_num];
+
 typedef struct S7_key
 {
+	S7_memtype mem = S7_mem_db;
 	uint16_t db = 0;
 	uint16_t byte = 0;
 	uint16_t bit = 0;
@@ -57,7 +68,8 @@ typedef struct S7_io
 		struct S7_io *next = NULL;			// Next scheduled item
 		struct S7_key key;					// Address of the register to read.
 		S7_regtype type;					// S7 datatype of the register to read.
-		uint16_t db;
+		S7_memtype mem;						// What memory type. I, O, M, DB?
+		uint16_t db;						// If mem is DB, the DB number.
 		uint16_t start;						// The total atomical read block starts here.
 		uint16_t end;						// The total atomical read block ends here (last included byte).
 		uint16_t len;						// The total atomical read block is this length.

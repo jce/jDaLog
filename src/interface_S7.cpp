@@ -19,8 +19,8 @@
 #define MAX_SLEEPTIME 1000000 /* us */
 #define MSG_SIZE_MAX 1024
 
-#define DBG(...)
-//#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+//#define DBG(...)
+#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
 
 using namespace std;
 
@@ -51,11 +51,20 @@ const int S7_regtype_len[S7_regnum] =
 		1, 1, 1, 2, 2, 4, 4, 8, 8, 4, 8
 	};
 
+const char* S7_memtype_str[S7_mem_num] = 
+	{
+		"DB",
+		"Inputs",
+		"Outputs",
+		"Memory"
+	};
+
 bool operator<(const S7_key& l, const S7_key& r)
 {
-	return  (l.db < r.db) || \
-			(l.db == r.db && l.byte < r.byte) || \
-			(l.db == r.db && l.byte == r.byte && l.bit < r.bit);
+	return 	(l.mem < r.mem) || \
+			(l.mem == r.mem && l.db < r.db) || \
+			(l.mem == r.mem && l.db == r.db && l.byte < r.byte) || \
+			(l.mem == r.mem && l.db == r.db && l.byte == r.byte && l.bit < r.bit);
 }
 
 interface_S7::interface_S7(const string d, const string n, float i, const string _ipstr, S7_conntype c, uint16_t r, uint16_t s):interface(d, n, i), ipstr(_ipstr), conntype(c), rack(r), slot(s)
@@ -110,6 +119,7 @@ void interface_S7::start()
 
 void interface_S7::run()
 {
+	S7_memtype mem;
 	uint8_t msg[MSG_SIZE_MAX];
 	double t, tin, latency_start, latency_end;
 	uint16_t db, first, last;
@@ -120,6 +130,7 @@ void interface_S7::run()
 		tin = now();
 		if( schedule )
 		{
+			mem = schedule->mem;
 			db = schedule->db;
 			first = schedule->start;
 		}
@@ -133,6 +144,7 @@ void interface_S7::run()
 		while (
 				(*sp) and 
 				(*sp)->next_scheduled_time <= t and 
+				(*sp)->mem == mem and 
 				(*sp)->db == db and 
 				(*sp)->start < first + MSG_SIZE_MAX
 			  )
@@ -162,13 +174,24 @@ void interface_S7::run()
 				sp = & (*sp)->next;
 			}
 		}
+
+		// Yes, there exists an Cli_ReadAarea
+		#define READ(_MEM_, _DB_, _FIRST_, _LEN_) \
+			mem == S7_mem_db ? Cli_DBRead(PLC, _DB_, _FIRST_, _LEN_, &msg) : \
+			mem == S7_mem_m ? Cli_MBRead(PLC, _FIRST_, _LEN_, &msg) : \
+			mem == S7_mem_i ? Cli_EBRead(PLC, _FIRST_, _LEN_, &msg) : \
+			mem == S7_mem_o ? Cli_ABRead(PLC,  _FIRST_, _LEN_, &msg) : 0
 	
 		if( transaction )
 		{	
 			// Request the memory section for transaction.
-			DBG("PLC %s (%s) requesting db %d, start %d, len %d", getName().c_str(), ipstr.c_str(), db, first, last-first+1);
+			if (mem == S7_mem_db)
+				{ DBG("PLC %s (%s) requesting %s %d, start %d, len %d", getName().c_str(), ipstr.c_str(), S7_memtype_str[mem], db, first, last-first+1); }
+			else
+				{ DBG("PLC %s (%s) requesting %s, start %d, len %d", getName().c_str(), ipstr.c_str(), S7_memtype_str[mem], first, last-first+1); }
 			latency_start = now_mt();
-			while ( Cli_DBRead(PLC, db, first, last-first+1, &msg) != 0 and run_flg)
+			//while ( Cli_DBRead(PLC, db, first, last-first+1, &msg) != 0 and run_flg)
+			while ( READ(mem, db, first, last-first+1) != 0 and run_flg)
 			{
 				disconnect();
 				sleep(5);
@@ -289,6 +312,33 @@ void interface_S7_from_json(const json_t *json)
 	#define JSTR(_X_)	json_string_value(json_object_get(json, #_X_))
 	#define JNR(_X_)	json_number_value(json_object_get(json, #_X_))
 	#define JIN(_X_)	json_is_number(json_object_get(json, #_X_))
+
+	#define J_MEM_DB(_X_, _M_, _D_) \
+		if (JNR(_X_)) \
+		{ \
+			_M_ = S7_mem_db; \
+			_D_ = JNR(_X_); \
+		} \
+		if (JSTR(_X_)) \
+		{ \
+			char s = JSTR(_X_)[0]; \
+			if (strchr("mM", s)) \
+			{ \
+				_M_ = S7_mem_m; \
+				_D_ = 0; \
+			} \
+			if (strchr("iIeE", s)) \
+			{ \
+				_M_ = S7_mem_i; \
+				_D_ = 0; \
+			} \
+			if (strchr("oOqQ", s)) \
+			{ \
+				_M_ = S7_mem_o; \
+				_D_ = 0; \
+			} \
+		}	
+		
 	const char *id = JSTR(id);
 	const char *name = JSTR(name);
 	if (not name)
@@ -300,9 +350,11 @@ void interface_S7_from_json(const json_t *json)
 		if (strcmp(conntypestr, S7_conntype_str[j]) == 0 ) conntype = (S7_conntype) j;
 	const int rack = JNR(rack);
 	const int slot = JNR(slot);
-	int defaultdb = JNR(db);
-	if (not defaultdb)
-		defaultdb = 1;
+
+	S7_memtype defaultmtype = S7_mem_db;
+	uint16_t defaultdb = 1;
+	J_MEM_DB(db, defaultmtype, defaultdb);
+
 	float defaultinterval = JNR(interval);
 	if (not defaultinterval)
 		defaultinterval = 1;
@@ -334,11 +386,13 @@ void interface_S7_from_json(const json_t *json)
 		S7_regtype type = S7_int16;
 		for( int j = S7_bool; j < S7_regnum; j++)
 			if (strcmp(regtypestr, S7_regtype_str[j]) == 0 ) type = (S7_regtype) j;
-		int db = JNR(db);
-		if (not db)
-			db = defaultdb;
+		S7_memtype mem = defaultmtype;
+		int db = defaultdb;
+		J_MEM_DB(db, mem, db);
 		int byte = JNR(byte);
-		int bit = JNR(bit);
+		int bit = JNR(byte) * 10 - byte*10;
+		if (JNR(bit))
+			bit = JNR(bit);
 		float interval = JNR(interval);
 		if (not interval)
 			interval = defaultinterval;
@@ -388,6 +442,7 @@ void interface_S7_from_json(const json_t *json)
 			continue;
 		} 
 
+		#undef J_MEM_DB
 		#undef JIN
 		#undef JNR
 		#undef JSTR
@@ -398,11 +453,13 @@ void interface_S7_from_json(const json_t *json)
 		if (inid and not get_in(inid_full))
 		{
 			S7_key key;
+				key.mem = mem;
 				key.db = db;
 				key.byte = byte;
 				key.bit = bit;
 			S7->ios[key].key = key;
 			S7->ios[key].type = type;
+			S7->ios[key].mem = mem;
 			S7->ios[key].db = db;
 			S7->ios[key].start = start;
 			S7->ios[key].end = end;
