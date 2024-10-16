@@ -85,8 +85,9 @@ class floatLog
 		pthread_mutex_t fileMutex = PTHREAD_MUTEX_INITIALIZER;
 		pthread_mutex_t memMutex = PTHREAD_MUTEX_INITIALIZER;
 		size_t records_in_file(); // Not protected by a mutex!
-		void read_last_from_file();
-		record last = {0.0, 0.0};
+		record read_last_from_file();
+		record read_last_from_file_unlocked();
+		record last = {0, 0};
 
 		FILE *fp;
 		void openfile_read();
@@ -95,6 +96,7 @@ class floatLog
 		operationmode mode = to_file;
 		size_t ram_max_samples = 0;
 		float ram_max_history = 0;
+		float prune_input_gap = 60.0;	// When pruning inputs is enabled, use this gap
 };
 
 #endif // HAVE_FLOATLOG_H

@@ -15,6 +15,9 @@
 #define DEFAULT_SCHEDULER_NUM_THREADS 4
 extern jos_pool *pool;
 
+// Global config
+extern bool prune_input;
+
 #define STR(_X_) #_X_
 
 #ifdef HAVE_S7											

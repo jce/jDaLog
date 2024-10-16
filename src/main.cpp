@@ -65,6 +65,7 @@ using namespace std;
 // The main.cpp file. This file serves as incubator for new additions / components. JCE, 17-6-13
 
 bool run(true);
+bool prune_input = false;
 jos_pool *pool;
 
 //in *haveControl;
@@ -530,6 +531,7 @@ int main(){
 	out_conf(json_object_get(json, "out"));
 	bool check_files = json_is_true(json_object_get(json, "check_files"));
 	bool prune_files = json_is_true(json_object_get(json, "prune_files"));
+	prune_input = json_is_true(json_object_get(json, "prune_input"));
 	json_t *webgui_j = json_object_get(json, "webgui");
 	config_webgui(webgui_j);
 	webGuiStart();

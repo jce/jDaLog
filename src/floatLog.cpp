@@ -1,4 +1,5 @@
 #include "floatLog.h"
+#include "main.h"
 #include "mytime.h"
 
 #include <cmath>
@@ -61,7 +62,7 @@ using namespace std;
 
 floatLog::floatLog(string pan):pathAndName(pan) 
 {
-	read_last_from_file();
+	last = read_last_from_file();
 }
 
 floatLog::~floatLog() 
@@ -69,9 +70,18 @@ floatLog::~floatLog()
 	writeToFile(); 
 }
 
-void floatLog::read_last_from_file()
+record floatLog::read_last_from_file()
 {
+	record rv;
 	pthread_mutex_lock(&fileMutex);
+	rv = read_last_from_file_unlocked();
+	pthread_mutex_unlock(&fileMutex);
+	return rv;
+}
+
+record floatLog::read_last_from_file_unlocked()
+{
+	record rv = {0, 0};
 	openfile_read();
 	if (fp)
 	{
@@ -80,19 +90,19 @@ void floatLog::read_last_from_file()
        	size_t pos = ftell(fp) / RSIZE;
 		if (pos == 0)
 		{
-			last.t = 0;
-			last.v = 0;
+			rv.t = 0;
+			rv.v = 0;
 			fclose(fp);
 			pthread_mutex_unlock(&fileMutex);
-			return;
+			return rv;
 		}
        	fseek(fp, (pos - 1) * RSIZE, SEEK_SET);
 		// read record
-		fread(&last.t, sizeof(double), 1, fp);
-		fread(&last.v, sizeof(float), 1, fp) ;
+		fread(&rv.t, sizeof(double), 1, fp);
+		fread(&rv.v, sizeof(float), 1, fp) ;
 		fclose(fp);
 	}
-	pthread_mutex_unlock(&fileMutex);
+	return rv;
 }
 
 void floatLog::append(double t, float v)
@@ -292,8 +302,30 @@ void floatLog::writeToFile()
 	}
 
 	list<record>::iterator i;
+
 	pthread_mutex_lock(&fileMutex);
 	pthread_mutex_lock(&memMutex);
+	
+	// Pruning mechanic.
+	if (prune_input and recordsToFile.size() >= 2)
+	{
+		DBG("Starting mem prune\n")
+		// Needed for being able to prune the first memory location.
+		recordsToFile.push_front( read_last_from_file_unlocked() );
+		for( i = ++recordsToFile.begin(); i != --recordsToFile.end(); i++)
+		{
+			auto p(i); p--;			// Previous
+			auto n(i); n++;			// Next
+			if ( p->v == i->v && i->v == n->v && n->t - p->t < prune_input_gap)
+			{
+				DBG("removing record\n");
+				recordsToFile.erase(i);
+				i = p;
+			}
+		}
+		recordsToFile.pop_front();	// Remove temporary element, it is already in the file.
+		DBG("Ending mem prune\n")
+	}
 
 	openfile_write();
 
@@ -591,7 +623,7 @@ void floatLog::set_operation_mode(operationmode m)
 	// When switching to to_file, make sure the sequence is OK.
 	if (mode != m && m == to_file)
 	{
-		read_last_from_file();
+		last = read_last_from_file();
     	pthread_mutex_lock(&memMutex);
 		while (recordsToFile.size() && recordsToFile.begin()->t < last.t)
 			recordsToFile.pop_front();
@@ -690,7 +722,7 @@ size_t floatLog::sort_file()
 	printf("Sorting %s...\n", pathAndName.c_str());
 	double n = now();
 	REMOVE( i->first > 1000 and i->first < n and isfinite(i->second) );
-	read_last_from_file();
+	last = read_last_from_file();
 	return m.size() - cnt;
 }
 
