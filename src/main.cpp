@@ -554,7 +554,7 @@ int main(){
 	usleep(100000);
 	printf("running... (press control+C to stop)\n");
 	while(run){sleep(1000);}
-	printf("shuttind down...\n");
+	printf("shutting down...\n");
 	run = false;
 
 	for (auto i = inmap.begin(); i!= inmap.end(); i++)

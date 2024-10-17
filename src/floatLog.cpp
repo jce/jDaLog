@@ -769,7 +769,7 @@ void floatLog::prune_file(double valid_time)
     fclose(fp);
 	
     pthread_mutex_unlock(&fileMutex);
-	printf("size before, after, removed, rempved %%: %zu %zu %zu %f %%\n", size_pre, size_post, size_pre - size_post, (float) (size_pre - size_post) / size_pre * 100);
+	printf("size before, after, removed, removed %%: %zu %zu %zu %f %%\n", size_pre, size_post, size_pre - size_post, (float) (size_pre - size_post) / size_pre * 100);
 }	
 	
 	

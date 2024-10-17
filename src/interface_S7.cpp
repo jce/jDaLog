@@ -19,8 +19,8 @@
 #define MAX_SLEEPTIME 1000000 /* us */
 #define MSG_SIZE_MAX 1024
 
-//#define DBG(...)
-#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+#define DBG(...)
+//#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
 
 using namespace std;
 
