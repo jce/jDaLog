@@ -1,0 +1,9 @@
+#!/bin/bash
+
+#cp -r !(data) ../kingston_ext/tcFarmControl/
+# does not work
+
+rsync -aXv --delete ../tcFarmControl ../kingston_ext/ --exclude=data/
+
+#rsync -aXl --info=BACKUP,COPY,DEL,MISC,MOUNT,NAME,REMOVE,SKIP,SYMSAFE --delete --exclude=data/ ../tcFarmControl ../kingston_ext/
+

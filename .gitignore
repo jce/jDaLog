@@ -32,3 +32,4 @@ config.json*
 git_header.h
 __pycache__/
 config.json_*
+data_*.tar.xz

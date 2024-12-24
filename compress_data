@@ -1,0 +1,13 @@
+#!/bin/bash
+
+
+datestr=$(date +%y%m%d)
+name=data_$datestr.tar.xz
+
+if [ -f $name ]; then
+	echo "$name already exists. Removing..."
+	rm $name
+fi
+
+time tar cf $name --use-compress-program="xz -vz9eT4" data
+
