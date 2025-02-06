@@ -20,7 +20,6 @@
 #include "interface.h"
 #include "interface_host.h"
 #include "interface_solarlog.h"
-#include "mytime.h" // now()
 #include "interface_adam6052.h"
 #ifdef HAVE_S7
 	#include "interface_S7.h"
@@ -82,6 +81,11 @@ void handle_signal(int signal){
 			run=false;
 		};
 	};
+
+double now(){
+	timeval tv;
+	gettimeofday(&tv, NULL);
+	return tv.tv_sec + (double) tv.tv_usec / 1000000;}
 
 void build_interfaces(json_t *arr)
 {

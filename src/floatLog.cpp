@@ -1,6 +1,5 @@
 #include "floatLog.h"
 #include "main.h"
-#include "mytime.h"
 
 #include <cmath>
 #include <float.h> // DBL_MIN

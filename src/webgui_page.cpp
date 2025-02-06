@@ -11,7 +11,6 @@
 //		"url2":"html_content"
 // }
 
-#include "mytime.h"
 #include "webgui.h"
 #include "webgui_page.h"
 

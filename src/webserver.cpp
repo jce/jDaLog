@@ -6,11 +6,11 @@
 #include "in_equation.h"
 #include "logic.h"
 #include "main.h"
-#include "mongoose.h"
+#include <microhttpd.h>
 #include "out.h"
 #include "stringStore.h"
 #include "timefunc.h"
-#include "webgui.h"
+#include "webserver.h"
 #include "webgui_intable.h"
 #include "webgui_page.h"
 #include "webin.h"
@@ -25,22 +25,105 @@
 #include <string.h>
 #include <sys/stat.h> // mkdir
 #include <vector>
-//#include "webgui_autograph.h"
 
-//#define debug
-//#define debug_mg
-
-//#define DBG(...) {printf(__VA_ARGS__); printf("\n");}
-#define DBG(...)
+#define DBG(...) {printf(__VA_ARGS__); printf("\n");}
+//#define DBG(...)
 
 using namespace std;
+
+
+webserver::webserver(string n, uint16_t t, uint16_t p): name(n), threads(t), port(p)
+{
+	daemon = NULL;
+	requests = new in(name + "_rq", "Webserver requests", "");
+}
+
+webserver::~webserver()
+{
+	if(daemon)
+		stop();
+	delete requests;
+}
+
+// Default handler, https://www.gnu.org/software/libmicrohttpd/manual/libmicrohttpd.html#microhttpd_002dcb
+enum MHD_Result dh
+	(
+    	void *cls,
+    	struct MHD_Connection *connection,
+    	const char *url,
+    	const char *method,
+    	const char *version,
+    	const char *upload_data,
+    	long unsigned int *upload_data_size,
+    	void **con_cls
+	)
+{
+	webserver *obj = (webserver*) cls;
+	return obj->handle_request(connection, url, method, version, upload_data, upload_data_size, con_cls);
+}
+
+void webserver::start()
+{
+	daemon= MHD_start_daemon (MHD_USE_INTERNAL_POLLING_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_END);
+	DBG("Webserver %s started on port %i", name.c_str(), port);
+}
+
+void webserver::stop()
+{
+	if(daemon)
+	{
+		MHD_stop_daemon(daemon);
+		DBG("Stopped webserver %s", name.c_str());
+	}
+}
+
+
+enum MHD_Result webserver::handle_request
+	(
+    	struct MHD_Connection *connection,
+    	const char *url,
+    	const char *method,
+    	const char *version,
+    	const char *upload_data,
+    	long unsigned int *upload_data_size,
+    	void **con_cls
+	)
+{
+    const char *page = "<html><body>Hello, browser!</body></html>";
+    struct MHD_Response *response;
+    MHD_Result ret;
+
+    response = MHD_create_response_from_buffer(strlen (page), (void*) page, MHD_RESPMEM_PERSISTENT);
+
+    ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
+    MHD_destroy_response(response);
+    return ret;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 uint16_t def_w = 1000;
 uint16_t def_h = 300;
 
 uint16_t plotnr = 0;
 
-// The purpose of this file is to control mongoose, and create a bunch of semi-uniform webpages that will serve as GUI for tcFarmControl. JCE, 14-6-13
+// The purpose of this file is to control libMicroHttpD (MHD), and create a bunch of semi-uniform webpages that will serve as GUI for tcFarmControl. JCE, 14-6-13
 
 //============================================================================================================
 // This is a list with files and eol times. When a file's eol has passed, it should be deleted.
@@ -66,6 +149,7 @@ void deleteOldFiles(){
 		if (t > i->eol){
 			remove(i->filename.c_str());
 			i = files.erase(i);}
+
 		else i++;}}
 //=============================================================================================================
 

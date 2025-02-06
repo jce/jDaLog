@@ -5,11 +5,9 @@
 #include "interface.h"
 #include "main.h"
 #include "math.h"	// fmod(a, b)
-#include "mytime.h"	// now()
 #include "unistd.h" // usleep
 #include "sys/stat.h" // mkdir
 #include "sys/time.h" // gettimeofday(()
-#include "mytime.h"	// now() jeu
 #include "pthread.h"
 #include "stringStore.h"
 #include "out.h"

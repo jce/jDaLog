@@ -6,7 +6,6 @@
 #include "main.h"
 #include "sys/stat.h" // mkdir
 #include "sys/time.h" // gettimeofday(()
-#include "mytime.h"	// now() jeu
 #include "stringStore.h"
 #include "out.h"
 

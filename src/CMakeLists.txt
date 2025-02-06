@@ -47,7 +47,7 @@ target_sources(tcFarmControl PUBLIC
 	callback.c
 	filters.c
 	job_sched.c
-	mongoose.c
+	#mongoose.c
 	tcmath.c
 	timefunc.c
 	tinyexpr.c
@@ -80,10 +80,10 @@ target_sources(tcFarmControl PUBLIC
 	logic_rain.cpp
 	logic_tunnel.cpp
 	main.cpp
-	mytime.cpp
 	out.cpp
 	stringStore.cpp
-	webgui.cpp
+	#webgui.cpp
+	webserver.cpp
 	webgui_intable.cpp
 	webgui_mac.cpp
 	webgui_page.cpp

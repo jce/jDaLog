@@ -3,8 +3,9 @@
 
 #include "job_sched.h"
 
+double now();				// Current time as unix timestamp.
+
 #define tcProgramName		"tcFarmControl"
-#define tcProgramVersion	0.9	// version 0.8 and higher are C++, pre are Python 2.7. 0.9: binary in files are now stored ordered.
 #define tcDataDir			"./data/"
 #define tcWebRoot			"./http/"
 

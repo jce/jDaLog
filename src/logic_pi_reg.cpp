@@ -1,7 +1,6 @@
 #include "floatLog.h"
 #include "logic_pi_reg.h"
 #include "main.h"
-#include "mytime.h"	// now() jeu
 #include "out.h"
 #include "timefunc.h"
 #include "webin.h"

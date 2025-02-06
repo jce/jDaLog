@@ -4,7 +4,6 @@
 #include "in.h"
 #include "main.h"
 #include <map>
-#include "mytime.h"	// now()
 #include "stdio.h"
 #include <string>
 #include "sys/stat.h" // mkdir
