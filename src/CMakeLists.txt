@@ -47,7 +47,6 @@ target_sources(tcFarmControl PUBLIC
 	callback.c
 	filters.c
 	job_sched.c
-	#mongoose.c
 	tcmath.c
 	timefunc.c
 	tinyexpr.c
@@ -76,13 +75,9 @@ target_sources(tcFarmControl PUBLIC
 	logic_onOffRegulator.cpp
 	logic_or.cpp
 	logic_pi_reg.cpp
-	logic_power.cpp
-	logic_rain.cpp
-	logic_tunnel.cpp
 	main.cpp
 	out.cpp
 	stringStore.cpp
-	#webgui.cpp
 	webserver.cpp
 	webgui_intable.cpp
 	webgui_mac.cpp

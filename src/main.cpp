@@ -37,9 +37,7 @@
 #endif // HAVE_MARIA
 #include "interface_fijnstof.h"
 #include "logic_fijnstof.h"
-#include "logic_rain.h"
 #include "interface_hs110.h"
-#include "logic_power.h"
 #include "jansson.h"
 #include "in_from_dir.h"
 #include "logic_km.h"
@@ -68,8 +66,6 @@ bool prune_input = false;
 jos_pool *pool;
 
 //in *haveControl;
-//logic *lfijnstof, *lrain;
-//logic *lpower;
 //in *pwrsum = NULL, *kWhsum = NULL;
 
 // Signal handling.
@@ -448,8 +444,6 @@ void loopstoreio(){
 		//i->second->importData();
 		i->second->writeToFile();
 	}
-	// webgui.h / webgui.cp
-	deleteOldFiles(); // AKA segmentation fault... JCE, 5-7-13
 	}
 
 void sort_all_in_files()
@@ -538,7 +532,6 @@ int main(){
 	prune_input = json_is_true(json_object_get(json, "prune_input"));
 	json_t *webgui_j = json_object_get(json, "webgui");
 	config_webgui(webgui_j);
-	webGuiStart();
 	
 	touchAllWebins();
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
@@ -571,7 +564,6 @@ int main(){
 
 	// Stops all jobs, including those from interfaces.
 	jos_delete_pool(pool);
-	webGuiStop();
 
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		delete i->second;

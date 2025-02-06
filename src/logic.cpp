@@ -62,7 +62,7 @@ void logic::setNote(string newNote){
 	_note->setString(newNote);}
 
 int logic::make_page(struct mg_connection *conn){
-	mg_printf(conn, "<br>Sorry, this logic instance does not implement a page.<br>");
+	//mg_printf(conn, "<br>Sorry, this logic instance does not implement a page.<br>");
 	return 1;
 	}
 

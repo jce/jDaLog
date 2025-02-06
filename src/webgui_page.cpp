@@ -120,7 +120,7 @@ string build_page(const string &url, vector<std::string> options)
 {
 	unsigned int post_item = 0;
 	string html;
-	
+	/*
 	if (page_exists(url))
 	{
 		if (page[url].has_form)
@@ -252,7 +252,7 @@ string build_page(const string &url, vector<std::string> options)
 		if (page[url].has_form)
 			html += "<INPUT type=\"submit\" name=\"Submit\" value=\"Submit\"></form>";
 	}
-	
+	*/
 	return html;
 }
 

@@ -161,9 +161,9 @@ void logic_modulator::setOut(out *o, float f)
 
 int logic_modulator::make_page(struct mg_connection *conn)
 {
-	string s;
-	s += make_out_link(out_sp);
-	mg_printf(conn, s.c_str());
+//	string s;
+//	s += make_out_link(out_sp);
+//	mg_printf(conn, s.c_str());
 /*
 	mg_printf(conn, "on/off regulator page. This page displays the current state as well as configured values for this on-off regulator<br>\n");
 	mg_printf(conn, "Lower treshold: %.*f %s<br>\n", _low->getDecimals(), _low->getValue(), _low->getUnits().c_str());

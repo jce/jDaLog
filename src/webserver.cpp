@@ -77,7 +77,6 @@ void webserver::stop()
 	}
 }
 
-
 enum MHD_Result webserver::handle_request
 	(
     	struct MHD_Connection *connection,
@@ -98,10 +97,9 @@ enum MHD_Result webserver::handle_request
     ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
     MHD_destroy_response(response);
     return ret;
-
 }
 
-
+/*
 
 
 
@@ -1596,22 +1594,23 @@ void webGuiStop(){
 		printf("mongoose stopped\n");
 	#endif // debug_mg
 	}
-
+*/
 // Configuration
 void config_webgui(json_t *json)
 {
 	if (json_is_object(json))
 	{
-		json_t *def_w_j, *def_h_j, *page_j;
-		def_w_j = json_object_get(json, "def_w");
-		def_h_j = json_object_get(json, "def_h");
-		page_j = json_object_get(json, "page");
-		if (json_is_integer(def_w_j))
-			def_w = json_integer_value(def_w_j);
-		if (json_is_integer(def_h_j))
-			def_h = json_integer_value(def_h_j);
-		if (json_is_object(page_j))
-			build_page_data_from_json(page_j);
+		//json_t *def_w_j, *def_h_j, *page_j;
+		//def_w_j = json_object_get(json, "def_w");
+		//def_h_j = json_object_get(json, "def_h");
+		//page_j = json_object_get(json, "page");
+		//if (json_is_integer(def_w_j))
+		//	def_w = json_integer_value(def_w_j);
+		//if (json_is_integer(def_h_j))
+		//	def_h = json_integer_value(def_h_j);
+		//if (json_is_object(page_j))
+		//	build_page_data_from_json(page_j);
 	}
 }
+
 

@@ -148,6 +148,7 @@ void logic_mac_c::on_found_new_mac_change()
 
 int logic_mac_c::make_page(struct mg_connection *conn)
 {
+	/*
 	DBG("logic_mac_c::make_page(...) called");
 	mg_printf(conn, "known mac list:\n");
 
@@ -164,6 +165,7 @@ int logic_mac_c::make_page(struct mg_connection *conn)
 		//DBG("%s", s.c_str());
 	}
 	mg_printf(conn, "</tbody></table>\n");
+	*/
 	return 1;
 }
 

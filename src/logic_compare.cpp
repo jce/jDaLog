@@ -26,6 +26,7 @@ logic_compare::~logic_compare()
 
 int logic_compare::make_page(struct mg_connection *conn)
 {
+	/*
 	unsigned int w = gw;
 	if (!w)
 		w = def_w;
@@ -48,6 +49,7 @@ int logic_compare::make_page(struct mg_connection *conn)
 	mg_printf(conn, line.c_str());
 	line = make_image_line(plotLines(inlist, now() - 4*7*24*3600, now(), w, h, ""));
 	mg_printf(conn, line.c_str());
+	*/
 	return 1;
 }
 

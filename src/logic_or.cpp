@@ -42,8 +42,8 @@ void logic_or::setOut(out* o, float v){
 	}
 
 int logic_or::make_page(struct mg_connection *conn){
-	mg_printf(conn, "OR logic for out's. Displaying the source out A, B and destination out<br>\n");
-	string line; line = make_image_line(plotLines(A, B, _myOut, now() - 3600, now(), 1280, 300, "A or B is result"));
-	mg_printf(conn, line.c_str());
+	//mg_printf(conn, "OR logic for out's. Displaying the source out A, B and destination out<br>\n");
+	//string line; line = make_image_line(plotLines(A, B, _myOut, now() - 3600, now(), 1280, 300, "A or B is result"));
+	//mg_printf(conn, line.c_str());
 	return 1;}
 

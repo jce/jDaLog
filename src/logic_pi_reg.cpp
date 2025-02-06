@@ -120,6 +120,7 @@ void logic_pi_reg::run()
 
 int logic_pi_reg::make_page(struct mg_connection *conn)
 {
+/*
 	mg_printf(conn, "pi regulator page<br>\n");
 	mg_printf(conn, "%s", make_in_link(meas, "Measurement").c_str());
 	mg_printf(conn, ": %.*f %s<br>\n", meas->getDecimals(), meas->getValue(), meas->getUnits().c_str());
@@ -150,6 +151,7 @@ int logic_pi_reg::make_page(struct mg_connection *conn)
 	mg_printf(conn, line.c_str());
  	line = make_image_line(plotLines(sp, meas, act, now() - 7*24 * 3600, now(), 1280, 300, ""));
 	mg_printf(conn, line.c_str());
+*/
 	return 1;
 }
 

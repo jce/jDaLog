@@ -17,4 +17,6 @@ class webserver{
 		in *requests;
 	};
 
+void config_webgui(json_t*);
+
 #endif // HAVE_WEBSERVER_H
