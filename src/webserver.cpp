@@ -6,7 +6,6 @@
 #include "in_equation.h"
 #include "logic.h"
 #include "main.h"
-#include <microhttpd.h>
 #include "out.h"
 #include "stringStore.h"
 #include "timefunc.h"
@@ -73,9 +72,12 @@ void webserver::stop()
 	if(daemon)
 	{
 		MHD_stop_daemon(daemon);
+		daemon = NULL;
 		DBG("Stopped webserver %s", name.c_str());
 	}
 }
+
+string make_root_page();
 
 enum MHD_Result webserver::handle_request
 	(
@@ -88,11 +90,15 @@ enum MHD_Result webserver::handle_request
     	void **con_cls
 	)
 {
-    const char *page = "<html><body>Hello, browser!</body></html>";
+//    const char *page = "<html><body>Hello, browser!</body></html>";
+	string s = make_root_page();
     struct MHD_Response *response;
     MHD_Result ret;
-
-    response = MHD_create_response_from_buffer(strlen (page), (void*) page, MHD_RESPMEM_PERSISTENT);
+	char  page[10000];
+	strncpy(page, s.c_str(), 10000);
+	printf(page);
+    response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_PERSISTENT);
+	printf(page);
 
     ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
     MHD_destroy_response(response);
@@ -102,54 +108,8 @@ enum MHD_Result webserver::handle_request
 /*
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-uint16_t def_w = 1000;
-uint16_t def_h = 300;
-
-uint16_t plotnr = 0;
-
 // The purpose of this file is to control libMicroHttpD (MHD), and create a bunch of semi-uniform webpages that will serve as GUI for tcFarmControl. JCE, 14-6-13
 
-//============================================================================================================
-// This is a list with files and eol times. When a file's eol has passed, it should be deleted.
-struct fl{string filename;double eol;};
-list<struct fl> files;
-
-void setFileLife(string file, double eol){
-	struct fl fileLife;
-	fileLife.filename = file;
-	fileLife.eol = eol;
-	files.push_back(fileLife);}
-
-void deleteAllFiles(){
-	list<struct fl>::iterator i;
-	for (i = files.begin(); i!= files.end(); i++)
-		remove(i->filename.c_str());
-	files.clear();}
-
-void deleteOldFiles(){
-	double t = now();
-	list<struct fl>::iterator i;
-	for (i = files.begin(); i!= files.end(); ){
-		if (t > i->eol){
-			remove(i->filename.c_str());
-			i = files.erase(i);}
-
-		else i++;}}
-//=============================================================================================================
 
 void fprintt(FILE *fp, double a, float cycle = 0)
 {
@@ -772,74 +732,67 @@ string plotLines(in* i1, in* i2, in* i3, in* i4, in* i5, double tmin, double tma
 	inList.push_back(i1); inList.push_back(i2); inList.push_back(i3); inList.push_back(i4); inList.push_back(i5);
 	return plotLines(inList, tmin, tmax, x, y, title);
 	}
+*/
 
-static int log_message(const struct mg_connection *conn, const char *message) {
-	(void) conn;
-	printf("%s\n", message);
-	return 0;}
-
-stringStore *noteStore;
-
-double make_simple_header(struct mg_connection *conn, unsigned int autoRefreshTime = 0)
+string make_simple_header(unsigned int autoRefreshTime = 0)
 {
-	
-	double t = now();
-	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n");
+	string rv;
+	rv += "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n";
 	if (autoRefreshTime)
-		mg_printf(conn, "<meta http-equiv=\"refresh\" content=\"%u\">\n", autoRefreshTime);
-	return t;
+		rv += "<meta http-equiv=\"refresh\" content=\"" + to_string(autoRefreshTime) + "\">\n";
+	return rv;
 }
 
-double make_header(struct mg_connection *conn, unsigned int autoRefreshTime = 0){
-	double t = now();
-	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
-	mg_printf(conn, "<head><title>tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED "</title>\n");
+string make_header(unsigned int autoRefreshTime = 0)
+{
+	string rv;// = "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n";
+	rv += "<html>\n<head><title>tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED "</title>\n";
 	if (autoRefreshTime)
-		mg_printf(conn, "<meta http-equiv=\"refresh\" content=\"%u\">\n", autoRefreshTime);
-	mg_printf(conn, "</head><h1><a href=\"/\"><font color=\"#000000\"><span title=" GIT_SHORT_HASH ">tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED "</span></font></a>\n");
+		rv += "<meta http-equiv=\"refresh\" content=\"" + to_string(autoRefreshTime) + "\">\n";
+	rv += "</head><h1><a href=\"/\"><font color=\"#000000\"><span title="  GIT_SHORT_HASH ">tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED "</span></font></a>\n";
 	unsigned int outs = outsInManual();
-	if (outs){
-		mg_printf(conn, " - <a href=\"/manout\"><font color=\"#F00F00\">%u out", outs);
-		if (outs > 1)
-			mg_printf(conn, "s");
-		mg_printf(conn, " in manual</font></a>\n");
-		}
-	mg_printf(conn, "</h1><hr>\n");
-	return t;
+	if (outs)
+	{
+		rv += " - <a href=\"/manout\"><font color=\"#F00F00\">" + to_string(outs) + " out";
+		if (outs > 1)	rv += "s";
+		rv += " in manual</font></a>\n";
 	}
+	rv +="</h1><hr>\n";
+	return rv;
+}
 
-void make_footer(struct mg_connection *conn, double startTime){
+string make_footer(double startTime)
+{
 	float generationTime = now() - startTime;
-	float generationTimeMs = generationTime * 1000;
-	mg_printf(conn, "<hr>\nPage generated in ");
+	string rv = "<hr>\nPage generated in ";
 	if (generationTime >= 1)
-		mg_printf(conn, "%.3f seconds", generationTime);
+		rv += to_string(generationTime) + " s";
 	else
-		mg_printf(conn, "%.2f ms", generationTimeMs);
-	mg_printf(conn, "\n</html>\n");
-	}
+		rv += to_string(generationTime * 1000) + " ms";
+	rv += "\n</html>\n";
+	return rv;
+}
 
 // Generate the html section for a note. The getter is a function that should return the content. The setter is a function that is supplied with the new content.
 // returns if there has been found a new note. Suggested use: store note if it is new.
-int make_note(struct mg_connection *conn, string &note){
-	// note, met set en get
-	char post_data[4096], newNote[4096];
-	int post_data_len, rv(0);
-	post_data_len = mg_read(conn, post_data, sizeof(post_data));
-	if (post_data_len)
-		if (mg_get_var(post_data, post_data_len, "note", newNote, sizeof(newNote)) > -1)
-			{note = newNote;
-			rv = 1;}
-	mg_printf(conn, "<form method=\"POST\">Note<br><textarea rows=\"20\" name=\"note\" cols=\"60\" wrap=\"virtual\">%s</textarea><br><input type=\"submit\" value=\"Update\"/></form>", note.c_str()); 
-	return rv;}
+string make_note(string &note)
+{
+	string rv;
+	rv += "<form method=\"POST\">Note<br><textarea rows=\"20\" name=\"note\" cols=\"60\" wrap=\"virtual\">";
+	rv += note;
+	rv += "</textarea><br><input type=\"submit\" value=\"Update\"/></form>";
+	return rv;
+}
 
 //void make_link(struct mg_connection *conn, string url, string text = ""){
 //	if (text == "") text = url;
 //	mg_printf(conn, "<a href=\"%s\">%s</a>",url, text);}
 
-string make_link(string url, string text){
+string make_link(string url, string text)
+{
 	if (text == "") text = url;
-	return "<a href=\"" + url + "\">" + text + "</a>";}
+	return "<a href=\"" + url + "\">" + text + "</a>";
+}
 
 string make_in_link(in* i, const string text)
 {
@@ -856,7 +809,6 @@ string make_webin_link(in* i, const string text)
 	return make_link("/webin/" + i->getDescriptor(), text);
 }
 
-
 string make_out_link(out* o)
 {
 	return make_link("/out/" + o->getDescriptor(), o->getName());
@@ -869,21 +821,25 @@ string make_in_link_or_constant(in* i)
 	return make_in_link(i);
 }
 
-string make_image(string url){
-	return "<img src=\"" + url + "\">";}
-string make_image_line(string url){
-	return make_image(url) + "<br>";}
-
-int make_in_graph_page(struct mg_connection *conn, in *i, double from, double to, uint16_t w=def_w, uint16_t h=def_h)
+string make_image(string url)
 {
-	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
-	string line;
-	line = make_image_line(plotLine(i, from, to, w, h));
-	mg_printf(conn, line.c_str());
-	return 1;
+	return "<img src=\"" + url + "\">";
 }
 
-int make_in_cycle_page(struct mg_connection *conn, in *i, double from, double to, float cycle, uint16_t w=def_w, uint16_t h=def_h)
+string make_image_line(string url)
+{
+	return make_image(url) + "<br>";
+}
+
+string make_in_graph_page(in *i, double from, double to, uint16_t w=def_w, uint16_t h=def_h)
+{
+	string rv = "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n";
+	//rv += make_image_line(plotLine(i, from, to, w, h));
+	return rv;
+}
+
+/*
+string make_in_cycle_page(in *i, double from, double to, float cycle, uint16_t w=def_w, uint16_t h=def_h)
 {
 	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
 	string line;
@@ -1335,28 +1291,24 @@ int make_logic_list_page(struct mg_connection *conn){
 		}
 	make_footer(conn, now);
 	return 1;}
+*/
 
-int make_root_page(struct mg_connection *conn){
-	double now = make_header(conn);
-	mg_printf(conn, make_link("/in", "inputs").c_str());
-	mg_printf(conn, "<br>\n");
-	mg_printf(conn, make_link("/webin", "web inputs").c_str());
-	mg_printf(conn, "<br>\n");
-	mg_printf(conn, make_link("/out", "outputs").c_str());
-	mg_printf(conn, "<br>\n");
-	mg_printf(conn, make_link("/manout", "outputs in manual mode").c_str());
-	mg_printf(conn, "<br>\n");
-	mg_printf(conn, make_link("/logic", "logics").c_str());
-	mg_printf(conn, "<br>\n");
-	mg_printf(conn, make_link("/jos", "job scheduler").c_str());
-	mg_printf(conn, "<br>\n");
-	mg_printf(conn, "about, page with build information, numbers, defined-at-compile times etc<br>\n");
-	mg_printf(conn, "Note the note. If a page auto refreshes, the note in progress is lost.<br>\n");
-	string note = noteStore->getString();
-	if (make_note(conn, note))
-		noteStore->setString(note);
-	make_footer(conn, now);
-	return 1;}
+string make_root_page()
+{
+	double t = now();
+	string rv = make_header();
+	rv += make_link("/in", "inputs") + "<br>";
+	rv += make_link("/webin", "web inputs") + "<br>";
+	rv += make_link("/out", "outputs") + "<br>";
+	rv += make_link("/manout", "outputs in manual mode") + "<br>";
+	rv += make_link("/logic", "logics") + "<br>";
+	rv += make_link("/jos", "job scheduler") + "<br>";
+	rv += "about, page with build information, numbers, defined-at-compile times etc<br>\n";
+	rv += "Note the note. If a page auto refreshes, the note in progress is lost.<br>\n";
+	rv += make_footer(t);
+	return rv;
+}
+/*
 
 int make_jos_page(struct mg_connection *conn)
 {
@@ -1596,18 +1548,18 @@ void webGuiStop(){
 	}
 */
 // Configuration
-void config_webgui(json_t *json)
+void webserver::config_webgui(json_t *json)
 {
 	if (json_is_object(json))
 	{
-		//json_t *def_w_j, *def_h_j, *page_j;
-		//def_w_j = json_object_get(json, "def_w");
-		//def_h_j = json_object_get(json, "def_h");
-		//page_j = json_object_get(json, "page");
-		//if (json_is_integer(def_w_j))
-		//	def_w = json_integer_value(def_w_j);
-		//if (json_is_integer(def_h_j))
-		//	def_h = json_integer_value(def_h_j);
+		json_t *def_w_j, *def_h_j, *page_j;
+		def_w_j = json_object_get(json, "def_w");
+		def_h_j = json_object_get(json, "def_h");
+		page_j = json_object_get(json, "page");
+		if (json_is_integer(def_w_j))
+			def_w = json_integer_value(def_w_j);
+		if (json_is_integer(def_h_j))
+			def_h = json_integer_value(def_h_j);
 		//if (json_is_object(page_j))
 		//	build_page_data_from_json(page_j);
 	}

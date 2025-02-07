@@ -26,7 +26,7 @@
 #endif // HAVE_S7
 #include "interface_macp.h"
 #include "webin.h"
-//#include "interface_xmrstak.h"
+#include "webserver.h"
 #include <signal.h>
 #include "interface_darksky.h"
 #include <curl/curl.h>
@@ -531,7 +531,11 @@ int main(){
 	bool prune_files = json_is_true(json_object_get(json, "prune_files"));
 	prune_input = json_is_true(json_object_get(json, "prune_input"));
 	json_t *webgui_j = json_object_get(json, "webgui");
-	config_webgui(webgui_j);
+
+	webserver *ws = new webserver("gui", 2, 8092);
+	
+	ws->config_webgui(webgui_j);
+	ws->start();
 	
 	touchAllWebins();
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
@@ -553,6 +557,8 @@ int main(){
 	while(run){sleep(1000);}
 	printf("shutting down...\n");
 	run = false;
+	ws->stop();
+	delete ws;
 
 	for (auto i = inmap.begin(); i!= inmap.end(); i++)
 		i->second->writeToFile();
