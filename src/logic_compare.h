@@ -6,7 +6,6 @@
 #include "stringStore.h"
 #include "out.h"
 #include "outhost.h"
-#include "mongoose.h"
 #include "logic.h"
 #include <list>
 

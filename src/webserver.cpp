@@ -15,6 +15,7 @@
 #include "webin.h"
 
 #include <cstdlib> // system()
+#include <fcntl.h>
 #include <inttypes.h> // Macros like SCNu16
 #include <list>
 #include <math.h> // floor()
@@ -79,37 +80,38 @@ void webserver::stop()
 
 string make_root_page();
 
-enum MHD_Result webserver::handle_request
-	(
-    	struct MHD_Connection *connection,
-    	const char *url,
-    	const char *method,
-    	const char *version,
-    	const char *upload_data,
-    	long unsigned int *upload_data_size,
-    	void **con_cls
-	)
-{
+
+//enum MHD_Result webserver::handle_request
+//	(
+//    	struct MHD_Connection *connection,
+//    	const char * /*url*/,
+//    	const char * /*method*/,
+//    	const char * /*version*/,
+//    	const char * /*upload_data*/,
+//    	long unsigned int * /*upload_data_size*/,
+//    	void ** /*con_cls*/
+//	)
+//{
 //    const char *page = "<html><body>Hello, browser!</body></html>";
-	string s = make_root_page();
-    struct MHD_Response *response;
-    MHD_Result ret;
-	char  page[10000];
-	strncpy(page, s.c_str(), 10000);
-	printf(page);
-    response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_PERSISTENT);
-	printf(page);
+//	string s = make_root_page();
+//    struct MHD_Response *response;
+//    MHD_Result ret;
+//	char  page[10000];
+//	strncpy(page, s.c_str(), 10000);
+//	printf(page);
+//    response = MHD_create_response_from_buffer(strlen(page), (void*) page, MHD_RESPMEM_PERSISTENT);
+//	printf(page);
 
-    ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
-    MHD_destroy_response(response);
-    return ret;
-}
+//    ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
+//    MHD_destroy_response(response);
+//    return ret;
+//}
 
-/*
+
 
 
 // The purpose of this file is to control libMicroHttpD (MHD), and create a bunch of semi-uniform webpages that will serve as GUI for tcFarmControl. JCE, 14-6-13
-
+/*
 
 void fprintt(FILE *fp, double a, float cycle = 0)
 {
@@ -737,7 +739,7 @@ string plotLines(in* i1, in* i2, in* i3, in* i4, in* i5, double tmin, double tma
 string make_simple_header(unsigned int autoRefreshTime = 0)
 {
 	string rv;
-	rv += "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n";
+	rv += "<html>";//"HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n";
 	if (autoRefreshTime)
 		rv += "<meta http-equiv=\"refresh\" content=\"" + to_string(autoRefreshTime) + "\">\n";
 	return rv;
@@ -746,7 +748,7 @@ string make_simple_header(unsigned int autoRefreshTime = 0)
 string make_header(unsigned int autoRefreshTime = 0)
 {
 	string rv;// = "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n";
-	rv += "<html>\n<head><title>tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED "</title>\n";
+	rv += "<html><head><title>tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED "</title>\n";
 	if (autoRefreshTime)
 		rv += "<meta http-equiv=\"refresh\" content=\"" + to_string(autoRefreshTime) + "\">\n";
 	rv += "</head><h1><a href=\"/\"><font color=\"#000000\"><span title="  GIT_SHORT_HASH ">tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED "</span></font></a>\n";
@@ -761,14 +763,18 @@ string make_header(unsigned int autoRefreshTime = 0)
 	return rv;
 }
 
-string make_footer(double startTime)
-{
-	float generationTime = now() - startTime;
-	string rv = "<hr>\nPage generated in ";
-	if (generationTime >= 1)
-		rv += to_string(generationTime) + " s";
-	else
-		rv += to_string(generationTime * 1000) + " ms";
+string make_footer(double startTime = 0)
+{	
+	string rv;
+	if (startTime != 0)
+	{
+		float generationTime = now() - startTime;
+		rv = "<hr>\nPage generated in ";
+		if (generationTime >= 1)
+			rv += to_string(generationTime) + " s";
+		else
+			rv += to_string(generationTime * 1000) + " ms";
+	}
 	rv += "\n</html>\n";
 	return rv;
 }
@@ -784,61 +790,27 @@ string make_note(string &note)
 	return rv;
 }
 
-//void make_link(struct mg_connection *conn, string url, string text = ""){
-//	if (text == "") text = url;
-//	mg_printf(conn, "<a href=\"%s\">%s</a>",url, text);}
-
-string make_link(string url, string text)
+string make_link(string url, string text )
 {
 	if (text == "") text = url;
 	return "<a href=\"" + url + "\">" + text + "</a>";
 }
 
-string make_in_link(in* i, const string text)
-{
-	return make_link("/in/" + i->getDescriptor(), text);
-}
-
-string make_in_link(in* i)
-{
-	return make_link("/in/" + i->getDescriptor(), i->getName());
-}
-
-string make_webin_link(in* i, const string text)
-{
-	return make_link("/webin/" + i->getDescriptor(), text);
-}
-
-string make_out_link(out* o)
-{
-	return make_link("/out/" + o->getDescriptor(), o->getName());
-}
-
-string make_in_link_or_constant(in* i)
-{
-	if (!i)
-		return "constant";
-	return make_in_link(i);
-}
-
-string make_image(string url)
-{
-	return "<img src=\"" + url + "\">";
-}
-
-string make_image_line(string url)
-{
-	return make_image(url) + "<br>";
-}
-
+string make_in_link(in* i, const string text) 	{ 	return make_link("/in/" + i->getDescriptor(), text);			}
+string make_in_link(in* i)					 	{	return make_link("/in/" + i->getDescriptor(), i->getName());	}
+string make_webin_link(in* i, const string text){	return make_link("/webin/" + i->getDescriptor(), text);			}
+string make_out_link(out* o)					{	return make_link("/out/" + o->getDescriptor(), o->getName());	}
+string make_in_link_or_constant(in* i)			{	if (!i)	return "constant";	return make_in_link(i);				}
+string make_image(string url)					{	return "<img src=\"" + url + "\">";								}
+string make_image_line(string url)				{	return make_image(url) + "<br>";								}
+/*
 string make_in_graph_page(in *i, double from, double to, uint16_t w=def_w, uint16_t h=def_h)
 {
 	string rv = "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n";
-	//rv += make_image_line(plotLine(i, from, to, w, h));
+	rv += make_image_line(plotLine(i, from, to, w, h));
 	return rv;
 }
 
-/*
 string make_in_cycle_page(in *i, double from, double to, float cycle, uint16_t w=def_w, uint16_t h=def_h)
 {
 	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
@@ -849,16 +821,14 @@ string make_in_cycle_page(in *i, double from, double to, float cycle, uint16_t w
 	return 1;
 }
 
-int make_in_remove_reply(struct mg_connection *conn, size_t removed)
+string make_in_remove_reply(struct mg_connection *conn, size_t removed)
 {
-	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
-	mg_printf(conn, "Removed %zu records.", removed);
-	return 1;
+	return "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\nRemoved " + to_str(removed) +  " records.";
 }
 
-int make_equation_section(struct mg_connection *conn, equation *eq)
+string make_equation_section(equation *eq)
 {
-	mg_printf(conn, "Equation: %s<br>\n", eq->get_expression());
+	string rv = "Equation: " + eq->get_expression()  + " <br>\n";
 	mg_printf(conn, "<table><tr><th>Variable</th><th>Value</th><th>Source</th></tr>\n");
 	const var_in_double *vars = eq->get_vars();
 	int nr_vars = eq->get_nr_vars();
@@ -1308,22 +1278,24 @@ string make_root_page()
 	rv += make_footer(t);
 	return rv;
 }
-/*
 
-int make_jos_page(struct mg_connection *conn)
+
+string make_jos_page()
 {
-	double now = make_header(conn);
-	mg_printf(conn, "<h2>job scheduler readout</h2>\n");
-	mg_printf(conn, "<pre><code>\n");
+	string rv = make_header();
+	rv += "<h2>job scheduler readout</h2>\n";
+	rv += "<pre><code>\n";
 	#define SIZE 100000
 	char buf[SIZE];
 	jos_printn(pool, buf, SIZE);
-	mg_printf(conn, buf);
-	mg_printf(conn, "</code></pre>\n");
-	make_footer(conn, now);
 	#undef SIZE
-	return 1;
+	rv += buf;
+	rv += "</code></pre>\n";
+	rv += make_footer();
+	return rv;
 }
+
+/*
 
 int make_configured_page(struct mg_connection *conn, string url)
 {
@@ -1367,22 +1339,32 @@ int make_configured_page(struct mg_connection *conn, string url)
 	
 	return 1;
 } 
+*/
 
-in *mongoose_requests;
-pthread_mutex_t request_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
-static int begin_request(struct mg_connection *conn) 
+enum MHD_Result webserver::handle_request
+	(
+    	struct MHD_Connection *connection,
+    	const char * url,
+    	const char * method,
+    	const char * /*version*/,
+    	const char * /*upload_data*/,
+    	long unsigned int * /*upload_data_size*/,
+    	void ** /*con_cls*/
+	)
 {
-	pthread_mutex_lock(&request_counter_mutex);
-	mongoose_requests->setValue(mongoose_requests->getValue() + 1);
-	pthread_mutex_unlock(&request_counter_mutex);
-	const struct mg_request_info *ri = mg_get_request_info(conn);
-	#ifdef debug_mg
-		printf("Mongoose: start request %s\n", ri->uri);
-	#endif
 
-	if (!strcmp(ri->uri, "/in") or !strcmp(ri->uri, "/in/"))
+	if (0 != strcmp(method, "GET"))
+		return MHD_NO;
+
+	string s;// = make_root_page();
+
+	pthread_mutex_lock(&request_counter_mutex);
+	requests->setValue(requests->getValue() + 1);
+	pthread_mutex_unlock(&request_counter_mutex);
+/*
+	if (!strcmp(url, "/in") or !strcmp(url, "/in/"))
 		return make_in_list_page(conn);
-	if (!strncmp(ri->uri, "/in/", 4))
+	if (!strncmp(url, "/in/", 4))
 	{
 		in *i;
 		const char *uri = ri->uri + 4;
@@ -1401,13 +1383,13 @@ static int begin_request(struct mg_connection *conn)
 			return 0;
 		if (slash2)
 		{
-			// http://a.b.c.d/in/in-name/table/*end*
+			// http://a.b.c.d/in/in-name/table/ *end*
 			if (slash3 && !strncmp(slash1, "/table/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
 			{
 				mg_printf(conn, table_fromto(i, from, to).c_str());
 				return 1;
 			}
-			// http://a.b.c.d/in/in-name/table_h/*end*
+			// http://a.b.c.d/in/in-name/table_h/ *end*
 			if (slash3 && !strncmp(slash1, "/table_h/", 9) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
 			{
 				mg_printf(conn, table_fromto_h(i, from, to).c_str());
@@ -1501,52 +1483,60 @@ static int begin_request(struct mg_connection *conn)
 		char logicName[513];
 		sscanf(ri->uri, "/logic/%512s", logicName);
 		return make_logic_page(conn, logicName);}
-
-	if (!strcmp(ri->uri, "/jos")){
-		return make_jos_page(conn);}
-
+*/
+	if (!strcmp(url, "/jos"))
+		s = make_jos_page();
+/*
 	if (page_exists(ri->uri))
 		return make_configured_page(conn, string(ri->uri) );
+*/		
+	if (!strcmp(url, "/") or !strcmp(url, "/index.htm") or !strcmp(url, "/index.html"))
+		s = make_root_page();
+
+	if (s != "")
+	{
+		// There is a response. Answer the client.
+    	struct MHD_Response *response;
+    	MHD_Result ret;
+		size_t size = s.size() * sizeof( char);
+		char *buf = (char *) malloc( size);
+		strncpy(buf, s.c_str(), size);
+    	response = MHD_create_response_from_buffer(size, (void*) buf, MHD_RESPMEM_MUST_FREE);
+		MHD_add_response_header (response, "Content-Type", "text/html");
+    	ret = MHD_queue_response (connection, MHD_HTTP_OK, response);
+    	MHD_destroy_response(response);
+    	return ret;
+	}
+	// No response. See if a file exists at this url, else server error.
+
+	string fap = webroot + url;	// File And Path
+	int fd;
+	struct stat sbuf;
+	struct MHD_Response *response;
+	enum MHD_Result ret;
+	if ( ( -1==( fd = open ( fap.c_str(), O_RDONLY ) ) ) || ( 0 != fstat (fd, &sbuf)))
+	{
+		// No such file or error opening
+		const char *errorstr = "<html><body>An internal server error has occurred!</body></html>";
+		if (fd != -1)
+			(void) close (fd);
+		response = MHD_create_response_from_buffer(strlen(errorstr), (void *) errorstr, MHD_RESPMEM_PERSISTENT);
+		if (NULL != response)
+		{
+			ret = MHD_queue_response(connection, MHD_HTTP_INTERNAL_SERVER_ERROR, response);
+			MHD_destroy_response(response);
+			return ret;
+		}
+		else
+			return MHD_NO;
+	}
+	response = MHD_create_response_from_fd(sbuf.st_size, fd);
+	ret = MHD_queue_response(connection, MHD_HTTP_OK, response);
+	MHD_destroy_response(response);
 		
-	if (!strcmp(ri->uri, "/") or !strcmp(ri->uri, "/index.htm") or !strcmp(ri->uri, "/index.html")){
-		return make_root_page(conn);}
+	return ret;
+}
 
-	#ifdef debug_mg
-		printf("Mongoose: finished request %s\n", ri->uri);
-	#endif
-
-	return 0;}
-
-mg_context *ctx;
-void webGuiStart(string port){
-	noteStore = new stringStore(tcDataDir "note.txt");
-	mongoose_requests = new in("mongoose_rq", "Mongoose requests", "");
-	struct mg_callbacks callbacks;
-	memset(&callbacks, 0, sizeof(callbacks));
-	callbacks.log_message = &log_message;
-	callbacks.begin_request = &begin_request;
-	static const char *options[] = {
-		"listening_ports", port.c_str(),
-		NULL } ;
-	ctx = mg_start(&callbacks, NULL, options);//(const char **) options);
-	#ifdef debug_mg
-		printf("mongoose started on port(s) %s with web root [%s]\n", mg_get_option(ctx, "listening_ports"), mg_get_option(ctx, "document_root"));
-	#endif // debug_mg
-	}
-
-void webGuiStop(){
-	#ifdef debug_mg
-		printf("stopping mongoose...\n");
-	#endif //debug_mg
-	mg_stop(ctx);
-	deleteAllFiles();
-	delete noteStore;
-	delete mongoose_requests;
-	#ifdef debug_mg
-		printf("mongoose stopped\n");
-	#endif // debug_mg
-	}
-*/
 // Configuration
 void webserver::config_webgui(json_t *json)
 {
@@ -1560,6 +1550,7 @@ void webserver::config_webgui(json_t *json)
 			def_w = json_integer_value(def_w_j);
 		if (json_is_integer(def_h_j))
 			def_h = json_integer_value(def_h_j);
+		(void) page_j;
 		//if (json_is_object(page_j))
 		//	build_page_data_from_json(page_j);
 	}

@@ -9,5 +9,5 @@ if [ -f $name ]; then
 	rm $name
 fi
 
-time tar cf $name --use-compress-program="xz -vz9eT4" data
+time nice -n 19 tar cf $name --use-compress-program="xz -vz9eT4" data
 
