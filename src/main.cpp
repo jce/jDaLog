@@ -433,9 +433,11 @@ void loop1s()
 
 void loop60s(){
 	touchAllWebins();
+	deleteOldFiles();
 }
 
-void loopstoreio(){
+void loopstoreio()
+{
 	// for all sensors, call store to file
 	map<string, in*>::iterator i;
 	for (i = inmap.begin(); i!= inmap.end(); i++)
@@ -443,7 +445,7 @@ void loopstoreio(){
 		//i->second->importData();
 		i->second->writeToFile();
 	}
-	}
+}
 
 void sort_all_in_files()
 {

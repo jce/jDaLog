@@ -22,8 +22,9 @@ class webserver{
 		pthread_mutex_t request_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
 		uint16_t def_w = 1000, def_h = 300, plotnr = 0;
 		string webroot = "http";
+		string make_in_page(in*);
 	};
 
-void config_webgui(json_t*);
+void deleteOldFiles();
 
 #endif // HAVE_WEBSERVER_H

@@ -90,7 +90,7 @@ void interface_macp::getIns()
 	string command;
 	//command = "nmap -sP -n 10.0.0.0/24 > /dev/null; arp -an | grep ";
 	//command.append(_macstr);
-	command = "nmap -sn -n " + pingrange + " > /dev/null; arp"; // Pingrange example 10.0.0.0/24
+	command = "nmap -sn -n " + pingrange + " 2>&1 > /dev/null; arp"; // Pingrange example 10.0.0.0/24
 	string result;
 	result = exec(command.c_str());
 	
