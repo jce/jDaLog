@@ -769,6 +769,15 @@ string make_image_line(in *i, double from, double to, uint16_t w, uint16_t h)
 	rv += "+" + to_string(w) + "+" + to_string(h) + ".png";
 	return make_image_line(rv);
 }
+string make_image_line(list<in*> inlist, double from, double to, uint16_t w, uint16_t h)
+{
+	string rv = "/graphs/graph+"; 
+	for (auto i = inlist.begin(); i != inlist.end(); i++)
+		rv += (*i)->getDescriptor() + "+";
+	rv += to_string(uint64_t (from)) + "+" + to_string(uint64_t (to));
+	rv += "+" + to_string(w) + "+" + to_string(h) + ".png";
+	return make_image_line(rv);
+}
 /*
 
 string make_in_graph_page(in *i, double from, double to, uint16_t w=def_w, uint16_t h=def_h)
@@ -1150,53 +1159,56 @@ int make_man_out_list_page(struct mg_connection *conn){
 		}
 	make_footer(conn, now);
 	return 1;}
-
-int make_logic_page(struct mg_connection *conn, string logicName){
-	map<string, logic*>:: iterator i;		// Addressing by index is no good idea. It creates the element if it does not exist.
-	i = logics.find(logicName);		// Fixed, JCE, 5-3-14
-	if (i == logics.end()) {return 0;}
+*/
+string webserver::make_logic_page(string logicName)
+{
+	map<string, logic*>:: iterator i;
+	i = logics.find(logicName);
+	if (i == logics.end()) return "";
 	logic* myLogic = i->second;
 
-	char post_data[4096], newNote[4096];//, setdata[1024];
-	int post_data_len;
-	post_data_len = mg_read(conn, post_data, sizeof(post_data));
-	if (post_data_len){
-		if (mg_get_var(post_data, post_data_len, "note", newNote, sizeof(newNote)) > -1)
-			myLogic->setNote(newNote);
-		}
+	//char post_data[4096], newNote[4096];//, setdata[1024];
+	//int post_data_len;
+	//post_data_len = mg_read(conn, post_data, sizeof(post_data));
+	//if (post_data_len){
+	//	if (mg_get_var(post_data, post_data_len, "note", newNote, sizeof(newNote)) > -1)
+	//		myLogic->setNote(newNote);
+	//	}
 
-	double start = make_header(conn, 60);
-	
-	mg_printf(conn, "<h2>Logic page: %s</h2>\n", myLogic->getName().c_str());
-	mg_printf(conn, "short name: %s<br>\n", myLogic->getDescriptor().c_str()); // also could have been inName, hm...
+	string rv = make_header(60);
+	rv += "<h2>Logic page: " + myLogic->getName()  + "</h2>\n";
+	rv += "short name: " + myLogic->getDescriptor() + "<br>\n"; 
 
 	//mg_printf(conn, "%s\n", myLogic->getPageHtml().c_str());
-	myLogic->make_page(conn);
+	webserver_ctx ctx;
+	ctx.srv = this;
+	rv += myLogic->make_page(&ctx);
 
 	// note, met set en get
-	mg_printf(conn, "<br>\n");
-	string note(myLogic->getNote());
-	make_note(conn, note);
-	make_footer(conn, start);
-	return 1;} 
+	rv += "<br>\n";
+	//string note(myLogic->getNote());
+	//make_note(conn, note);
+	rv += make_footer();
+	return rv;
+} 
 
-int make_logic_list_page(struct mg_connection *conn){
-	double now = make_header(conn, 10);
-	mg_printf(conn, "<h2>List of logics</h2>");
+string make_logic_list_page()
+{
+	string rv = make_header() + "<h2>List of logics</h2>";
 	map<string, logic*>::iterator i;
 	// Print them sorted on their long, or human readable names. JCE, 16-7-13
 	map<string, logic*> nameSortedMap;
 	for(i = logics.begin(); i != logics.end(); i++)
 		nameSortedMap[i->second->getName()] = i->second;
-	for(i = nameSortedMap.begin(); i != nameSortedMap.end(); i++){
+	for(i = nameSortedMap.begin(); i != nameSortedMap.end(); i++)
+	{
 		string link = "/logic/" + i->second->getDescriptor();
 		string linkhtml = make_link(link, i->second->getName());
-		mg_printf(conn,	"%s<br>", linkhtml.c_str());
-		mg_printf(conn, "\n");
-		}
-	make_footer(conn, now);
-	return 1;}
-*/
+		rv += linkhtml + "<br>\n";;
+	}
+	rv += make_footer();
+	return rv;
+}
 
 string make_root_page()
 {
@@ -1402,14 +1414,12 @@ enum MHD_Result webserver::handle_request
 		char outName[513];
 		sscanf(ri->uri, "/manout/%512s", outName);
 		return make_out_page(conn, outName);}
-
-	if (!strcmp(ri->uri, "/logic") or !strcmp(ri->uri, "/logic/"))
-		return make_logic_list_page(conn);
-	if (!strncmp(ri->uri, "/logic/", 7)){
-		char logicName[513];
-		sscanf(ri->uri, "/logic/%512s", logicName);
-		return make_logic_page(conn, logicName);}
 */
+	if (!strcmp(url, "/logic") or !strcmp(url, "/logic/"))
+		s = make_logic_list_page();
+	if (!strncmp(url, "/logic/", 7))
+		s = make_logic_page(url + 7);
+
 	// If any url looks in graph
 	if (!strncmp(url, "/graphs/", 7))
 		make_graph_from_url(url+7);
@@ -1425,7 +1435,7 @@ enum MHD_Result webserver::handle_request
 
 	if (s != "")
 	{
-		// There is a response. Answer the client.
+		// There is a response string. Answer the client.
     	struct MHD_Response *response;
     	MHD_Result ret;
 		size_t size = s.size() * sizeof( char);

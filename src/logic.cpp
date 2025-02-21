@@ -55,15 +55,12 @@ const string logic::getNote(){
 
 void logic::run(){}	// JCE, 28-8-13
 
-//string logic::getPageHtml()	// Function where the logic can write its own html page response. JCE, 25-9-13
-//	{return "<br>Sorry, this logic instance does not implement a page.<br>";}
-
 void logic::setNote(string newNote){
 	_note->setString(newNote);}
 
-int logic::make_page(struct mg_connection *conn){
-	//mg_printf(conn, "<br>Sorry, this logic instance does not implement a page.<br>");
-	return 1;
-	}
+string logic::make_page(struct webserver_ctx*)
+{
+	return "<br>Sorry, this logic instance does not implement a page.<br>";
+}
 
 

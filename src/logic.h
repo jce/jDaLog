@@ -21,7 +21,7 @@ class logic: public outhost{
 		virtual void start() {};	// Starts thread / loads scheduler if appropriate.
 		//virtual string getPageHtml();	// Function where the logic can write its own html page response. JCE, 25-9-13
 		void setNote(string);		// JCE, 25-9-13
-		virtual int make_page(struct mg_connection*);	// Function that allows the logic class to draw its own page.
+		virtual string make_page(struct webserver_ctx*);	// Function that allows the logic class to draw its own page.
 	private:
 		const string _descr;
 		stringStore *_name, *_note; // JCE, 20-6-13
