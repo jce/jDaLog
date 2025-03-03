@@ -796,12 +796,12 @@ string make_in_cycle_page(in *i, double from, double to, float cycle, uint16_t w
 	mg_printf(conn, line.c_str());
 	return 1;
 }
-
-string make_in_remove_reply(struct mg_connection *conn, size_t removed)
+*/
+string make_in_remove_reply(size_t removed)
 {
-	return "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\nRemoved " + to_str(removed) +  " records.";
+	return make_header() + "Removed " + to_string(removed) +  " records." + make_footer();
 }
-
+/*
 string make_equation_section(equation *eq)
 {
 	string rv = "Equation: " + eq->get_expression()  + " <br>\n";
@@ -1328,10 +1328,10 @@ enum MHD_Result webserver::handle_request
 			i = get_in(string(uri, slash1 - uri)); // http://a.b.c.d/in/in-name/more_follows
 		else
 			i = get_in(uri); // http://a.b.c.d/in/in-name						
-
-		/*
+		
 		if (i and slash2)
 		{
+		/*
 			// http://a.b.c.d/in/in-name/table/ *end*
 			if (slash3 && !strncmp(slash1, "/table/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
 				s = table_fromto(i, from, to);
@@ -1368,30 +1368,30 @@ enum MHD_Result webserver::handle_request
 			// http://a.b.c.d/in/in-name/cycle/cycletime/from/to			
 			if (slash4 && sscanf(slash1, "/cycle/%f/%lf/%lf", &cycle, &from, &to) == 3)
 				return make_in_cycle_page(conn, i, from, to, cycle);
-						
+		*/				
 			// Trim commands, human readable
 			if (slash2 && !strncmp(slash1, "/remove_time_from/", 16) && read_human_time(slash2+1, &from))
-				return make_in_remove_reply(conn, i->remove_time_from(from));			
+				s = make_in_remove_reply(i->remove_time_from(from));			
 			if (slash2 && !strncmp(slash1, "/remove_time_to/", 14) && read_human_time(slash2+1, &to))
-				return make_in_remove_reply(conn, i->remove_time_to(to));			
+				s = make_in_remove_reply(i->remove_time_to(to));			
 			if (slash3 && !strncmp(slash1, "/remove_time_from_to/", 19) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
-				return make_in_remove_reply(conn, i->remove_time_from_to(from, to));			
+				s = make_in_remove_reply(i->remove_time_from_to(from, to));			
 			// Trim commands, timestamp
 			if (sscanf(slash1, "/remove_time_from/%lf", &from) == 1)
-				return make_in_remove_reply(conn, i->remove_time_from(from));			
+				s = make_in_remove_reply(i->remove_time_from(from));			
 			if (sscanf(slash1, "/remove_time_to/%lf", &to) == 1)
-				return make_in_remove_reply(conn, i->remove_time_to(to));			
+				s = make_in_remove_reply(i->remove_time_to(to));			
 			if (sscanf(slash1, "/remove_time_from)to/%lf/%lf", &from, &to) == 2)
-				return make_in_remove_reply(conn, i->remove_time_from_to(from, to));			
+				s = make_in_remove_reply(i->remove_time_from_to(from, to));			
 			if (sscanf(slash1, "/remove_value_over/%lf", &from) == 1)
-				return make_in_remove_reply(conn, i->remove_value_from(from));			
+				s = make_in_remove_reply(i->remove_value_from(from));			
 			if (sscanf(slash1, "/remove_value_under/%lf", &to) == 1)
-				return make_in_remove_reply(conn, i->remove_value_to(to));			
+				s = make_in_remove_reply(i->remove_value_to(to));			
 			if (sscanf(slash1, "/remove_value_between/%lf/%lf", &from, &to) == 2)
-				return make_in_remove_reply(conn, i->remove_value_from_to(from, to));			
+				s = make_in_remove_reply(i->remove_value_from_to(from, to));			
 		}
-		*/
-		s = make_in_page(i);
+		else
+			s = make_in_page(i);
 	}
 /*
 	if (!strcmp(ri->uri, "/webin") or !strcmp(ri->uri, "/webin/"))
