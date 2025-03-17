@@ -692,7 +692,8 @@ void make_graph_from_url(const char *url)
 	sscanf(fields[fields.size()-2].c_str(), "%u", &x);
 	sscanf(fields[fields.size()-1].c_str(), "%u", &y);
 
-	plotLines(inlist, start, end, x, y, "", true, url);
+	if (end > start)
+		plotLines(inlist, start, end, x, y, "", true, url);
 }
 
 string make_simple_header(unsigned int autoRefreshTime = 0)
