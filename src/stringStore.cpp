@@ -35,7 +35,7 @@ void stringStore::_storeToFile() {
 
 void stringStore::_loadFromFile(){
 	char i[2];
-	i[1] = (char)  NULL;
+	i[1] = 0;
 	FILE *fp;
 	fp = fopen(_pathAndName.c_str(), "r");
 	_data = "";

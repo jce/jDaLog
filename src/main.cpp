@@ -47,7 +47,9 @@
 #ifdef HAVE_RPI
 	#include "interface_pi_gpio.h"
 #endif //HAVE_RPI
-#include "interface_sht3x.h"
+#ifdef HAVE_LINUX_I2C
+	#include "interface_sht3x.h"
+#endif // HAVE_LINUX_I2C
 #include "job_sched.h"
 #include "logic_compare.h"
 #include "logic_modulator.h"
@@ -203,6 +205,7 @@ void build_interfaces(json_t *arr)
 						printf("could not build interface_pi_gpio(%s, %s, %f)\n", id, name, scan);
 				}
 #endif // HAVE_RPI
+#ifdef HAVE_LINUX_I2C
 				if (strcmp(type, "sht3x") == 0)
 				{
 					if (id and name and json_is_number(jscan) and i2c_dev and json_is_integer(ji2c_id))
@@ -210,6 +213,7 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_sht3x(%s, %s, %f, %s, %d)\n", id, name, scan, i2c_dev, i2c_id);
 				}
+#endif // HAVE_LINUX_I2C
 #ifdef HAVE_MARIA
 				if (strcmp(type, "maria") == 0)
 				{
