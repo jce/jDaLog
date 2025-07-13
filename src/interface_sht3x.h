@@ -1,5 +1,5 @@
 #ifndef HAVE_INTERFACE_SHT3x_H
-#define HAVE_INTERFACE_SHT3c_H
+#define HAVE_INTERFACE_SHT3x_H
 
 #include "stdio.h"
 #include <string>

@@ -1,10 +1,18 @@
 cmake_minimum_required(VERSION 3.10)
 cmake_policy(SET CMP0076 NEW)
 
-option(HAVE_S7 "Build with Siemens S7 support" ON)
-option(HAVE_RPI "Build with Raspberry Pi IO support and CPU temperature" ON)
-option(HAVE_USB "Build with libusb support (interface_K8055)" ON)
+# For FreeBSD
+#include_directories(/usr/local)
+include_directories(/usr/local/include)
+link_directories(/usr/local/lib)
+#find_library(curl modbus libmicrohttpd)
+
+
+option(HAVE_S7 "Build with Siemens S7 support" OFF)
+option(HAVE_RPI "Build with Raspberry Pi IO support and CPU temperature" OFF)
+option(HAVE_USB "Build with libusb support (interface_K8055)" OFF)
 option(HAVE_MARIA "Build with libmariadbclient support" OFF)
+option(HAVE_LINUX_I2C "Build with linux I2C support" OFF)
 
 project(tcFarmControl VERSION 1.0.0)
 add_executable(tcFarmControl
@@ -30,8 +38,13 @@ IF(HAVE_MARIA)
 	list(APPEND EXTRA_LIBS mariadbclient)
 endif()
 
+if (HAVE_LINUX_I2C)
+	list(APPEND EXTRA_SRC interface_sht3x.cpp)
+endif()
+
 target_link_libraries(tcFarmControl 
-	PUBLIC dl pthread curl modbus jansson microhttpd stdc++fs ${EXTRA_LIBS})
+	PUBLIC dl pthread curl modbus jansson microhttpd ${EXTRA_LIBS})
+	#PUBLIC dl pthread curl modbus jansson microhttpd stdc++fs ${EXTRA_LIBS})
 
 configure_file(config.h.in config.h)
 
@@ -65,7 +78,6 @@ target_sources(tcFarmControl PUBLIC
 	interface_hs110.cpp
 	interface_macp.cpp
 	interface_mb.cpp
-	interface_sht3x.cpp
 	interface_solarlog.cpp
 	logic_compare.cpp
 	logic.cpp
