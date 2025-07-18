@@ -1322,8 +1322,8 @@ enum MHD_Result webserver::handle_request
 		const char *slash1 = strpbrk(uri, "/");
 		const char *slash2 = slash1 ? strpbrk(slash1+1, "/") : NULL;
 		const char *slash3 = slash2 ? strpbrk(slash2+1, "/") : NULL;
-		const char *slash4 = slash3 ? strpbrk(slash3+1, "/") : NULL;
-		const char *slash5 = slash4 ? strpbrk(slash4+1, "/") : NULL;
+		//const char *slash4 = slash3 ? strpbrk(slash3+1, "/") : NULL;
+		//const char *slash5 = slash4 ? strpbrk(slash4+1, "/") : NULL;
 
 		if (slash1)
 			i = get_in(string(uri, slash1 - uri)); // http://a.b.c.d/in/in-name/more_follows

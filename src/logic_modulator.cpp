@@ -159,8 +159,8 @@ void logic_modulator::setOut(out *o, float f)
 	jos_run(pool, cc_logic_modulator_run, this);
 }
 
-int logic_modulator::make_page(struct mg_connection *conn)
-{
+//int logic_modulator::make_page(struct mg_connection *conn)
+//{
 //	string s;
 //	s += make_out_link(out_sp);
 //	mg_printf(conn, s.c_str());
@@ -178,8 +178,8 @@ int logic_modulator::make_page(struct mg_connection *conn)
 	//mg_printf(conn, line.c_str());
 	return 1;
 	*/	
-	return 1;
-}
+//	return 1;
+//}
 
 // helper functions
 

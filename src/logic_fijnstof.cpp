@@ -15,7 +15,7 @@ logic_fijnstof::logic_fijnstof(const std::string d, const std::string n) : logic
 
 logic_fijnstof::~logic_fijnstof(){}
 
-int logic_fijnstof::make_page(struct mg_connection *conn){
+//int logic_fijnstof::make_page(struct mg_connection *conn){
 	/*
 	mg_printf(conn, "<br>Fijnstof pagina</br><hr>");
 	string line;
@@ -42,7 +42,7 @@ int logic_fijnstof::make_page(struct mg_connection *conn){
 	line = make_image_line(plotLines(pm10, pm2, rac, now() - 28*24*3600, now(), 1280, 300, "last four weeks"));mg_printf(conn, line.c_str());
 	//line = make_image_line(plotLines(pm10, pm2, wb, ws, now() - 265*24*3600, now(), 1280, 300, "last year"));mg_printf(conn, line.c_str());
 */
-	return 1;
-	}
+//	return 1;
+//	}
 
 

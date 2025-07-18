@@ -146,8 +146,8 @@ void logic_mac_c::on_found_new_mac_change()
 	DBG("logic_mac_c::on_found_new_mac_change() called");
 }
 
-int logic_mac_c::make_page(struct mg_connection *conn)
-{
+//int logic_mac_c::make_page(struct mg_connection *conn)
+//{
 	/*
 	DBG("logic_mac_c::make_page(...) called");
 	mg_printf(conn, "known mac list:\n");
@@ -166,8 +166,8 @@ int logic_mac_c::make_page(struct mg_connection *conn)
 	}
 	mg_printf(conn, "</tbody></table>\n");
 	*/
-	return 1;
-}
+//	return 1;
+//}
 
 void interface_macp::add_mac(const char *macstr, const char *macdescr, const char *macname)
 {

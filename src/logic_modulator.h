@@ -31,7 +31,7 @@ class logic_modulator: public logic {
 		logic_modulator(const std::string, const std::string, out*); // id, name, out to be modulated.
 		virtual ~logic_modulator();
 		virtual void setOut(out*, float);
-		int make_page(struct mg_connection*);
+		//int make_page(struct mg_connection*);
 		//bool_in_double error_sum_limit_low, error_sum_limit_high, time_off_min, time_off_max, time_on_min, time_on_max;
 		bool_in_double time_off_min, time_on_min;
 	private:

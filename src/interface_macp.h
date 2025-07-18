@@ -35,7 +35,7 @@ class logic_mac_c: public logic
 {
 	public:
 		logic_mac_c(const std::string, const std::string, in*, std::map<std::string, in*>&);
-		int make_page(struct mg_connection*);
+		//int make_page(struct mg_connection*);
 		//std::string make_page_string(nvm...
 	private:
 		in *found_new_mac;

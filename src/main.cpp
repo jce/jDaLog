@@ -89,10 +89,13 @@ void build_interfaces(json_t *arr)
 	if (! json_is_array(arr))
 		return;
 	size_t index;
-	json_t *json, *jscan, *jlon, *jlat, *ji2c_id;
-	const char *type, *id, *name, *key, *address, *pingrange, *i2c_dev;
+	json_t *json, *jscan, *jlon, *jlat;
+	const char *type, *id, *name, *key, *address, *pingrange; 
 	float scan, lon, lat;
+#ifdef HAVE_LINUX_I2C
+	const char *ji2c_id, *i2c_dev;
 	uint8_t i2c_id;
+#endif // LINUX_HAVE_I2C
 	json_array_foreach(arr, index, json)
 	{
 		if (json_is_object(json))
@@ -110,16 +113,17 @@ void build_interfaces(json_t *arr)
 				key = 		json_string_value(json_object_get(json, "key"));
 				address = 	json_string_value(json_object_get(json, "address"));
 				pingrange = json_string_value(json_object_get(json, "pingrange"));
-				i2c_dev = 	json_string_value(json_object_get(json, "i2c_dev"));
 				jlon =  	json_object_get(json, "lon");
 				lon = 		json_number_value(jlon);
 				jlat =  	json_object_get(json, "lat");
 				lat = 		json_number_value(jlat);
 				jscan =  	json_object_get(json, "scan");
 				scan = 		json_number_value(jscan);
+#ifdef HAVE_LINUX_I2C
+				i2c_dev = 	json_string_value(json_object_get(json, "i2c_dev"));
 				ji2c_id =	json_object_get(json, "i2c_id");
 				i2c_id = 	json_integer_value(ji2c_id);
-
+#endif // HAVE_LINUX_I2C
 				if (!name) name = id;
 
 				// Build different types

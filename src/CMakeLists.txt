@@ -6,13 +6,13 @@ cmake_policy(SET CMP0076 NEW)
 include_directories(/usr/local/include)
 link_directories(/usr/local/lib)
 #find_library(curl modbus libmicrohttpd)
-
+# remember to use gmake instead of make
 
 option(HAVE_S7 "Build with Siemens S7 support" OFF)
 option(HAVE_RPI "Build with Raspberry Pi IO support and CPU temperature" OFF)
-option(HAVE_USB "Build with libusb support (interface_K8055)" OFF)
+option(HAVE_USB "Build with libusb support (interface_K8055)" ON)
 option(HAVE_MARIA "Build with libmariadbclient support" OFF)
-option(HAVE_LINUX_I2C "Build with linux I2C support" OFF)
+option(HAVE_LINUX_I2C "Build with linux I2C support" ON)
 
 project(tcFarmControl VERSION 1.0.0)
 add_executable(tcFarmControl

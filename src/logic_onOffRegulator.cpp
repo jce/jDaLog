@@ -63,7 +63,7 @@ void logic_onOffRegulator::run(){
 
 void logic_onOffRegulator::setOut(out*, float){}
 
-int logic_onOffRegulator::make_page(struct mg_connection *conn){
+//int logic_onOffRegulator::make_page(struct mg_connection *conn){
 /*
 	mg_printf(conn, "on/off regulator page. This page displays the current state as well as configured values for this on-off regulator<br>\n");
 	mg_printf(conn, "Lower treshold: %.*f %s<br>\n", _low->getDecimals(), _low->getValue(), _low->getUnits().c_str());
@@ -77,6 +77,6 @@ int logic_onOffRegulator::make_page(struct mg_connection *conn){
  	//line = make_image_line(plotLines(_low, _high, _e, _out, now() - 24*3600, now(), 1280, 300, "low, high, error and output"));
 	//mg_printf(conn, line.c_str());
 */
-	return 1;
-	}
+//	return 1;
+//	}
 

@@ -20,7 +20,7 @@ class logic_or: public logic {
 		~logic_or();
 		void run(){}
 		void setOut(out*, float);	// Intended for being called by out instances. JCE, 16-7-13
-		int make_page(struct mg_connection*);
+		//int make_page(struct mg_connection*);
 		out *A, *B;
 	private:
 		out *_myOut;

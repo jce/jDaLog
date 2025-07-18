@@ -23,7 +23,7 @@ logic_km::~logic_km()
 
 const char* month_str[12] = {"January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"};
 
-int logic_km::make_page(struct mg_connection *conn){
+//int logic_km::make_page(struct mg_connection *conn){
 	/*
 
 	mg_printf(conn, "<br>Kilometer vergoeding pagina</br>based on ");
@@ -77,6 +77,6 @@ int logic_km::make_page(struct mg_connection *conn){
 		}
 	}
 */
-	return 1;
-}
+//	return 1;
+//}
 

@@ -116,10 +116,10 @@ string parameter_lookup(const string &line, const string tag)
 	return rv;
 }
 
-string build_page(const string &url, vector<std::string> options)
-{
-	unsigned int post_item = 0;
-	string html;
+//string build_page(const string &url, vector<std::string> options)
+//{
+	//unsigned int post_item = 0;
+	//string html;
 	/*
 	if (page_exists(url))
 	{
@@ -253,6 +253,6 @@ string build_page(const string &url, vector<std::string> options)
 			html += "<INPUT type=\"submit\" name=\"Submit\" value=\"Submit\"></form>";
 	}
 	*/
-	return html;
-}
+	//return html;
+//}
 

@@ -32,6 +32,6 @@ bool page_has_footer(const string&);
 
 // Build the page for given URL and 
 // post data (implitit numeric id:content)
-std::string build_page(const string&, vector<std::string>);
+//std::string build_page(const string&, vector<std::string>);
 
 #endif // HAVE_WEBGUI_PAGE_H

@@ -16,7 +16,7 @@ class logic_km: public logic{
 		~logic_km();
 		void setOut(out*, float){}	// Intended for being called by out instances. JCE, 16-7-13
 		void run(){}			// JCE, 28-8-13
-		int make_page(struct mg_connection*);	// Function that allows the logic class to draw its own page.
+		//int make_page(struct mg_connection*);	// Function that allows the logic class to draw its own page.
 		in *inp;
 	};
 
