@@ -71,7 +71,6 @@ target_sources(tcFarmControl PUBLIC
 	interface_adam6052.cpp
 	interface_circulac.cpp
 	interface.cpp
-	interface_darksky.cpp
 	interface_fijnstof.cpp
 	interface_fritz.cpp
 	interface_host.cpp
@@ -79,6 +78,7 @@ target_sources(tcFarmControl PUBLIC
 	interface_macp.cpp
 	interface_mb.cpp
 	interface_solarlog.cpp
+	interface_dcmr.cpp
 	logic_compare.cpp
 	logic.cpp
 	logic_fijnstof.cpp

@@ -27,7 +27,6 @@
 #include "webin.h"
 #include "webserver.h"
 #include <signal.h>
-#include "interface_darksky.h"
 #include <curl/curl.h>
 #ifdef HAVE_MARIA
 	#include "interface_maria.h"
@@ -56,6 +55,7 @@
 #include "logic_pi_reg.h"
 #include "interface_fritz.h"
 #include "interface_circulac.h"
+#include "interface_dcmr.h"
 
 using namespace std;
 //#define debug
@@ -89,9 +89,9 @@ void build_interfaces(json_t *arr)
 	if (! json_is_array(arr))
 		return;
 	size_t index;
-	json_t *json, *jscan, *jlon, *jlat;
-	const char *type, *id, *name, *key, *address, *pingrange; 
-	float scan, lon, lat;
+	json_t *json, *jscan;
+	const char *type, *id, *name, *address, *pingrange; 
+	float scan;
 #ifdef HAVE_LINUX_I2C
 	const char *ji2c_id, *i2c_dev;
 	uint8_t i2c_id;
@@ -110,13 +110,8 @@ void build_interfaces(json_t *arr)
 
 				id = 		json_string_value(json_object_get(json, "id"));
 				name = 		json_string_value(json_object_get(json, "name"));
-				key = 		json_string_value(json_object_get(json, "key"));
 				address = 	json_string_value(json_object_get(json, "address"));
 				pingrange = json_string_value(json_object_get(json, "pingrange"));
-				jlon =  	json_object_get(json, "lon");
-				lon = 		json_number_value(jlon);
-				jlat =  	json_object_get(json, "lat");
-				lat = 		json_number_value(jlat);
 				jscan =  	json_object_get(json, "scan");
 				scan = 		json_number_value(jscan);
 #ifdef HAVE_LINUX_I2C
@@ -127,13 +122,6 @@ void build_interfaces(json_t *arr)
 				if (!name) name = id;
 
 				// Build different types
-				if (strcmp(type, "darksky") == 0)
-				{
-					if (id and name and key and json_is_number(jlon) and json_is_number(jlat) and json_is_number(jscan))
-						new interface_darksky(id, name, scan, key, lon, lat);
-					else
-						printf("could not build interface_darksky(%s, %s, %f, %s, %f, %f)\n", id, name, scan, key, lon, lat);
-				}
 				if (strcmp(type, "solarlog") == 0)
 				{
 					if (id and name and json_is_number(jscan) and address)
@@ -179,6 +167,13 @@ void build_interfaces(json_t *arr)
 					else
 						printf("could not build interface_macp(%s, %s, %f, %s, %s)\n", id, name, scan, address, pingrange);
 				}
+
+				if (strcmp(type, "dcmr") == 0)
+				{
+					if (id and name and json_is_number(jscan))
+						new interface_dcmr(id, name, scan);
+				}
+
 				if (strcmp(type, "host") == 0)
 				{
 					if (id and name and json_is_number(jscan))
