@@ -4,7 +4,7 @@
 #include "out.h"
 #include "timefunc.h"
 #include "webin.h"
-#include "webgui.h"	// plotlines
+#include "webserver.h"	// plotlines
 
 #include "stdio.h"
 #include <string>

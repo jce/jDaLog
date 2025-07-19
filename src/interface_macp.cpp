@@ -10,7 +10,6 @@
 #include "stringStore.h"
 #include "math.h" // pow()
 #include "out.h"
-#include "webgui.h"
 
 #include <iostream>
 #include <cstdio>

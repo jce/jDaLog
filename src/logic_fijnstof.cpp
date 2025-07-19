@@ -8,7 +8,7 @@
 #include "sys/time.h" // gettimeofday(()
 #include "stringStore.h"
 #include "out.h"
-#include "webgui.h"
+#include "webserver.h"
 #include <list>
 
 logic_fijnstof::logic_fijnstof(const std::string d, const std::string n) : logic(d, n){}

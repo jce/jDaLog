@@ -6,7 +6,6 @@
 #include "main.h"
 #include "stringStore.h"
 #include "out.h"
-#include "webgui.h"
 #include "webserver.h"
 #include <list>
 #include <ctime>

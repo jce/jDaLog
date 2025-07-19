@@ -8,7 +8,7 @@
 #include "sys/time.h" // gettimeofday(()
 #include "stringStore.h"
 #include "out.h"
-#include "webgui.h"
+#include "webserver.h"
 #include <list>
 #include <ctime>
 #include "float.h"

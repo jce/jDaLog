@@ -10,8 +10,8 @@
 #include "stringStore.h"
 #include "timefunc.h"
 #include "webserver.h"
-#include "webgui_intable.h"
-#include "webgui_page.h"
+//#include "webgui_intable.h"
+//#include "webgui_page.h"
 #include "webin.h"
 
 #include <cstdlib> // system()

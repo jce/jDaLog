@@ -10,7 +10,7 @@
 #include "unistd.h" // usleep
 #include "math.h"	// pow
 #include "webin.h"
-#include "webgui.h"	// plotlines
+#include "webserver.h"	// plotlines
 
 using namespace std;
 

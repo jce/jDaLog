@@ -8,7 +8,7 @@ link_directories(/usr/local/lib)
 #find_library(curl modbus libmicrohttpd)
 # remember to use gmake instead of make
 
-option(HAVE_S7 "Build with Siemens S7 support" OFF)
+option(HAVE_S7 "Build with Siemens S7 support" ON)
 option(HAVE_RPI "Build with Raspberry Pi IO support and CPU temperature" OFF)
 option(HAVE_USB "Build with libusb support (interface_K8055)" ON)
 option(HAVE_MARIA "Build with libmariadbclient support" OFF)
@@ -91,9 +91,6 @@ target_sources(tcFarmControl PUBLIC
 	out.cpp
 	stringStore.cpp
 	webserver.cpp
-	webgui_intable.cpp
-	webgui_mac.cpp
-	webgui_page.cpp
 	webin.cpp
 	${EXTRA_SRC}
 )
