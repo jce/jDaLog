@@ -10,20 +10,18 @@
 #include "stringStore.h"
 #include "timefunc.h"
 #include "webserver.h"
-//#include "webgui_intable.h"
-//#include "webgui_page.h"
 #include "webin.h"
 
 #include <cstdlib> // system()
 #include <fcntl.h>
 #include <inttypes.h> // Macros like SCNu16
 #include <list>
-#include <math.h> // floor()
+#include <math.h>
 #include <set>
 #include <stdio.h>
 #include <string>
 #include <string.h>
-#include <sys/stat.h> // mkdir
+#include <sys/stat.h>
 #include <vector>
 
 #define DBG(...) {printf(__VA_ARGS__); printf("\n");}
@@ -77,6 +75,11 @@ void webserver::stop()
 		DBG("Stopped webserver %s", name.c_str());
 	}
 }
+
+
+
+
+
 
 string make_root_page();
 
@@ -671,7 +674,7 @@ void make_graph_from_url(const char *url)
 	    sscanf(fields[fields.size()-3].c_str(), "%lf", &end);
     sscanf(fields[fields.size()-2].c_str(), "%u", &x);
     sscanf(fields[fields.size()-1].c_str(), "%u", &y);
-    DBG("c")
+
     // If the graph is a normal time graph	    
     if (fields.size() >= 6 and fields[0] == "/graph" and end > start)
         plotLines(inlist, start, end, x, y, "", true, url);
@@ -771,44 +774,27 @@ string make_image_line(list<in*> inlist, double from, double to, uint16_t w, uin
 	rv += "+" + to_string(w) + "+" + to_string(h) + ".png";
 	return make_image_line(rv);
 }
-/*
 
-string make_in_graph_page(in *i, double from, double to, uint16_t w=def_w, uint16_t h=def_h)
-{
-	string rv = "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n";
-	rv += make_image_line(plotLine(i, from, to, w, h));
-	return rv;
-}
-
-string make_in_cycle_page(in *i, double from, double to, float cycle, uint16_t w=def_w, uint16_t h=def_h)
-{
-	mg_printf(conn, "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n<html>\n");
-	string line;
-	list<in*> inlist({i});
-	line = make_image_line(plotcycle(inlist, from, to, w, h, i->getName(), cycle));
-	mg_printf(conn, line.c_str());
-	return 1;
-}
-*/
 string make_in_remove_reply(size_t removed)
 {
 	return make_header() + "Removed " + to_string(removed) +  " records." + make_footer();
 }
-/*
+
 string make_equation_section(equation *eq)
 {
-	string rv = "Equation: " + eq->get_expression()  + " <br>\n";
-	mg_printf(conn, "<table><tr><th>Variable</th><th>Value</th><th>Source</th></tr>\n");
+	string rv = "Equation: " + string(eq->get_expression())  + " <br>\n";
+	rv += "<table><tr><th>Variable</th><th>Value</th><th>Source</th></tr>\n";
 	const var_in_double *vars = eq->get_vars();
 	int nr_vars = eq->get_nr_vars();
 	for (int i = 0; i < nr_vars; i++)
 	{
-		mg_printf(conn, "<tr><td>%s</td><td>%f</td><td>%s</td><tr>\n", vars[i].var, vars[i].d, make_in_link_or_constant(vars[i].i).c_str());
+		rv += "<tr><td>" + string(vars[i].var) + "</td><td>" + to_string(vars[i].d);
+		rv += "</td><td>" + make_in_link_or_constant(vars[i].i) + "</td><tr>\n";
 	}	
-	mg_printf(conn, "</table>\n");
-	return 1;
+	rv += "</table>\n";
+	return rv;
 }
-*/
+
 string webserver::make_in_page(in *i)
 {
 	string rv = make_header(60);
@@ -824,13 +810,13 @@ string webserver::make_in_page(in *i)
 		rv += "this in is valid<br>\n";
 	else
 		rv += "this in is invalid<br>\n";
-/*
+
 	in_equation *ie = dynamic_cast<in_equation*>(i);
 	if (ie)
 	{
-		make_equation_section(conn, ie->eq);
+		rv += make_equation_section(ie->eq);
 	}
-*/
+
 	rv += make_image_line(i, now() - 3600, now(), def_w, def_h);
 	rv += make_image_line(i, now() - 24*3600, now(), def_w, def_h);
 	rv += make_image_line(i, now() - 7*243600, now(), def_w, def_h);
@@ -891,127 +877,63 @@ string make_in_list_page()
 	rv += make_footer();
 	return rv;
 }
-/*
-
-int make_webin_page(struct mg_connection *conn, string webinName){
-map<string, webin*>:: iterator i;		// Addressing by index is no good idea. It creates the element if it does not exist.
-	i = webinmap.find(webinName);		// Fixed, JCE, 5-3-14
-	if (i == webinmap.end()) {return 0;}
-	webin* myIn = i->second;
-	//webin* myIn = webinmap[webinName];
-	//if (myIn == 0) {return 0;}
-
-	char post_data[4096], newNote[4096], setdata[1024];
-	int post_data_len;
-	post_data_len = mg_read(conn, post_data, sizeof(post_data));
-	if (post_data_len){
-		if (mg_get_var(post_data, post_data_len, "value", setdata, sizeof(setdata)) > -1)
-			{
-			float newVal(0);
-			if (sscanf(setdata, "%f", &newVal) == 1)
-				myIn->setValue(newVal);
-			}
-		if (mg_get_var(post_data, post_data_len, "note", newNote, sizeof(newNote)) > -1)
-			myIn->setNote(newNote);
-		}
 
 
-	// headers
-	double start = make_header(conn, 60);
-	
-	// (short) name
-	mg_printf(conn, "<h2>Web in page: %s</h2>\n", myIn->getName().c_str());
-	// (long) name
-	mg_printf(conn, "short name: %s<br>\n", myIn->getDescriptor().c_str()); // also could have been inName, hm...
-	
-	// current state
-	mg_printf(conn, "last input: %.*f %s<br>\n", myIn->getDecimals(), myIn->getValue(), myIn->getUnits().c_str());
+string webserver::make_webin_page(string webinName)
+{
+    webin *i = get_webin(webinName);
+    if (i == NULL) 
+        return "No webin with that name.";
 
-	// The age of this particular measurement
-	//float age = now() - myIn->getTime();
-	mg_printf(conn, "input age: %.3f seconds<br>\n", myIn->getAge());
-		
-	mg_printf(conn, "<form method=\"POST\">Set to:<INPUT type=\"TEXT\" name=\"value\" value=\"%.*f\"> %s<br>\n", myIn->getDecimals(), myIn->getValue(), myIn->getUnits().c_str());
-	mg_printf(conn, "<INPUT type=\"submit\" name=\"Submit\" value=\"Submit\"></form><br>\n");
+    string rv = make_header(60);
+	rv += "<h2>Web in page: " + i->getName() + "</h2>\n";
+	rv += "short name: " + i->getDescriptor() + "<br>\n";
+	char buf[32];
+	snprintf(buf, 32, "%.*f", i->getDecimals(), i->getValue());
+	rv += string("last input: ") + buf + " " + i->getUnits() + "<br>\n";
+	snprintf(buf, 32, "%.3f", i->getAge());
+	rv += string("input age: ") + buf + " seconds<br>\n";
 
-	#ifdef debug
-		double tdata, tscript, tplot, tsum;
-		string line;
-		//line = make_image_line(plotLine(myIn, now() - 3600 + 1, now() + 1, def_w, def_h, tdata, tscript, tplot));
-		//mg_printf(conn, line.c_str());
-		//tsum = tdata + tscript + tplot;
-		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 24*3600 + 1, now() + 1, def_w, def_h, tdata, tscript, tplot));
-		mg_printf(conn, line.c_str());
-		tsum += tdata + tscript + tplot;
-		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 7*24*3600 + 1, now() + 1, def_w, def_h, tdata, tscript, tplot));
-		mg_printf(conn, line.c_str());
-		tsum += tdata + tscript + tplot;
-		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600 + 1, now() + 1, def_w, def_h, tdata, tscript, tplot));
-		mg_printf(conn, line.c_str());
-		tsum += tdata + tscript + tplot;
-		mg_printf(conn, "Graph generation times: fetch data: %f s, generate script: %f s, run gnuplot: %f s<br>\n", tdata, tscript, tplot);
-		mg_printf(conn, "Graph total time: %f s<br>\n", tsum);
-	#else
-		string line = make_image_line(plotLine(myIn, now() - 3600 + 1, now() + 1, def_w, def_h));
-		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 24*3600 + 1, now() + 1, def_w, def_h));
-		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 7*24*3600 + 1, now() + 1, def_w, def_h));
-		mg_printf(conn, line.c_str());
-		line = make_image_line(plotLine(myIn, now() - 4*7*24*3600 + 1, now() + 1, def_w, def_h));
-		mg_printf(conn, line.c_str());
-	#endif
+	rv += make_image_line(i, now() - 3600, now(), def_w, def_h);
+	rv += make_image_line(i, now() - 24*3600, now(), def_w, def_h);
+	rv += make_image_line(i, now() - 7*243600, now(), def_w, def_h);
+	rv += make_image_line(i, now() - 4*7*243600, now(), def_w, def_h);
 
-	// note, met set en get
-	string note(myIn->getNote());
-	make_note(conn, note);
-	make_footer(conn, start);
-	return 1;} 
+	rv += make_footer();
+	return rv;
+} 
 
-
-int make_webin_list_page(struct mg_connection *conn){
-	double now = make_header(conn, 10);
-	mg_printf(conn, "<h2>List of webin's</h2>");
-	map<string, webin*>::iterator i;
-	// Print them sorted on their long, or human readable names. JCE, 16-7-13
+string make_webin_list_page(){
+	string rv = make_header(10);
+	rv += "<h2>List of webin's</h2>";
 	map<string, webin*> nameSortedMap;
-	for(i = webinmap.begin(); i != webinmap.end(); i++)
+	for(auto i = webinmap.begin(); i != webinmap.end(); i++)
 		nameSortedMap[i->second->getName()] = i->second;
-	#ifdef debug
-		printf("\nin iterating starting...\n");
-	#endif
-	for(i = nameSortedMap.begin(); i != nameSortedMap.end(); i++){
-		#ifdef debug
-			printf("in iteration started, constructing link\n");
-		#endif
+	for(auto i = nameSortedMap.begin(); i != nameSortedMap.end(); i++)
+	{
 		string link = "/webin/" + i->second->getDescriptor();
-		#ifdef debug
-			printf("The webinmap entry is: %s, The link is: %s, constructing link html\n", i->first.c_str(), link.c_str());
-		#endif
 		string linkhtml = make_link(link, i->second->getName());
-		#ifdef debug
-			printf("The link html is: %s, constructing final html line and giving it to mg_printf()\n", linkhtml.c_str());
-		#endif
-		if (not i->second->isValid()) mg_printf(conn, "<span style=\"background-color:red\">");
-		mg_printf(conn,	"%s: %.*f %s<br>", linkhtml.c_str(), i->second->getDecimals(), i->second->getValue(), i->second->getUnits().c_str());
-		if (not i->second->isValid()) mg_printf(conn, "</span>");
-		mg_printf(conn, "\n");
-		#ifdef debug
-			printf("Written the html link to mg_printf, iteration finished\n");
-		#endif
-		}
-	#ifdef debug
-		printf("in iterating completed\n");
-	#endif
-	make_footer(conn, now);
-	return 1;}
+		if (not i->second->isValid()) 
+		    rv += "<span style=\"background-color:red\">";
+		char buf[32];
+		snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+		rv += linkhtml + ": " + buf + " " + i->second->getUnits();
+		if (not i->second->isValid()) 
+			rv += "</span>";
+		rv += "<br>\n";	
+	}
+	make_footer();
+	return rv;
+}
+/*
+int make_out_page(string outName)
+{
+	out* o = get_out(outName);
+	if (not out)
+	    return "No out with that name."
+	
 
-int make_out_page(struct mg_connection *conn, string outName){
-	map<string, out*>:: iterator i;		// Addressing by index is no good idea. It creates the element if it does not exist.
-	i = outmap.find(outName);		// Fixed, JCE, 5-3-14
+	
 	if (i == outmap.end()) {return 0;}
 	out* myOut = i->second;
 	//if (myOut == 0) {return 0;}
@@ -1160,14 +1082,6 @@ string webserver::make_logic_page(string logicName)
 	if (i == logics.end()) return "";
 	logic* myLogic = i->second;
 
-	//char post_data[4096], newNote[4096];//, setdata[1024];
-	//int post_data_len;
-	//post_data_len = mg_read(conn, post_data, sizeof(post_data));
-	//if (post_data_len){
-	//	if (mg_get_var(post_data, post_data_len, "note", newNote, sizeof(newNote)) > -1)
-	//		myLogic->setNote(newNote);
-	//	}
-
 	string rv = make_header(60);
 	rv += "<h2>Logic page: " + myLogic->getName()  + "</h2>\n";
 	rv += "short name: " + myLogic->getDescriptor() + "<br>\n"; 
@@ -1205,7 +1119,6 @@ string make_logic_list_page()
 
 string make_root_page()
 {
-	double t = now();
 	string rv = make_header();
 	rv += make_link("/in", "inputs") + "<br>";
 	rv += make_link("/webin", "web inputs") + "<br>";
@@ -1213,12 +1126,9 @@ string make_root_page()
 	rv += make_link("/manout", "outputs in manual mode") + "<br>";
 	rv += make_link("/logic", "logics") + "<br>";
 	rv += make_link("/jos", "job scheduler") + "<br>";
-	rv += "about, page with build information, numbers, defined-at-compile times etc<br>\n";
-	rv += "Note the note. If a page auto refreshes, the note in progress is lost.<br>\n";
-	rv += make_footer(t);
+	rv += make_footer();
 	return rv;
 }
-
 
 string make_jos_page()
 {

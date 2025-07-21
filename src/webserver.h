@@ -4,7 +4,8 @@
 #include <microhttpd.h>
 #include <pthread.h>
 
-class webserver{
+class webserver
+{
 	public:
 		webserver(std::string name, uint16_t threads, uint16_t port);
 		~webserver();
@@ -23,13 +24,15 @@ class webserver{
 		pthread_mutex_t request_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
 		std::string webroot = "http";
 		std::string make_in_page(in*);
+		std::string make_webin_page(std::string);
 		std::string make_logic_page(std::string);
-	};
+};
 
 struct webserver_ctx
 {
 	webserver *srv;	
 };
+
 typedef struct webserver_ctx webserver_ctx;
 
 void deleteOldFiles();
@@ -39,6 +42,7 @@ std::string make_link(std::string url, std::string text );
 std::string make_in_link(in* i, const std::string text);
 std::string make_in_link(in* i);
 std::string make_webin_link(in* i, const std::string text);
+std::string make_webin_list_page();
 std::string make_out_link(out* o);
 std::string make_in_link_or_constant(in* i);
 std::string make_image(std::string url);
