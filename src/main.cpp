@@ -55,6 +55,7 @@
 #include "interface_fritz.h"
 #include "interface_circulac.h"
 #include "interface_dcmr.h"
+#include "interface_dcmr_sensor.h"
 
 using namespace std;
 //#define debug
@@ -143,6 +144,13 @@ void build_interfaces(json_t *arr)
 						new interface_fijnstof(id, name, scan, address);
 					else
 						printf("could not build interface_fijnstof(%s, %s, %f, %s)\n", id, name, scan, address);
+				}
+				if (strcmp(type, "dcmr_sensor") == 0)
+				{
+					if (id and name and json_is_number(jscan) and address)
+						new interface_dcmr_sensor(id, name, scan, address);
+					else
+						printf("could not build interface_dcmr_sensor(%s, %s, %f, %s)\n", id, name, scan, address);
 				}
 				if (strcmp(type, "macp") == 0)
 				{

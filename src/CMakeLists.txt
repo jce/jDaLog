@@ -79,6 +79,7 @@ target_sources(tcFarmControl PUBLIC
 	interface_mb.cpp
 	interface_solarlog.cpp
 	interface_dcmr.cpp
+	interface_dcmr_sensor.cpp
 	logic_compare.cpp
 	logic.cpp
 	logic_fijnstof.cpp
