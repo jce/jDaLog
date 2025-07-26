@@ -10,6 +10,7 @@
 #include "stringStore.h"
 #include "math.h" // pow()
 #include "out.h"
+#include <unistd.h>
 
 #define debug
 
@@ -35,28 +36,51 @@ interface_dcmr_sensor::~interface_dcmr_sensor()
 	delete LAeq;
 }
 
-void interface_dcmr_sensor::getIns()
+void interface_dcmr_sensor::run()
 {
-	double start = now();
-	string page = get_html_page(_ipstr + "/values", 8);
-	double end = now();
-	double t = (start + end) / 2;
 	float f;
+	double next = now();
+	while ( run_flg ) 
+	{
+		double start = now();
+		if (next > start)
+		{
+			sleep(0.2);
+			continue;
+		}
 
-	latency->setValue((end-start)*1000, t);
+		string page = get_html_page(_ipstr + "/values", 5);
+		double end = now();
+		double t = (start + end) / 2;
+
+		latency->setValue((end-start)*1000, t);
 	
-	if (findFloatAfter(page, "LAeq</td><td class='r'>", f))
-		LAeq->setValue(f, t);
-
-	if (findFloatAfter(page, "LA min</td><td class='r'>", f))
-		LAmin->setValue(f, t);
-
-	if (findFloatAfter(page, "LA max</td><td class='r'>", f))
-		LAmax->setValue(f, t);
+		double since_last_measurement = 4;
+		findFloatAfter(page, "Current data</h4><b>", f);
+		since_last_measurement = f;
+		
+		// This data is min, average, max for a timesection of 10 seconds that ended
+		// at since_last_measurement. Lets use the data production time as measurement
+		// time, instead of the average sample time.
+		t -= since_last_measurement; // + 5;
+		
+		// The next measurement should be at about 40% of the measurement interval,
+		// 4 seconds. 
+		next = end + 10 - since_last_measurement + 4;
 	
-	if (findFloatAfter(page, "signal strength</td><td class='r'>", f))
-		wifi_str->setValue(f, t);
-				
-	if (findFloatAfter(page, "signal quality</td><td class='r'>", f))
-		wifi_qua->setValue(f, t);
+		if (findFloatAfter(page, "LAeq</td><td class='r'>", f))
+			LAeq->setValue(f, t);
+
+		if (findFloatAfter(page, "LA min</td><td class='r'>", f))
+			LAmin->setValue(f, t);
+
+		if (findFloatAfter(page, "LA max</td><td class='r'>", f))
+			LAmax->setValue(f, t);
+		
+		if (findFloatAfter(page, "signal strength</td><td class='r'>", f))
+			wifi_str->setValue(f, t);
+					
+		if (findFloatAfter(page, "signal quality</td><td class='r'>", f))
+			wifi_qua->setValue(f, t);
+	}
 }
