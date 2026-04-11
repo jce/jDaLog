@@ -1,3 +1,24 @@
+jDaLog, jce's Data Logger
+
+Data logging system for S7 PLC and modbus.
+
+What it does
+-Reads data from modbus and Siemens S7 PLCs
+-Stores data in binary format
+-Generates plotted views of collected data
+Key parts
+-Snap7 batching client for PLC reads
+-Modbus communication library
+-task scheduler
+Status
+
+Perpetual work in progress. Some modules are stable; others are experimental or deprecated.
+
+Notes
+-Mongoose web server removed due to licensing
+
+*Install*
+
 Required packages: (sudo apt install)
 git cmake libjansson-dev libmodbus-dev gnuplot libmicrohttpd-dev libcurl4-openssl-dev
 
@@ -41,3 +62,4 @@ modify jDaLog.service: change username and directory path
 sudo cp jDaLog.service /etc/systemd/system
 sudo systemctl enable tcFC.service
 sudo systemctl start tcFC.service
+

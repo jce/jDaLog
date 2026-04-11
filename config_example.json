@@ -1,0 +1,175 @@
+{
+	"scheduler_threads":20,
+	"check_files":false,
+	"prune_files":false,
+	"prune_input":true,
+	"interface":
+	[
+		{
+			"type":"S7",	"id":"2B",	"name":"2B",
+			"ip":"10.0.1.10",	"_conntype":"PG", "conntype":"basic",	"_conntype":"OP",	"rack":0,	"slot":1,	"db":85,	"interval":1,
+			"in":
+			[
+				{"type":"bool",		"db":"I","byte":32.2,						"id":"bs",		"name":"beweging slaapkamer",									"a":-1, 			"b":1,		"validbit":33.2},
+				{"type":"bool",		"db":"I","byte":32.3,						"id":"bb",		"name":"beweging badkamer",										"a":-1, 			"b":1,		"validbit":33.2},
+				{"type":"uint32",	"db":"I","byte":72,							"id":"hsc2",	"name":"HSC_2",																					"validbit":false},
+				{"type":"int16",	"db":"I","byte":192,		"interval":30,	"id":"bt",		"name":"temperatuur buiten", 		"unit":"degC",	"decimals":2, "a":0.01										},
+				{"type":"int16",	"db":"I","byte":194,		"interval":10,	"id":"kmt",		"name":"temperatuur ketel midden",	"unit":"degC",	"decimals":2, "a":0.01										},
+				{"type":"uint16",	"db":"I","byte":198,		"interval":2,	"id":"tk",		"name":"temperatuur koelkast", 		"unit":"degC",	"decimals":2, "a":0.01										},
+				{"type":"int16",	"db":"I","byte":200,		"interval":2,	"id":"tl",		"name":"temperatuur woonkamer", 	"unit":"degC",	"decimals":2, "a":0.01										},
+				{"type":"int16",	"db":"I","byte":202,		"interval":2,	"id":"ts",		"name":"temperatuur kachel", 		"unit":"degC",	"decimals":1, "a":0.1										},
+				{"type":"int16",	"db":"I","byte":204,		"interval":10,	"id":"cl",		"name":"CO concentration livingroom","unit":"ppm",	"decimals":3, "a":0.00904224537037037						},
+				{"type":"uint16",	"db":"I","byte":206,		"interval":2,	"id":"hdp",		"name":"HVAC dp",		 			"unit":"Pa",	"decimals":2, "a":0.015625									},
+				{"type":"bool",		"db":"O","byte":0.5,		"interval":1,	"id":"wh",		"name":"water heater",				"unit":"kW",	"decimals":3, "a":3											},
+				{"type":"int32",	"db":50, "byte":454,		"interval":60,	"id":"wpc",		"name":"water heater power count",	"unit":"kWh",	"decimals":3, "a":0.0008333333333333334						},
+				{"type":"bool",		"db":"O","byte":0.6,		"interval":1,	"id":"ck",		"name":"compressor koelkast"																					},
+				{"type":"bool",		"db":"O","byte":32.6,		"interval":1,	"id":"fxp",		"name":"fx-800 power"																							},
+				{"type":"bool",		"db":"O","byte":33.1,		"interval":1,	"id":"fxp",		"name":"Z80 power",												"a":-1,				"b":1						},
+				{"type":"bool",		"db":"O","byte":35.1,		"interval":1,	"id":"iu",		"name":"internet uplink"																						},
+				{"type":"bool",		"db":"O","byte":35.4,		"interval":1,	"id":"df",		"name":"huisventilator"																							},
+				{"type":"bool",		"db":"O","byte":35.5,		"interval":1,	"id":"ala",		"name":"alarm"																									},
+				{"type":"uint16",	"db":"O","byte":70,							"id":"pu2",		"name":"Pulse_2",					"unit":"%",	"decimals":3, "a":0.1											},
+				{"type":"uint16",	"db":61,"byte":2,			"interval":10,	"id":"whs",		"name":"water heater setpoint",		"unit":"degC",	"decimals":2,	"a":0.001953125								},
+				{"type":"int16",	"db":61,"byte":22,			"interval":10,	"id":"whe",		"name":"water heater err",			"unit":"degC",	"decimals":2,	"a":0.001953125								},
+				{"type":"uint16",	"db":61,"byte":24,			"interval":10,	"id":"who",		"name":"water heater out",							"decimals":4,	"a":0.000030517578125						},
+				{"type":"uint16",	"db":61,"byte":26,			"interval":1,	"id":"cfp",		"name":"coil flow",					"unit":"pps"																},
+				{"type":"bool",		"db":85,"byte":26, "bit":0,	"interval":1,	"id":"gvb",		"name":"generic valid bit",			"unit":"",		"decimals":0, "a":1, 			"b":0						},
+				{"type":"bool",				"byte":26.1,		"interval":1,	"id":"cdm",		"name":"chicken desk motion"																					},
+				{"type":"bool",				"byte":26, "bit":2,	"interval":1,	"id":"rain",	"name":"rain detector"	 																						},		
+				{"type":"bool",				"byte":29, "bit":5,	"interval":1,	"id":"kof",		"name":"koffie",													"a":-1, 			"b":1					},
+				{"type":"bool",				"byte":29, "bit":6,	"interval":1,	"id":"the",		"name":"thee",														"a":-1, 			"b":1					},
+				{"type":"uint16",			"byte":32,			"interval":2,	"id":"svos",	"name":"kachel luchtklep opening sp","unit":"",		"decimals":3, "a":0.000030517578125,		"validbit":30.6	},
+				{"type":"int16",			"byte":36,			"interval":2,	"id":"tss",		"name":"temperatuur kachel setpoint","unit":"degC",	"decimals":1, "a":0.015625,					"validbit":30.7	},
+				{"type":"uint16",			"byte":38,			"interval":2,	"id":"sv",		"name":"kachel luchtklep afstand",	"unit":"",		"decimals":3, "a":0.000030517578125							},
+				{"type":"uint8",			"byte":42,			"interval":2,	"id":"ss",		"name":"kachel setpoint", 			"unit":"",		"decimals":2, "a":0.003921569,	"b":0,		"validbit":30.7	},
+				{"type":"uint8",			"byte":43,			"interval":2,	"id":"sa",		"name":"kachel prestatie", 			"unit":"",		"decimals":2, "a":0.003921569,	"b":0						},
+				{"type":"uint16",			"byte":44,			"interval":2,	"id":"lri",		"name":"light ref", 				"unit":"",		"decimals":3, "a":0.000030517578125							},
+				{"type":"uint16",			"byte":46,			"interval":2,	"id":"lrc",		"name":"licht ref kleur",			"unit":"",		"decimals":3, "a":0.000030517578125							},
+				{"type":"uint16",			"byte":50,			"interval":2,	"id":"psu1",	"name":"powersupply 1 load",		"unit":"mA",	"decimals":0, "a":1											},
+				{"type":"uint16",			"byte":52,			"interval":2,	"id":"psu2",	"name":"powersupply 2 load",		"unit":"mA",	"decimals":0, "a":1											},
+				{"type":"uint32",			"byte":64,			"interval":10,	"id":"sfc",		"name":"stove feed count",			"unit":"scoops","decimals":0 												},
+				{"type":"int16",			"byte":70,			"interval":10,	"id":"tsl",		"name":"temperatuur woonkamer sp",	"unit":"degC",	"decimals":2, "a":0.001953125,				"validbit":31.0	},
+				{"type":"uint8",			"byte":72,			"interval":10,	"id":"chg",		"name":"kippen poortje", 			"unit":"",		"decimals":2, "a":0.003921569,	"b":0						},
+				{"type":"uint8",			"byte":73,			"interval":10,	"id":"chn",		"name":"kippen nesten", 			"unit":"",		"decimals":2, "a":0.003921569,	"b":0						}
+			]
+		},		
+		
+		{
+            "type":"mb",
+            "id":"ID1",
+            "name":"Bus1",
+            "file":"/dev/serial/by-id/usb-1a86_USB2.0-Ser_-if00-port0",
+			"baud":9600, "parity":"E", "data_bit":8, "stop_bit":1,
+            "_address":"10.0.0.22",
+ 			"_port":1502,
+            "scan":1,
+            "device":
+            {
+                "1":
+                {
+                    "id":"Device1",
+                    "name":"Device1Name",
+					"co0001":{"id":"res", "name":"reset", "scan":20 },
+					"co0002":{"id":"sta", "name":"start", "scan":20 },
+					"co0003":{"id":"sti", "name":"stop", "scan":20 },
+					"id0005":{"id":"i1", "name":"input 1" },
+					"id0006":{"id":"i2", "name":"input 2" },
+					"id0007":{"id":"act", "name":"output active" },
+					"id0010":{"id":"err", "name":"error" },
+					"co010D":{"id":"o1", "name":"output 1", "_scan":20 },
+					"co010F":{"id":"o2", "name":"output 2", "_scan":20 },
+                    "ir0001":{"id":"pot", "name":"speed", "unit":"rpm", "a":0.5, "b":0, "decimals":1 },
+                    "ir0002":{"id":"cur", "name":"power",   "unit":"W", "a":0.0002, "b":0, "decimals":4 },
+                    "ir0005":{"id":"gfc", "name":"Base", "unit":"A", "a":0.0001, "b":0, "decimals":4, "type":"int16" },
+                    "hr0006":{"id":"tmp", "name":"temperature", "unit":"degC", "scan":10}
+                }
+            }
+		},
+		{
+			"type":"mb",
+			"id":"mbrt",
+			"name":"temp_rh_arduino_room",
+			"address":"10.0.0.4",
+			"scan":1,
+			"device":
+			{	
+				"1":
+				{
+					"ir000C":{"name":"temp"},
+					"ir000D":{"name":"humidity"},
+					"ir000E":{"name":"dewpoint"}
+				}
+			}
+		},				
+		{
+			"type":"host",
+			"id":"host",
+			"name":"Host",
+			"scan":1
+		},
+		
+		
+		
+		{
+			"_type":"circulac",	
+			"id":"circulac",
+			"device":"/dev/serial/by-id/usb-1a86_USB2.0-Ser_-if00-port0"
+		},
+		{
+			"_type":"solarlog",
+			"id":"solarlog",
+			"name":"Solarlog",
+			"scan":15,
+			"address":"10.0.0.4"
+		},
+		{
+			"_type":"fijnstof",
+			"id":"fijnstof",
+			"name":"Fijnstof",
+			"scan":10,
+			"address":"10.0.0.139"
+		},
+		{
+			"_type":"macp",
+			"id":"mac",
+			"name":"mac",
+			"scan":60,
+			"pingrange":"10.0.0.1/21",
+			"hidden_ins":false,
+			"track_all":true,
+			"list":
+			{
+				"5c:33:7b:e0:90:0c":{"id":"phone", "name":"phone"},
+				"40:8d:5c:e9:c1:03":{"id":"desktop", "name":"desktop"}
+			}
+		},
+		{
+			"_type":"dcmr",
+			"id":"dcmr",
+			"name":"dcmr",
+			"scan":10
+		},
+		{
+			"_type":"dcmr_sensor",
+			"id":"dcmr_sensor",
+			"name":"dcmr sensor",
+			"scan":10,
+			"address":"10.0.2.12"
+		}
+	],
+
+	"logic":
+	[
+		{
+			"type":"compare",
+			"id":"ter", "name":"Temperatuur en regen 1", "w":2500, "h":800,
+			"in":["2B_bt", "2B_rain"]
+		},
+		{
+			"type":"compare",
+			"id":"kav",
+			"name":"2B kachel en luchtklep",
+			"in":["2B_tss", "2B_ts", "2B_sv", "2B_sf"]
+		}
+	]
+}

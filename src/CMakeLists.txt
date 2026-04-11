@@ -10,7 +10,7 @@ link_directories(/usr/local/lib)
 
 option(HAVE_S7 "Build with Siemens S7 support" ON)
 option(HAVE_RPI "Build with Raspberry Pi IO support and CPU temperature" OFF)
-option(HAVE_USB "Build with libusb support (interface_K8055)" ON)
+option(HAVE_USB "Build with libusb support (interface_K8055)" OFF)
 option(HAVE_MARIA "Build with libmariadbclient support" OFF)
 option(HAVE_LINUX_I2C "Build with linux I2C support" ON)
 

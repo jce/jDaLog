@@ -1,0 +1,19 @@
+# Service file that starts jDaLog.
+# install this file in /etc/systemd/system
+# and install into systemd with: # systemctl enable jDaLog.service
+ 
+[Unit]
+Description=Autostart of jDaLog
+Requires=network.target
+
+[Service]
+Type=simple
+User=<username>
+WorkingDirectory=</path/to>/jDaLog
+ExecStartPre=</path/to>/jDaLog/linkgraphs
+ExecStart=</path/to>/jDaLog/build/jDaLog
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
