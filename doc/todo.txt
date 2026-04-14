@@ -1,0 +1,10 @@
+Todo and idea list
+- Removal of old interfaces
+- Graph legend items appear double
+- Graph X-labels overlap sometimes
+- Crash when clicking "job scheduler"
+- Test deploy to raspberry pi
+- Resurrection of old "webin" and "out" pages
+- S7 and Modbus interfaces should list the bus and node / tag layout
+- Config page that shows the json and allows saving
+- 
