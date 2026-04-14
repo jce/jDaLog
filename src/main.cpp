@@ -52,7 +52,6 @@
 	#include "interface_k8055.h"
 #endif // HAVE_USB
 #include "logic_pi_reg.h"
-#include "interface_fritz.h"
 #include "interface_circulac.h"
 #include "interface_dcmr.h"
 #include "interface_dcmr_sensor.h"

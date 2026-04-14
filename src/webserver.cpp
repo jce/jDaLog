@@ -1125,71 +1125,9 @@ string make_root_page()
 	rv += make_link("/out", "outputs") + "<br>";
 	rv += make_link("/manout", "outputs in manual mode") + "<br>";
 	rv += make_link("/logic", "logics") + "<br>";
-	rv += make_link("/jos", "job scheduler") + "<br>";
 	rv += make_footer();
 	return rv;
 }
-
-string make_jos_page()
-{
-	string rv = make_header();
-	rv += "<h2>job scheduler readout</h2>\n";
-	rv += "<pre><code>\n";
-	#define SIZE 100000
-	char buf[SIZE];
-	jos_printn(pool, buf, SIZE);
-	#undef SIZE
-	rv += buf;
-	rv += "</code></pre>\n";
-	rv += make_footer();
-	return rv;
-}
-
-/*
-
-int make_configured_page(struct mg_connection *conn, string url)
-{
-	// It was attempted to not have webgui_page depend on mongoose stuff
-	// but you have to know parameters by name in order for mongoose to
-	// cough up their content. So variables are given predictable names
-	// 0, 1, 2, 3, ... 11, 12, ... 200, 201
-	// Dont worry, this is not the only ugly thing relating to mongoose.
-	// Like receive buffers of fixed length...
-	#define SIZE 100000
-	vector<string> options;
-	int i = 0;
-	string number_as_string;
-	string value_as_string;
-	char post_data[SIZE];
-	char post_data_item[SIZE];
-	int post_data_len = mg_read(conn, post_data, SIZE);
-	bool scan = post_data_len > 0;
-	
-	double t;
-	if (page_has_header(url))
-		t = make_header(conn);
-	else
-		t = make_simple_header(conn); // Sorry, but this also provides
-		// some html headers, that are required.
-	
-	while(scan)
-	{
-		number_as_string = to_string(i);
-		if (mg_get_var(post_data, post_data_len, number_as_string.c_str(), post_data_item, SIZE) > 0)
-			options.push_back(post_data_item);
-		else
-			scan = false;
-		i++;
-	}
-	
-	mg_printf(conn, build_page(url, options).c_str());
-	
-	if (page_has_footer(url))
-		make_footer(conn, t);
-	
-	return 1;
-} 
-*/
 
 enum MHD_Result webserver::handle_request
 	(
@@ -1316,12 +1254,6 @@ enum MHD_Result webserver::handle_request
 	if (!strncmp(url, "/graphs/", 7))
 		make_graph_from_url(url+7);
 
-	if (!strcmp(url, "/jos"))
-		s = make_jos_page();
-/*
-	if (page_exists(ri->uri))
-		return make_configured_page(conn, string(ri->uri) );
-*/		
 	if (!strcmp(url, "/") or !strcmp(url, "/index.htm") or !strcmp(url, "/index.html"))
 		s = make_root_page();
 

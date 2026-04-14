@@ -71,7 +71,6 @@ target_sources(jDaLog PUBLIC
 	interface_circulac.cpp
 	interface.cpp
 	interface_fijnstof.cpp
-	interface_fritz.cpp
 	interface_host.cpp
 	interface_hs110.cpp
 	interface_macp.cpp

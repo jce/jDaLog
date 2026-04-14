@@ -10,7 +10,6 @@ class logic_pi_reg: public logic
 		~logic_pi_reg();
 		void run();
 		CC(logic_pi_reg, run);
-		int make_page(struct mg_connection*);
 	private:
 		in *meas, *sp, *P, *I1, *Imin, *Imax, *Iratelim, *e, *esum;
 		out *act;
