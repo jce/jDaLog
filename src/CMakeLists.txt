@@ -14,8 +14,8 @@ option(HAVE_USB "Build with libusb support (interface_K8055)" OFF)
 option(HAVE_MARIA "Build with libmariadbclient support" OFF)
 option(HAVE_LINUX_I2C "Build with linux I2C support" ON)
 
-project(tcFarmControl VERSION 1.0.0)
-add_executable(tcFarmControl
+project(jDaLog VERSION 1.0.0)
+add_executable(jDaLog
 	${PROJECT_BINARY_DIR}/git_header.h
 )
 
@@ -42,21 +42,20 @@ if (HAVE_LINUX_I2C)
 	list(APPEND EXTRA_SRC interface_sht3x.cpp)
 endif()
 
-target_link_libraries(tcFarmControl 
+target_link_libraries(jDaLog 
 	PUBLIC dl pthread curl modbus jansson microhttpd ${EXTRA_LIBS})
-	#PUBLIC dl pthread curl modbus jansson microhttpd stdc++fs ${EXTRA_LIBS})
 
 configure_file(config.h.in config.h)
 
-target_include_directories(tcFarmControl 
+target_include_directories(jDaLog 
 	PUBLIC "${PROJECT_BINARY_DIR}"
 	)
 
-set_property(TARGET tcFarmControl PROPERTY CXX_STANDARD 17)
-set_property(TARGET tcFarmControl PROPERTY C_STANDARD 99)
-set_property(TARGET tcFarmControl PROPERTY COMPILE_FLAGS "-W -Wall -g -O0 -Wno-psabi")
+set_property(TARGET jDaLog PROPERTY CXX_STANDARD 17)
+set_property(TARGET jDaLog PROPERTY C_STANDARD 99)
+set_property(TARGET jDaLog PROPERTY COMPILE_FLAGS "-W -Wall -g -O0 -Wno-psabi")
 
-target_sources(tcFarmControl PUBLIC
+target_sources(jDaLog PUBLIC
 	callback.c
 	filters.c
 	job_sched.c
@@ -95,10 +94,6 @@ target_sources(tcFarmControl PUBLIC
 	webin.cpp
 	${EXTRA_SRC}
 )
-
-set_source_files_properties(interface_S1200.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-full-1.4.2/release/Wrappers/c-cpp/")
-set_source_files_properties(interface_2B.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-full-1.4.2/release/Wrappers/c-cpp/")
-set_source_files_properties(main.cpp PROPERTIES INCLUDE_DIRECTORIES "${PROJECT_BINARY_DIR}/../snap7-full-1.4.2/release/Wrappers/c-cpp/")
 
 add_custom_command(
 	OUTPUT 

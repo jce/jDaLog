@@ -10,6 +10,7 @@
 			"ip":"10.0.1.10",	"_conntype":"PG", "conntype":"basic",	"_conntype":"OP",	"rack":0,	"slot":1,	"db":85,	"interval":1,
 			"in":
 			[
+				{"type":"bool",				"byte":31, "bit":1,	"interval":1,	"id":"sf",		"name":"stove fan"																								},
 				{"type":"bool",		"db":"I","byte":32.2,						"id":"bs",		"name":"beweging slaapkamer",									"a":-1, 			"b":1,		"validbit":33.2},
 				{"type":"bool",		"db":"I","byte":32.3,						"id":"bb",		"name":"beweging badkamer",										"a":-1, 			"b":1,		"validbit":33.2},
 				{"type":"uint32",	"db":"I","byte":72,							"id":"hsc2",	"name":"HSC_2",																					"validbit":false},
@@ -50,6 +51,8 @@
 				{"type":"uint32",			"byte":64,			"interval":10,	"id":"sfc",		"name":"stove feed count",			"unit":"scoops","decimals":0 												},
 				{"type":"int16",			"byte":70,			"interval":10,	"id":"tsl",		"name":"temperatuur woonkamer sp",	"unit":"degC",	"decimals":2, "a":0.001953125,				"validbit":31.0	},
 				{"type":"uint8",			"byte":72,			"interval":10,	"id":"chg",		"name":"kippen poortje", 			"unit":"",		"decimals":2, "a":0.003921569,	"b":0						},
+				{"type":"uint32",			"byte":64,			"interval":10,	"id":"sfc",		"name":"stove feed count",			"unit":"scoops","decimals":0 												},
+				{"type":"float64",			"byte":100,			"interval":60,	"id":"hr",		"name":"hydrofoor runtime", 		"unit":"s", 	"decimals":1												},
 				{"type":"uint8",			"byte":73,			"interval":10,	"id":"chn",		"name":"kippen nesten", 			"unit":"",		"decimals":2, "a":0.003921569,	"b":0						}
 			]
 		},		
@@ -155,9 +158,72 @@
 			"name":"dcmr sensor",
 			"scan":10,
 			"address":"10.0.2.12"
+		},
+		{
+			"_type":"sht3x",
+			"id":"sht31_45",
+			"name":"sht31_45",
+			"scan":1,
+			"i2c_dev":"/dev/i2c-1",
+			"i2c_id":69
+		},
+		{
+			"_type":"pi_gpio",
+			"id":"gpio",
+			"name":"gpio",
+			"scan":1,
+			"gpio":
+			{
+				"25":
+				{
+					"id":"r1",
+					"name":"relais 1",
+					"default":0,
+					"mode":"output",
+					"pull":"off"
+				},
+				"24":
+				{
+					"id":"r2",
+					"name":"relais 2",
+					"default":0,
+					"mode":"output",
+					"pull":"off"
+				},
+				"23":
+				{
+					"id":"r3",
+					"name":"relais 3",
+					"default":0,
+					"mode":"output",
+					"pull":"off"
+				},
+				"15":
+				{
+					"id":"ssr",
+					"name":"solid state relais",
+					"default":0,
+					"mode":"output",
+					"pull":"off"
+				}
+			}
 		}
 	],
-
+	"webin":
+	[
+		{
+			"id":"temp_sp",
+			"name":"Temperature setpoint",
+			"unit":"degC",
+			"decimals":2
+		},
+		{
+			"id":"rh_sp",
+			"name":"Relative humidity setpoint",
+			"unit":"%",
+			"decimals":2
+		}
+	],	
 	"logic":
 	[
 		{
@@ -170,6 +236,38 @@
 			"id":"kav",
 			"name":"2B kachel en luchtklep",
 			"in":["2B_tss", "2B_ts", "2B_sv", "2B_sf"]
+		}
+	],
+	"_out":
+	{
+		"gpio_t22":
+		{
+			"expr":"1*x- 50 + c * p",
+			"var":
+			{
+				"a":1,
+				"x":"host_cpu_temperature",
+				"c":3,
+				"p":"gpio_t22"
+			},
+			"default":1
+		}
+	},
+	"_webgui":
+	{
+		"def_w":760,
+		"def_h":260,
+		"page":
+		{
+			"/testold.html":"hello world<fc_graph in=S1200_rt><br><fc_value in=S1200_rt> <fc_value in = \"S1200_rt\" units = no > <br><fc_input in=test1><br><fc_input in = test2><br><fc_input in   =   \"test3\"   units= \"no\"><fc_graph in1=S1200_rt in2 = test1 in3 = test2><br><br>",
+			"/test.html":"<br><fc_noheader><fc_nofooter><meta http-equiv=\"refresh\" content=\"1\">hello world<br><fc_graph in1=S1200_rt in2 = test1 in3 = test2><br><fc_graph in1=S1200_rt in2 = S1200_rh w=1500 h = 700 legend=no><br><fc_graph in=S1200_rt t=360000 width=2500 height=1800>"
+		}
+	},
+	"_dir_to_ins":
+	[
+		{
+			"dir":"/path/to/jDaLog/data/in",
+			"prefix":"dir_to_in"
 		}
 	]
 }

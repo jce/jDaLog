@@ -1,3 +1,0 @@
-sudo usermod -a -G tty $USER
-sudo usermod -a -G dialout $USER
-logout and login (pkill X)

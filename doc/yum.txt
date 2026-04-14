@@ -1,4 +1,0 @@
-libtool libcurl-devel libmodbus(-devel) libmicrohttp(d) umbrello
-en alles .386 plz
-http://linux.byexamples.com/archives/515/compile-and-execute-32-bits-application-in-64-bits-operating-system/
-PLplot of MathGL
