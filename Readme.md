@@ -1,6 +1,6 @@
 # jDaLog, jce's Data Logger
 
-Data logging system for S7 PLC and Modbus.
+Data logging system for time/value series from S7 PLC and Modbus.
 
 <img src="doc/Screenshot at 2026-04-11 20-14-43.png" alt="jDaLog with compare page for multiple inputs." width="500">
 
@@ -17,7 +17,7 @@ Key parts
 
 ## Status
 
-Perpetual work in progress. Some modules are stable; others are experimental or deprecated.
+Perpetual work in progress, continuously evolving since 2013. Some modules are stable; others are experimental or deprecated.
 
 - PLC interface is stable
 - Modbus interface is stable
@@ -60,6 +60,8 @@ cd ..
 Copy the config_example.json to config.json, modify as required
 
 Start with ./start.sh
+
+Open the url "http://localhost:8092"
 
 ## Recommended Postbuild steps:
 
