@@ -2,7 +2,7 @@
 
 Data logging system for time/value series from S7 PLC and Modbus.
 
-<img src="doc/Screenshot at 2026-04-11 20-14-43.png" alt="jDaLog with compare page for multiple inputs." width="500">
+<img src="doc/Screenshot at 2026-04-16 13-39-32.png" alt="jDaLog with compare page for multiple inputs." width="500">
 
 What it does
 - Reads data from Siemens S7 PLCs and Modbus (TCP and RTU)

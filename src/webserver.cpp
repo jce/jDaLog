@@ -188,7 +188,7 @@ struct inWithData
 	vector<flStat> stats; 
 	unsigned statLen; 
 	bool haveData;
-	float valid_time;
+	double valid_time;
 	double from, to;
 };
 
@@ -407,7 +407,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					if (iwdli->stats[i].nr)
 					{			
 						t = iwdli->from + i * interval;
-						if (prevt and t - prevt > iwdli->valid_time and t - prevt > (1.1 * interval))
+						if (prevt and t - prevt > (iwdli->valid_time * 1.1) and t - prevt > (1.1 * interval))
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, t + interval / 2);
@@ -423,7 +423,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					if (iwdli->stats[i].nr)
 					{	
 						t = iwdli->from + i * interval;		
-						if (prevt and t - prevt > iwdli->valid_time and t - prevt > (1.1 * interval))
+						if (prevt and t - prevt > (iwdli->valid_time * 1.1) and t - prevt > (1.1 * interval))
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, t + interval / 2);
@@ -657,7 +657,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					if (iwdli->stats[i].nr)
 					{			
 						t = iwdli->from + i * interval;
-						if (prevt and ((t - prevt > iwdli->valid_time and t - prevt > (1.1 * interval)) or ( floor((t + interval / 2) / cycle) != floor((prevt + interval / 2) / cycle) ) ))
+						if (prevt and ((t - prevt > (iwdli->valid_time * 1.1) and t - prevt > (1.1 * interval)) or ( floor((t + interval / 2) / cycle) != floor((prevt + interval / 2) / cycle) ) ))
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, fmod(t + interval / 2, cycle), cycle);
@@ -674,7 +674,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					if (iwdli->stats[i].nr)
 					{	
 						t = iwdli->from + i * interval;		
-						if (prevt and ((t - prevt > iwdli->valid_time and t - prevt > (1.1 * interval)) or ( floor((t + interval / 2) / cycle) != floor((prevt + interval / 2) / cycle) ) ))
+						if (prevt and ((t - prevt > (iwdli->valid_time * 1.1) and t - prevt > (1.1 * interval)) or ( floor((t + interval / 2) / cycle) != floor((prevt + interval / 2) / cycle) ) ))
 							fprintf(fp, "\n");
 						prevt = t;
 						fprintt(fp, fmod(t + interval / 2, cycle), cycle);
@@ -885,6 +885,40 @@ string webserver::make_in_page(in *i)
 
 	// footer
 	rv += make_footer();
+	return rv;
+}
+
+// Timestamps
+std::string table_fromto(in *i, double from, double to) 
+{
+	string rv;
+	map<double, float> data;
+	i->getData(data, from, to);
+    rv += "<table border=\"1\">\n";
+	for (auto d = data.begin(); d != data.end(); d++)
+	{	
+		rv += "<tr><td>" + to_string(d->first) + "</td><td>" + to_string(d->second) + "</td></tr>\n";		
+	}
+    rv += "</table>";
+	return rv;
+}
+
+// Formatted date/time	
+std::string table_fromto_h(in *i, double from, double to) 
+{
+	string rv;
+	char buf[50];
+	map<double, float> data;
+	i->getData(data, from, to);
+    rv += "<table border=\"1\">\n";
+	for (auto d = data.begin(); d != data.end(); d++)
+	{	
+        rv += "<tr><td>";
+		write_human_time(buf, d->first);
+		rv += buf;
+		rv += "</td><td>" + to_string(d->second) + "</td></tr>\n";		
+	}
+    rv += "</table>";
 	return rv;
 }
  
@@ -1212,7 +1246,7 @@ enum MHD_Result webserver::handle_request
 		
 		if (i and slash2)
 		{
-		/*
+		
 			// http://a.b.c.d/in/in-name/table/ *end*
 			if (slash3 && !strncmp(slash1, "/table/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
 				s = table_fromto(i, from, to);
@@ -1224,20 +1258,7 @@ enum MHD_Result webserver::handle_request
 				s = table_fromto(i, from, to);
 			// http://a.b.c.d/in/in-name/table_h/start/end
 			if (slash3 && sscanf(slash1, "/table_h/%lf/%lf", &from, &to) == 2)
-				s = table_fromto_h(i, from, to);
-			
-			// Specific graph pages
-			uint16_t w, h;
-			// http://a.b.c.d/in/in-name/graph/24-7-2001 18:00:33/31-7-2001 16:35:00/width/heigth
-			if (slash4 && !strncmp(slash1, "/graph/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to) && sscanf(slash4, "/%" SCNu16 "/%" SCNu16, &w, &h) == 2)
-				return make_in_graph_page(conn, i, from, to, w, h);			
-			// http://a.b.c.d/in/in-name/graph/24-7-2001 18:00:33/31-7-2001 16:35:00
-			if (slash3 && !strncmp(slash1, "/graph/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
-				return make_in_graph_page(conn, i, from, to);
-			// http://a.b.c.d/in/in-name/graph/from/to			
-			if (sscanf(slash1, "/graph/%lf/%lf", &from, &to) == 2)
-				return make_in_graph_page(conn, i, from, to);
-		*/			
+				s = table_fromto_h(i, from, to);		
 						
 			// Trim commands, human readable
 			if (slash2 && !strncmp(slash1, "/remove_time_from/", 16) && read_human_time(slash2+1, &from))
