@@ -7,8 +7,6 @@
 #include "floatLog.h"
 #include "main.h"
 #include "git_header.h"
-//#include "webgui2.h"
-//#include "webgui_mac.h"
 #include "sys/time.h"
 #include "unistd.h" // usleep
 #include "pthread.h"
@@ -65,23 +63,24 @@ bool run(true);
 bool prune_input = false;
 jos_pool *pool;
 
-//in *haveControl;
-//in *pwrsum = NULL, *kWhsum = NULL;
-
 // Signal handling.
-void handle_signal(int signal){
-	switch (signal){
+void handle_signal(int signal)
+{
+	switch (signal)
+	{
 		case SIGHUP:
 		case SIGTERM:
 		case SIGINT:
 			run=false;
-		};
 	};
+};
 
-double now(){
+double now()
+{
 	timeval tv;
 	gettimeofday(&tv, NULL);
-	return tv.tv_sec + (double) tv.tv_usec / 1000000;}
+	return tv.tv_sec + (double) tv.tv_usec / 1000000;
+}
 
 void build_interfaces(json_t *arr)
 {
@@ -272,7 +271,6 @@ void build_interfaces(json_t *arr)
 	}	
 }
 
-
 void build_webins(json_t *arr)
 {
 	if (! json_is_array(arr))
@@ -413,34 +411,8 @@ void build_logics(json_t *arr)
 	}
 }
 
-/*
-void loop1s()
+void loop60s()
 {
-	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
-	in *hs110_rm_p = get_in("hs110_rm_p");
-	in *hs110_fr_p = get_in("hs110_fr_p");
-	in *hs110_wp_p = get_in("hs110_wp_p");
-	if (hs110_rm_p and hs110_fr_p and hs110_wp_p)
-	{
-		if (!pwrsum)
-			pwrsum = new in("pwrsum", "Power sum", "W", 3);
-		pwrsum->setValue(hs110_rm_p->getValue() + hs110_fr_p->getValue() + hs110_wp_p->getValue());
-	}
-
-	// Manually calculate the sum of the three usage trackers/counters. JCE, 2-10-2020
-	in *hs110_rm_tot = get_in("hs110_rm_tot");
-	in *hs110_fr_tot = get_in("hs110_fr_tot");
-	in *hs110_wp_tot = get_in("hs110_wp_tot");
-	if (hs110_rm_tot and hs110_fr_tot and hs110_wp_tot)
-	{
-		if (!kWhsum)
-			kWhsum = new in("kwhsum", "kWh sum", "kWh", 3);
-		kWhsum->setValue(hs110_rm_tot->getValue() + hs110_fr_tot->getValue() + hs110_wp_tot->getValue());
-	}
-}
-*/
-
-void loop60s(){
 	touchAllWebins();
 	deleteOldFiles();
 }
@@ -540,11 +512,8 @@ int main(){
 	bool check_files = json_is_true(json_object_get(json, "check_files"));
 	bool prune_files = json_is_true(json_object_get(json, "prune_files"));
 	prune_input = json_is_true(json_object_get(json, "prune_input"));
-	json_t *webgui_j = json_object_get(json, "webgui");
 
 	webserver *ws = new webserver("gui", 2, 8092);
-	
-	ws->config_webgui(webgui_j);
 	ws->start();
 	
 	touchAllWebins();
@@ -558,9 +527,6 @@ int main(){
 		jos_run(  pool,     	(void (*)(void*)) sort_all_in_files, NULL);
 	if (prune_files)
 		jos_run(  pool,     	(void (*)(void*)) prune_all_in_files, NULL);
-	//jos_run(pool, (void (*)(void*)) debug_plot_stuff, NULL);
-	//jos_run(pool, (void (*)(void*)) debug_plot_stuff2, NULL);
-	//jos_run(pool, (void (*)(void*)) debug_plot_stuff3, NULL);
 
 	usleep(100000);
 	printf("running... (press control+C to stop)\n");

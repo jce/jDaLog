@@ -253,16 +253,6 @@
 			"default":1
 		}
 	},
-	"_webgui":
-	{
-		"def_w":760,
-		"def_h":260,
-		"page":
-		{
-			"/testold.html":"hello world<fc_graph in=S1200_rt><br><fc_value in=S1200_rt> <fc_value in = \"S1200_rt\" units = no > <br><fc_input in=test1><br><fc_input in = test2><br><fc_input in   =   \"test3\"   units= \"no\"><fc_graph in1=S1200_rt in2 = test1 in3 = test2><br><br>",
-			"/test.html":"<br><fc_noheader><fc_nofooter><meta http-equiv=\"refresh\" content=\"1\">hello world<br><fc_graph in1=S1200_rt in2 = test1 in3 = test2><br><fc_graph in1=S1200_rt in2 = S1200_rh w=1500 h = 700 legend=no><br><fc_graph in=S1200_rt t=360000 width=2500 height=1800>"
-		}
-	},
 	"_dir_to_ins":
 	[
 		{

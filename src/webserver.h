@@ -12,8 +12,7 @@ class webserver
 		void start();
 		void stop();
 		enum MHD_Result handle_request(MHD_Connection*, const char*, const char*, 
-							const char*, const char*, long unsigned int*, void**);
-		void config_webgui(json_t*);
+							 const std::map<std::string, std::string>);
 		uint16_t def_w = 1000, def_h = 300;
 	private:
 		string name;
@@ -26,6 +25,7 @@ class webserver
 		std::string make_in_page(in*);
 		std::string make_webin_page(std::string);
 		std::string make_logic_page(std::string);
+		std::string make_out_page(std::string);
 };
 
 struct webserver_ctx

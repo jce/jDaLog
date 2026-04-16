@@ -43,6 +43,27 @@ webserver::~webserver()
 	delete requests;
 }
 
+struct connection_info 
+{
+    struct MHD_PostProcessor *pp;
+    map<string, string> keyvalue;
+};
+
+enum MHD_Result post_iter(void *cls,
+              enum MHD_ValueKind /*kind*/,
+              const char *key,
+              const char */*filename*/,
+              const char */*content_type*/,
+              const char */*transfer_encoding*/,
+              const char *data,
+              uint64_t /*off*/,
+              size_t /*size*/)
+{
+    struct connection_info *ci = (struct connection_info *)cls;
+    ci->keyvalue[key] = data;
+    return MHD_YES;
+}
+
 // Default handler, https://www.gnu.org/software/libmicrohttpd/manual/libmicrohttpd.html#microhttpd_002dcb
 enum MHD_Result dh
 	(
@@ -50,15 +71,60 @@ enum MHD_Result dh
     	struct MHD_Connection *connection,
     	const char *url,
     	const char *method,
-    	const char *version,
+    	const char * /*version*/,
     	const char *upload_data,
     	long unsigned int *upload_data_size,
     	void **con_cls
 	)
 {
+    struct connection_info *ci = (struct connection_info *) *con_cls;
+
+    if (!ci)
+    {
+        ci = new struct connection_info;
+        ci->pp = MHD_create_post_processor(connection, 1024, post_iter, ci);
+        *con_cls = ci;
+        return MHD_YES;
+    }
+    
+    if (strcmp(method, "POST") == 0) 
+    {
+        if (*upload_data_size != 0) 
+        {
+            MHD_post_process(ci->pp, upload_data, *upload_data_size);
+            *upload_data_size = 0;
+            return MHD_YES;
+        }
+    }
+    
 	webserver *obj = (webserver*) cls;
-	return obj->handle_request(connection, url, method, version, upload_data, upload_data_size, con_cls);
+	enum MHD_Result rv = obj->handle_request(connection, url, method, ci->keyvalue);
+
+	for (auto i = ci->keyvalue.begin(); i != ci->keyvalue.end(); i++)
+		DBG("%s: %s",  i->first.c_str(), i->second.c_str());
+
+    delete ci;
+    return rv;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 void webserver::start()
 {
@@ -75,11 +141,6 @@ void webserver::stop()
 		DBG("Stopped webserver %s", name.c_str());
 	}
 }
-
-
-
-
-
 
 string make_root_page();
 
@@ -718,31 +779,9 @@ string make_header(unsigned int autoRefreshTime = 0)
 	return rv;
 }
 
-string make_footer(double startTime = 0)
+string make_footer()
 {	
-	string rv;
-	if (startTime != 0)
-	{
-		float generationTime = now() - startTime;
-		rv = "<hr>\nPage generated in ";
-		if (generationTime >= 1)
-			rv += to_string(generationTime) + " s";
-		else
-			rv += to_string(generationTime * 1000) + " ms";
-	}
-	rv += "\n</html>\n";
-	return rv;
-}
-
-// Generate the html section for a note. The getter is a function that should return the content. The setter is a function that is supplied with the new content.
-// returns if there has been found a new note. Suggested use: store note if it is new.
-string make_note(string &note)
-{
-	string rv;
-	rv += "<form method=\"POST\">Note<br><textarea rows=\"20\" name=\"note\" cols=\"60\" wrap=\"virtual\">";
-	rv += note;
-	rv += "</textarea><br><input type=\"submit\" value=\"Update\"/></form>";
-	return rv;
+	return "\n</html>\n";
 }
 
 string make_link(string url, string text )
@@ -878,7 +917,6 @@ string make_in_list_page()
 	return rv;
 }
 
-
 string webserver::make_webin_page(string webinName)
 {
     webin *i = get_webin(webinName);
@@ -903,7 +941,8 @@ string webserver::make_webin_page(string webinName)
 	return rv;
 } 
 
-string make_webin_list_page(){
+string make_webin_list_page()
+{
 	string rv = make_header(10);
 	rv += "<h2>List of webin's</h2>";
 	map<string, webin*> nameSortedMap;
@@ -925,21 +964,15 @@ string make_webin_list_page(){
 	make_footer();
 	return rv;
 }
-/*
-int make_out_page(string outName)
-{
-	out* o = get_out(outName);
-	if (not out)
-	    return "No out with that name."
-	
 
+string webserver::make_out_page(string outName)
+{
+    string rv;
+	out* o = get_out(outName);
+	if (not o)
+	    return "No out with that name.";
 	
-	if (i == outmap.end()) {return 0;}
-	out* myOut = i->second;
-	//if (myOut == 0) {return 0;}
-	// catch manual setpoint if present
-	char post_data[4096], newNote[4096], setdata[1024];
-	int post_data_len;
+    /*
 	post_data_len = mg_read(conn, post_data, sizeof(post_data));
 	if (post_data_len){
 		if (mg_get_var(post_data, post_data_len, "set", setdata, sizeof(setdata)) > -1)
@@ -961,90 +994,104 @@ int make_out_page(string outName)
 		if (mg_get_var(post_data, post_data_len, "note", newNote, sizeof(newNote)) > -1)
 			myOut->setNote(newNote);
 		}
-	double start = make_header(conn, 3600);
-	mg_printf(conn, "<h2>Out page: %s</h2>\n", myOut->getName().c_str());
-	mg_printf(conn, "short name: %s<br>\n", myOut->getDescriptor().c_str()); // also could have been inName, hm...
-	mg_printf(conn, "last measurement: %.*f %s<br>\n", myOut->getDecimals(), myOut->getValue(), myOut->getUnits().c_str());
-	mg_printf(conn, "measurement age: %.3f seconds<br>\n", myOut->getAge());
-	float max(myOut->getMax()), min(myOut->getMin()), step(myOut->getStep()), states((max-min)/step + 1);
-	unsigned int dec(myOut->getDecimals());
-	mg_printf(conn, "Physical output range: from %.*f in steps of %.*f to %.*f. This is %.0f states.<br>\n", dec, min, dec, step, dec, max, states);
-	if (myOut->isValid())
-		mg_printf(conn, "this out is considered valid.<br>\n");
+    */
+	rv = make_header(10);
+	rv += "<h2>Out page: " + o->getName() + "</h2>\n";
+	rv += "short name: "+ o->getDescriptor() + "<br>\n";
+    
+    char buf[32];
+	snprintf(buf, 32, "%.*f", o->getDecimals(), o->getValue());
+	rv += string("last measurement: ") + buf + " " + o->getUnits() + "<br>\n";
+	snprintf(buf, 32, "%.3f", o->getAge());
+	rv += string("measurement age: ") + buf + " seconds<br>\n";
+	// The validity of this measurement
+	if (o->isValid())
+		rv += "this out is valid<br>\n";
 	else
-		mg_printf(conn, "this out is considered invalid.<br>\n");
-	if (myOut->getMan())
-		mg_printf(conn, "this out is in manual mode, controlled by this webpage.<br>\n");
-	else
-		mg_printf(conn, "this out is in auto mode, controlled by the program logic.<br>\n");
-	if (myOut->getControl())
-		mg_printf(conn, "this out is controlling the pyhsical interface or output.<br>\n");
-	else
-		mg_printf(conn, "this out is not controlling the physical interface or output. Can be auto mode without controlling logic.<br>\n");
-	if (myOut->getControl())	
-		mg_printf(conn, "<form method=\"POST\">Set output<br><INPUT type=\"submit\" name=\"set\", value=\"auto (%.*f)\"><br>", dec, myOut->getOut());
-	else
-		mg_printf(conn, "<form method=\"POST\">Set output<br><INPUT type=\"submit\" name=\"set\", value=\"auto (no data)\"><br>");
+		rv += "this out is invalid<br>\n";
+    
 
-	if (states <= 5)
-		for (int i = states - 1; i >= 0; i--)
-			mg_printf(conn, "<INPUT type=\"submit\" name=\"set\" value=\"manual: %.*f\"><br>", dec, min + step * i);
+	if (o->getMan())
+		rv += "this out is in manual mode, controlled by this webpage.<br>\n";
 	else
-		mg_printf(conn, "<INPUT type=\"submit\" name=\"blah\" value=\"manual:\"><INPUT type=\"TEXT\" name=\"set\" value=\"%.*f\"<br>", dec, myOut->getManOut());
-	mg_printf(conn, "</form>");
+		rv += "this out is in auto mode, controlled by the program logic.<br>\n";
+	if (o->getControl())
+		rv += "this out is controlling the pyhsical interface or output.<br>\n";
+	else
+		rv += "this out is not controlling the physical interface or output. Can be auto mode without controlling logic.<br>\n";
+	if (o->getControl())	
+		rv += "<form method=\"POST\">Set output<br><input type=\"submit\" name=\"set\", value=\"auto\"><br>\n";
+	else
+		rv += "<form method=\"POST\">Set output<br>""<input type=\"submit\" name=\"set\", value=\"auto (no data)\"><br>\n";
 
-	// Equation section
-	mg_printf(conn, "Equation: %s<br>\n", myOut->expression.c_str());
-	mg_printf(conn, "<table><tr><th>Variable</th><th>Value</th><th>Source</th></tr>\n");
-	for (int i = 0; i < myOut->nr_vars; i++)
+	rv += "<INPUT type=\"submit\" name=\"set\" value=\"manual: 0\"><br>\n";
+    rv += "<INPUT type=\"submit\" name=\"set\" value=\"manual: 1\"><br>\n";
+    rv += string("<INPUT type=\"submit\" name=\"set\" value=\"manual:\">\n<INPUT type=\"TEXT\" name=\"setv\" value=\"") + to_string(o->getManOut()) + "\"<br>\n";
+	rv += "</form>\n";
+
+	in_equation *ie = dynamic_cast<in_equation*>(o);
+	if (ie)
 	{
-		mg_printf(conn, "<tr><td>%s</td><td>%f</td><td>%s</td><tr>\n", myOut->vars[i].var, myOut->vars[i].d, make_in_link_or_constant(myOut->vars[i].i).c_str());
-	}	
-	mg_printf(conn, "</table>\n");
-	// End equation section
+		rv += make_equation_section(ie->eq);
+	}
 
-	string line = make_image_line(plotLine(myOut, now() - 299, now() + 1, def_w, def_h)); // function rounds time, losing the most recent record. Thus, to 1 sec in the future. JCE, 25-7-13
-	mg_printf(conn, line.c_str());
+	//rv += make_image_line(o, now() - 3600, now(), def_w, def_h);
+	//rv += make_image_line(o, now() - 24*3600, now(), def_w, def_h);
+	//rv += make_image_line(o, now() - 7*243600, now(), def_w, def_h);
+	//rv += make_image_line(o, now() - 4*7*243600, now(), def_w, def_h);
 
-	set<in*> in_s;		// Intermediate step with a set is because ins might occur multiple times in vars. JCE, 15-11-2020
-	in_s.insert(myOut);
-	for (int i = 0; i < myOut->nr_vars; i++)
-		if (myOut->vars[i].i)
-			in_s.insert(myOut->vars[i].i);
-	list<in*> ins(in_s.begin(), in_s.end());
+	char from[32], to[32];
+	double tnow = now();
+	write_human_time(from, tnow-24*3600);
+	write_human_time(to, tnow);
+	rv += make_link(string("/graphs/cyclic+hour+") + o->getDescriptor() + "+" + from + "+" + to + "+2000+600", "cyclic graph last day per hour");
+	rv += "<br>\n";
 
-	line = make_image_line(plotLines(ins, now() - 300, now(), def_w, def_h, ""));
-	mg_printf(conn, line.c_str());
-	line = make_image_line(plotLines(ins, now() - 24*3600, now(), def_w, def_h, ""));
-	mg_printf(conn, line.c_str());
-	//line = make_image_line(plotLine(myOut, now() - 4*7*24*3600, now(), def_w, def_h));
-	//mg_printf(conn, line.c_str());
-	string note(myOut->getNote());
-	make_note(conn, note);
-	make_footer(conn, start);
-	return 1;}
+	write_human_time(from, tnow-7*24*3600);
+	rv += make_link(string("/graphs/cyclic+day+") + o->getDescriptor() + "+" + from + "+" + to + "+2000+600", "cyclic graph last week per day");
+	rv += "<br>\n";
+
+	write_human_time(from, tnow-4*7*24*3600);
+	rv += make_link(string("/graphs/cyclic+day+") + o->getDescriptor() + "+" + from + "+" + to + "+2000+600", "cyclic graph last month per day");
+	rv += "<br>\n";
+	
+	write_human_time(from, tnow-4*7*24*3600);
+	rv += make_link(string("/graphs/cyclic+week+") + o->getDescriptor() + "+" + from + "+" + to + "+2000+600", "cyclic graph last month per week");
+	rv += "<br>\n";	
+	
+	rv += "A section of log data can be viewed as a list. Append /table/ or /table_h/(from)/(to) to the url. The times can be unix timestamps or human readable date/time: dd-mm-yyyy hh:mm:ss.<br>";
+	rv += "A graph of a section of log data can be generated. Append /graph/(from)/(to)[/w/h] to the url. From and to can be unix timestamps or human readable time/date.<br>";
+	rv += "Data can be removed from the dataset (takes some time) with /remove_(time_from, time_to, time_from_to, value_over, value_under, value_between)/(number or human readable datetime[/number or human readable datetime]. Removes data including the given limit(s)<br>";
+
+	rv += make_footer();
+	return rv;
+}
 
 
-int make_out_list_page(struct mg_connection *conn){
-	double now = make_header(conn, 10);
-	mg_printf(conn, "<h2>List of out's</h2>An out is an in, with additional properties. Thus, all outs are also visible on the in list.<br>\n");
-		
+string make_out_list_page()
+{
+    string rv = make_header(10);
+    rv += "<h2>List of out's</h2>An out is an in, with additional properties. Thus, all outs are also visible on the in list.<br>\n";
 	map<string, out*>::iterator i;
-	// Print them sorted on their long, or human readable names. JCE, 16-7-13
 	map<string, out*> nameSortedMap;
 	for(i = outmap.begin(); i != outmap.end(); i++)
 		nameSortedMap[i->second->getName()] = i->second;
-	for(i = nameSortedMap.begin(); i != nameSortedMap.end(); i++){
+	for(i = nameSortedMap.begin(); i != nameSortedMap.end(); i++)
+    {
 		string link = "/out/" + i->second->getDescriptor();
 		string linkhtml = make_link(link, i->second->getName());
-		if (not i->second->isValid()) mg_printf(conn, "<span style=\"background-color:red\">");
-		mg_printf(conn,	"%s: %.*f %s<br>", linkhtml.c_str(), i->second->getDecimals(), i->second->getValue(), i->second->getUnits().c_str());
-		if (not i->second->isValid()) mg_printf(conn, "</span>");
-		mg_printf(conn, "\n");
-		}
-	make_footer(conn, now);
-	return 1;}
-
+		if (not i->second->isValid()) 
+            rv += "<span style=\"background-color:red\">";
+        char buf[32];
+        snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+        rv += linkhtml + ": " + buf + " " + i->second->getUnits();
+        if (not i->second->isValid())
+            rv += "</span>";
+        rv += "<br>\n";
+    }
+    return rv;
+}
+/*
 int make_man_out_list_page(struct mg_connection *conn){
 	map<string, out*>::iterator i;
 	char post_data[1024], setdata[1024];
@@ -1134,18 +1181,12 @@ enum MHD_Result webserver::handle_request
     	struct MHD_Connection *connection,
     	const char * url,
     	const char * method,
-    	const char * /*version*/,
-    	const char * /*upload_data*/,
-    	long unsigned int * /*upload_data_size*/,
-    	void ** /*con_cls*/
+    	const map<string, string> /*keyvalue*/
 	)
 {
-	DBG((string(method) + " " + url).c_str());
+	DBG("%s %s", method, url);
 
-	if (0 != strcmp(method, "GET"))
-		return MHD_NO;
-
-	string s;// = make_root_page();
+	string s;
 
 	pthread_mutex_lock(&request_counter_mutex);
 	requests->setValue(requests->getValue() + 1);
@@ -1223,6 +1264,17 @@ enum MHD_Result webserver::handle_request
 		else
 			s = make_in_page(i);
 	}
+	
+	if (!strcmp(url, "/webin") or !strcmp(url, "/webin/"))
+		s = make_webin_list_page();
+	if (!strncmp(url, "/webin/", 7))
+        s = make_webin_page(url+7);
+
+	if (!strcmp(url, "/out") or !strcmp(url, "/out/"))
+		s = make_out_list_page();
+	if (!strncmp(url, "/out/", 5))
+        s = make_out_page(url+5);
+
 /*
 	if (!strcmp(ri->uri, "/webin") or !strcmp(ri->uri, "/webin/"))
 		return make_webin_list_page(conn);
@@ -1300,24 +1352,3 @@ enum MHD_Result webserver::handle_request
 		
 	return ret;
 }
-
-// Configuration
-void webserver::config_webgui(json_t *json)
-{
-	if (json_is_object(json))
-	{
-		json_t *def_w_j, *def_h_j, *page_j;
-		def_w_j = json_object_get(json, "def_w");
-		def_h_j = json_object_get(json, "def_h");
-		page_j = json_object_get(json, "page");
-		if (json_is_integer(def_w_j))
-			def_w = json_integer_value(def_w_j);
-		if (json_is_integer(def_h_j))
-			def_h = json_integer_value(def_h_j);
-		(void) page_j;
-		//if (json_is_object(page_j))
-		//	build_page_data_from_json(page_j);
-	}
-}
-
-
