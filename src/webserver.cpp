@@ -333,11 +333,10 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 		fprintf(fp, "\"]\n");		
 
 		fprintf(fp, "set format x \"");
-		if ( tmax-tmin > 24*60*60 - 10	) fprintf(fp, "%%d-%%m");
-		if ( tmax-tmin > 364*24*60*60 	) fprintf(fp, "-%%Y");
-		if ( tmax-tmin > 24*60*60 - 10	) fprintf(fp, " ");
-		if ( tmax-tmin > 60 			) fprintf(fp, "%%H:%%M");
-		if ( tmax-tmin <= 3600 - 10 	) fprintf(fp, ":%%S\"\n");
+		if      ( tmax-tmin > 364*24*60*60 	) fprintf(fp, "%%m-%%Y");
+        else if ( tmax-tmin > 24*60*60 - 10	) fprintf(fp, "%%d-%%m");
+		else if ( tmax-tmin > 60 			) fprintf(fp, "%%H:%%M");
+		else if ( tmax-tmin <= 3600 - 10 	) fprintf(fp, "%%M:%%S");
 		fprintf(fp, "\n");		
 
 		fprintf(fp, "set yrange [%.8f:%.8f]\n", y1.ymin, y1.ymax);
@@ -366,7 +365,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				else			
 					plotline += ", \\\n\t";
 				plotline += "\"-\" using 1:2:3";
-				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
+                if (haveKey) plotline += " notitle ";
 				plotline += " with filledcu lc rgb \""+linecolor[colornr]+"\"";
 				if (haveY2)
 				{
