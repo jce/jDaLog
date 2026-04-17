@@ -10,9 +10,6 @@ link_directories(/usr/local/lib)
 
 option(HAVE_S7 "Build with Siemens S7 support" ON)
 option(HAVE_RPI "Build with Raspberry Pi IO support and CPU temperature" OFF)
-option(HAVE_USB "Build with libusb support (interface_K8055)" OFF)
-option(HAVE_MARIA "Build with libmariadbclient support" OFF)
-option(HAVE_LINUX_I2C "Build with linux I2C support" ON)
 
 project(jDaLog VERSION 1.0.0)
 add_executable(jDaLog
@@ -26,20 +23,6 @@ endif()
 
 IF(HAVE_RPI)
 	list(APPEND EXTRA_SRC interface_pi_gpio.cpp)
-endif()
-
-IF(HAVE_USB)
-	list(APPEND EXTRA_SRC interface_k8055.cpp libk8055.c)
-	list(APPEND EXTRA_LIBS usb)
-endif()
-
-IF(HAVE_MARIA)
-	list(APPEND EXTRA_SRC interface_maria.cpp in_to_maria.cpp)
-	list(APPEND EXTRA_LIBS mariadbclient)
-endif()
-
-if (HAVE_LINUX_I2C)
-	list(APPEND EXTRA_SRC interface_sht3x.cpp)
 endif()
 
 target_link_libraries(jDaLog 

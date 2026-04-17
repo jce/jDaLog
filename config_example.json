@@ -109,10 +109,14 @@
 			"id":"host",
 			"name":"Host",
 			"scan":1
+			"disks":
+			{
+				"/mnt/sam":	{"id":"sam","name":"sam"	},
+				"/tmp":		{"id":"tmp","name":"tmp"	}
+			}
 		},
-		
-		
-		
+
+	
 		{
 			"_type":"circulac",	
 			"id":"circulac",

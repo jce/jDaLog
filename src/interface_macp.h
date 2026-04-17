@@ -47,5 +47,7 @@ class logic_mac_c: public logic
 };
 
 void add_macs_from_array(interface_macp&, json_t*);
+interface_macp* interface_macp_from_json(const json_t*);
+
 
 #endif // HAVE_INTERFACE_JCEM_H

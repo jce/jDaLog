@@ -232,3 +232,23 @@ void read_gpios_from_json(interface_pi_gpio *interface, json_t *json)
 	}
 }
 
+interface_pi_gpio* interface_pi_gpio_from_json(const json_t *json )
+{
+	#define JSTR(_X_)	json_string_value(json_object_get(json, #_X_))
+	#define JNR(_X_)	json_number_value(json_object_get(json, #_X_))
+	#define JIN(_X_)	json_is_number(json_object_get(json, #_X_))
+		
+	const char *id = JSTR(id);
+	const char *name = JSTR(name);
+	if (not name)
+		name = id;
+	float scan = JNR(scan);					
+	if (not (id and name and JIN(scan))
+	{
+		printf("could not build interface_pi_gpio(%s, %s, %f)\n", id, name, scan);
+		return NULL;
+	}
+	interface_macp *rpi = new interface_pi_gpio(id, name, scan);
+	read_gpios_from_json(rpi, json_object_get(json, "gpio"));
+	return rpi;
+}

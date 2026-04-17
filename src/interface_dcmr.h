@@ -17,5 +17,6 @@ class interface_dcmr : public interface{
 	private:
 		double _prevT, head;
 	};
+interface_dcmr* interface_dcmr_from_json(const json_t*);
 
 #endif // HAVE_INTERFACE_HOST_H

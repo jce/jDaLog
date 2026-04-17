@@ -110,9 +110,9 @@ class interface_mb : public interface{
 		const mb_comtype comtype;
 		modbus_t* new_context();
 
-	friend void interface_mb_from_json(const char*, const char*, json_t*);
+	friend void interface_mb_from_json(json_t*);
 	};
 
-void interface_mb_from_json(const char*, const char*, json_t*);
+void interface_mb_from_json(json_t*);
 
 #endif // HAVE_MB_H

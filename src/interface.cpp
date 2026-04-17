@@ -126,7 +126,7 @@ interface::interface(const string d, const string n, float _interval):
 	interval(_interval),
 	_descr(d) 
 {
-	string path = tcDataDir;	
+	string path = dataDir;	
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
 	path += "/interface/";
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);

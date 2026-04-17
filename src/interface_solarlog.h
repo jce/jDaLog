@@ -24,5 +24,7 @@ class interface_solarlog : public interface{
 		modbus_t *_ctx;
 		double _lastValidDateTime;
 	};
+interface_solarlog* interface_solarlog_from_json(const json_t*);
+
 
 #endif // HAVE_INTERFACE_SL_H

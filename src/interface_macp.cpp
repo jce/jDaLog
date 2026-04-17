@@ -47,7 +47,7 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 		logic_mac = new logic_mac_c(getDescriptor(), getName(), found_new_mac, macs_auto);
 		// Data is stored in #define tcDataDir + /in/ then in a dir.
 		// Try and reconstruct any mac_ to in's 
-		for( auto& p: filesystem::directory_iterator(tcDataDir "in/"))
+		for( auto& p: filesystem::directory_iterator(dataDir "in/"))
 			if (p.is_directory())
 			{
 				string stem = p.path().stem().string();
@@ -181,5 +181,41 @@ void interface_macp::add_mac(const char *macstr, const char *macdescr, const cha
 		macname = macdescr;
 	macs[macstr] = new in(getDescriptor() + "_" + macdescr, getName()+ " " + macname, "", 0);
 	macs[macstr] -> set_valid_time(interval * IN_VALIDTIME_SCAN_MULTIPLY);
+}
+
+interface_macp* interface_macp_from_json(const json_t *json )
+{
+	#define JSTR(_X_)	json_string_value(json_object_get(json, #_X_))
+	#define JNR(_X_)	json_number_value(json_object_get(json, #_X_))
+	#define JIN(_X_)	json_is_number(json_object_get(json, #_X_))
+	#define JIT(_X_)	json_is_true(json_object_get(json, #_X_))
+		
+	const char *id = JSTR(id);
+	const char *name = JSTR(name);
+	if (not name)
+		name = id;
+	float scan = JNR(scan);
+	const char *pingrange = JSTR(pingrange);
+	bool hidden_ins = JIT(hidden_ins);
+	bool track_all = JIT(track_all);
+	interface_macp *macp;						
+	if (not (id and name and JIN(scan) and pingrange))
+	{
+		printf("could not build interface_macp(%s, %s, %f, %s, %b, %b)\n", id, name, scan, pingrange, hidden_ins, track_all);
+		return NULL;
+	}
+	macp = new interface_macp(id, name, scan, pingrange, hidden_ins, track_all);
+	json_t *item_j;
+	const char *macstr, *macdesc, *macname;
+	json_object_foreach(json_object_get(json, "list"), macstr, item_j)
+	{
+		macdesc = json_string_value(json_object_get(item_j, "id"));
+		macname = json_string_value(json_object_get(item_j, "name"));
+		if (!macname)
+			macname = macdesc;
+		if (macdesc)
+			macp->add_mac(macstr, macdesc, macname);
+	}
+	return macp;
 }
 

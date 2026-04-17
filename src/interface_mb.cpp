@@ -387,8 +387,14 @@ void write_float32(double d, uint16_t *m)	{ uint32_t x = * (uint32_t*) &d; * (ui
 void write_float64(double d, uint16_t *m)	{ uint64_t x = * (uint64_t*) &d; * (uint64_t*) m = htobe64(x); };
 
 // Factory for interface_mb.
-void interface_mb_from_json(const char *ifid, const char *ifname, json_t *json)
+void interface_mb_from_json(json_t *json)
 {
+	#define JSTR(_X_)	json_string_value(json_object_get(json, #_X_))
+	const char *ifid = JSTR(id);
+	const char *ifname = JSTR(name);
+	if (not ifname)
+		ifname = ifid;
+		
 	if (!ifid)
 	{
 		printf("interface_mb: no id given.\n");

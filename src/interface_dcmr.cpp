@@ -169,6 +169,24 @@ void interface_dcmr::run()
 	}
 }
 
+interface_dcmr* interface_dcmr_from_json(const json_t *json )
+{
+	#define JSTR(_X_)	json_string_value(json_object_get(json, #_X_))
+	#define JNR(_X_)	json_number_value(json_object_get(json, #_X_))
+	#define JIN(_X_)	json_is_number(json_object_get(json, #_X_))
+		
+	const char *id = JSTR(id);
+	const char *name = JSTR(name);
+	if (not name)
+		name = id;
+	float scan = JNR(scan);
+	
+	if (id and name and JIN(scan))
+		return new interface_dcmr(id, name, scan);
+	printf("could not build interface_dcmr(%s, %s, %f)\n", id, name, scan);
+	return NULL;	
+}
+
 
 
 

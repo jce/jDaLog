@@ -41,6 +41,8 @@ class interface_pi_gpio : public interface{
 		map<out*, int> outputs;		// Contains only outputs.
 	};
 
+interface_pi_gpio* interface_pi_gpio_from_json(const json_t*);
+
 // Partial factory, reads a json describing the gpio's to read/write.
 // gpio{
 //	"1":{
@@ -49,6 +51,6 @@ class interface_pi_gpio : public interface{
 //		"default":0, 1
 //		"descriptor":"blbl"
 //		"name":"blabla"
-void read_gpios_from_json(interface_pi_gpio*, json_t*);
+//void read_gpios_from_json(interface_pi_gpio*, json_t*);
 
 #endif // HAVE_INTERFACE_HOST_H

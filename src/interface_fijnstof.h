@@ -19,5 +19,5 @@ class interface_fijnstof : public interface
 		int nr_samples = 0;
 		double time_at_last_measurement = 0.0;	
 };
-
+interface_fijnstof* interface_fijnstof_from_json(const json_t*);
 #endif // HAVE_INTERFACE_FIJNSTOF_H

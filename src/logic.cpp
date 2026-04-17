@@ -15,7 +15,7 @@ map<string, logic*> logics;
 
 logic::logic(const string d, const string n) : _descr(d) 
 {
-	string path = tcDataDir;	
+	string path = dataDir;	
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
 	path += "/logic/";
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);

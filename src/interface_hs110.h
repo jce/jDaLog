@@ -28,5 +28,5 @@ class interface_hs110 : public interface{
 		float Wh_hs110_last_readout = FLT_MAX;
 		ssize_t send_receive(char* p, size_t size);
 	};
-
+interface_hs110* interface_hs110_from_json(const json_t*);
 #endif // HAVE_INTERFACE_HS110_H

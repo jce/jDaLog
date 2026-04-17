@@ -20,7 +20,7 @@ mutex inmap_mutex;
 map<string, in*> inmap;
 
 in::in(const string d, const string n, const string u, const unsigned int de) : _decimals(de), _value(0), _time(0), _logger(NULL), _isValid(false),_isKnown(false), _descr(d), _name(NULL), _units(NULL), _note(NULL) {
-	string path = tcDataDir;	
+	string path = dataDir;	
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
 	path += "in/";
 	mkdir(path.c_str(), S_IRWXU | S_IRWXG | S_IROTH);
@@ -217,8 +217,8 @@ void in::getDataSummary(vector<flStat> &stats, unsigned length , double from, do
 
 // Function to start importing a preconfigured text file. JCE, 18-7-13
 void in::importData(){
-	_logger->importFromTextFile((string) tcDataDir + "/in/" + _descr + "/import.txt");
-	_logger->importFromBinFile((string) tcDataDir + "/in/" + _descr + "/import.bin");
+	_logger->importFromTextFile((string) dataDir + "/in/" + _descr + "/import.txt");
+	_logger->importFromBinFile((string) dataDir + "/in/" + _descr + "/import.bin");
 	}
 
 void in::touch()

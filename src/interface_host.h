@@ -23,16 +23,13 @@ class interface_host : public interface{
 		void getIns();
 		void add_disk(std::string, std::string, std::string);	// Adds a disk to monitor for storage space. Path, id, name.
 		std::list<disk_ins> disks;	
-		//in *fanspd, *requests, *resets, *scanrate, *uptime, *latency;
 		// program cpu ins
 		in *cpuus, *cpuss, *cpcus, *cpcss, *cputs, *cputp;
 		// host cpu ins
 		in *hcpuuser, *hcpunice, *hcpusystem, *hcpuidle, *hcpuiowait, *hcpuirq, *hcpusoftirq, *hcputotal, *hcputotalnoiowait;
-		//in *hcpuuserp, *hcpusystemp, *hcpuidlep, *hcpuiowaitp, *hcpuirqp, *hcpusoftirqp, *hcputotalp, *hcputotalnoiowaitp;
 		in *hcpuuserp, *hcpunicep, *hcpusystemp, *hcpuidlep, *hcpuiowaitp, *hcpuirqp, *hcpusoftirqp, *hcputotalp, *hcputotalnoiowaitp;
-		in *num_threads, *priority, *vsize, *nice, *VmRSS; // *rss;
-                //in *idrss, *isrss, *minflt, *majflt, *nswap, *inblock, *oublock, *nvcsw, *nivcsw;
-		in *runtime, *totalruntime;
+		in *num_threads, *priority, *vsize, *nice, *VmRSS;
+ 		in *runtime, *totalruntime;
 		in *uptime;
 #ifdef HAVE_RPI
 		in *cpuTemperature, *cpuFrequency;
@@ -44,5 +41,7 @@ class interface_host : public interface{
 
 // Helper function: Execute a command on the system, receive the response in a string.
 std::string system_exec(const char*);
+
+interface_host* interface_host_from_json(const json_t*);
 
 #endif // HAVE_INTERFACE_HOST_H

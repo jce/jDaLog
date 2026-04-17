@@ -25,11 +25,6 @@
 #include "webserver.h"
 #include <signal.h>
 #include <curl/curl.h>
-#ifdef HAVE_MARIA
-	#include "interface_maria.h"
-	#include "in_to_maria.h"
-	#include "mysql/mysql.h"
-#endif // HAVE_MARIA
 #include "interface_fijnstof.h"
 #include "logic_fijnstof.h"
 #include "interface_hs110.h"
@@ -39,16 +34,10 @@
 #ifdef HAVE_RPI
 	#include "interface_pi_gpio.h"
 #endif //HAVE_RPI
-#ifdef HAVE_LINUX_I2C
-	#include "interface_sht3x.h"
-#endif // HAVE_LINUX_I2C
 #include "job_sched.h"
 #include "logic_compare.h"
 #include "logic_modulator.h"
 #include "interface_mb.h"
-#ifdef HAVE_USB
-	#include "interface_k8055.h"
-#endif // HAVE_USB
 #include "logic_pi_reg.h"
 #include "interface_circulac.h"
 #include "interface_dcmr.h"
@@ -87,186 +76,17 @@ void build_interfaces(json_t *arr)
 	if (! json_is_array(arr))
 		return;
 	size_t index;
-	json_t *json, *jscan;
-	const char *type, *id, *name, *address, *pingrange; 
-	float scan;
-#ifdef HAVE_LINUX_I2C
-	const char *ji2c_id, *i2c_dev;
-	uint8_t i2c_id;
-#endif // LINUX_HAVE_I2C
+	json_t *json;
+	const char *type; 
 	json_array_foreach(arr, index, json)
+	if (json_is_object(json))
 	{
-		if (json_is_object(json))
+		type = 	json_string_value(json_object_get(json, "type"));
+		if (type)
 		{
-			// Get as many features as possible.
-			type = 	json_string_value(json_object_get(json, "type"));
-			if (type)
-			{
-				#define INTERFACE(_TYPE_, _FACTORY_) if (strcmp( #_TYPE_, type) == 0 ) _FACTORY_(json);
-				INTERFACES
-				#undef INTERFACE
-
-				id = 		json_string_value(json_object_get(json, "id"));
-				name = 		json_string_value(json_object_get(json, "name"));
-				address = 	json_string_value(json_object_get(json, "address"));
-				pingrange = json_string_value(json_object_get(json, "pingrange"));
-				jscan =  	json_object_get(json, "scan");
-				scan = 		json_number_value(jscan);
-#ifdef HAVE_LINUX_I2C
-				i2c_dev = 	json_string_value(json_object_get(json, "i2c_dev"));
-				ji2c_id =	json_object_get(json, "i2c_id");
-				i2c_id = 	json_integer_value(ji2c_id);
-#endif // HAVE_LINUX_I2C
-				if (!name) name = id;
-
-				// Build different types
-				if (strcmp(type, "solarlog") == 0)
-				{
-					if (id and name and json_is_number(jscan) and address)
-						new interface_solarlog(id, name, scan, address);
-					else
-						printf("could not build interface_solarlog(%s, %s, %f, %s)\n", id, name, scan, address);
-				}
-#ifdef HAVE_S7
-#endif // HAVE_S7
-				if (strcmp(type, "hs110") == 0)
-				{
-					if (id and name and json_is_number(jscan) and address)
-						new interface_hs110(id, name, scan, address);
-					else
-						printf("could not build interface_hs110(%s, %s, %f, %s)\n", id, name, scan, address);
-				}
-				if (strcmp(type, "fijnstof") == 0)
-				{
-					if (id and name and json_is_number(jscan) and address)
-						new interface_fijnstof(id, name, scan, address);
-					else
-						printf("could not build interface_fijnstof(%s, %s, %f, %s)\n", id, name, scan, address);
-				}
-				if (strcmp(type, "dcmr_sensor") == 0)
-				{
-					if (id and name and json_is_number(jscan) and address)
-						new interface_dcmr_sensor(id, name, scan, address);
-					else
-						printf("could not build interface_dcmr_sensor(%s, %s, %f, %s)\n", id, name, scan, address);
-				}
-				if (strcmp(type, "macp") == 0)
-				{
-					if (id and name and json_is_number(jscan) and pingrange)
-					{
-						bool hidden_ins = json_is_true(json_object_get(json, "hidden_ins"));
-						bool track_all = json_is_true(json_object_get(json, "track_all"));
-						interface_macp *macp = new interface_macp(id, name, scan, pingrange, hidden_ins, track_all);
-						json_t *item_j;
-						const char *macstr, *macdesc, *macname;
-						json_object_foreach(json_object_get(json, "list"), macstr, item_j)
-						{
-							macdesc = json_string_value(json_object_get(item_j, "id"));
-							macname = json_string_value(json_object_get(item_j, "name"));
-							if (!macname)
-								macname = macdesc;
-							if (macdesc)
-								macp->add_mac(macstr, macdesc, macname);
-						}
-					}
-					else
-						printf("could not build interface_macp(%s, %s, %f, %s, %s)\n", id, name, scan, address, pingrange);
-				}
-
-				if (strcmp(type, "dcmr") == 0)
-				{
-					if (id and name and json_is_number(jscan))
-						new interface_dcmr(id, name, scan);
-				}
-
-				if (strcmp(type, "host") == 0)
-				{
-					if (id and name and json_is_number(jscan))
-					{
-						interface_host *h = new interface_host(id, name, scan);
-						json_t *disk_j;
-						const char* path;
-						json_object_foreach(json_object_get(json, "disks"), path, disk_j)
-						{
-							const char *did = json_string_value(json_object_get(disk_j, "id"));
-							const char *dname = json_string_value(json_object_get(disk_j, "name"));
-							h->add_disk(path, did, dname);
-						}
-					}
-					else
-						printf("could not build interface_host(%s, %s, %f)\n", id, name, scan);
-				}
-#ifdef HAVE_RPI
-				if (strcmp(type, "pi_gpio") == 0)
-				{
-					if (id and name and json_is_number(jscan))
-					{
-						interface_pi_gpio *i = new interface_pi_gpio(id, name, scan);
-						read_gpios_from_json(i, json_object_get(json, "gpio"));
-					}
-					else
-						printf("could not build interface_pi_gpio(%s, %s, %f)\n", id, name, scan);
-				}
-#endif // HAVE_RPI
-#ifdef HAVE_LINUX_I2C
-				if (strcmp(type, "sht3x") == 0)
-				{
-					if (id and name and json_is_number(jscan) and i2c_dev and json_is_integer(ji2c_id))
-						new interface_sht3x(id, name, scan, i2c_dev, i2c_id);
-					else
-						printf("could not build interface_sht3x(%s, %s, %f, %s, %d)\n", id, name, scan, i2c_dev, i2c_id);
-				}
-#endif // HAVE_LINUX_I2C
-#ifdef HAVE_MARIA
-				if (strcmp(type, "maria") == 0)
-				{
-					if (id and name and json_is_number(jscan))
-						new interface_maria(id, name, scan);
-					else
-						printf("could not build interface_maria(%s, %s, %f)\n", id, name, scan);
-				}
-#endif // HAVE_MARIA
-				if (strcmp(type, "mb") == 0)
-				{
-					if (id and name)
-						interface_mb_from_json(id, name, json);
-					else
-						printf("could not build interface_mb(%s, %s)\n", id, name);
-				}
-#ifdef HAVE_USB
-				if (strcmp(type, "k8055") == 0)
-				{
-					if (id and name)
-						interface_k8055_from_json(id, name, json);
-					else
-						printf("could not build interface_k8055(%s, %s)\n", id, name);
-				}
-#endif // HAVE_USB
-
-#define INTERFACE_GENERATORS \
-	/*IF(fritz)*/	\
-	/*IF(k8055)*/	\
-	IF(circulac)	\
-// end INTERFACE_GENERATORS
-
-#define IF(_X_) \
-{ \
-	if (strcmp(type, #_X_) == 0) \
-	{ \
-		if (not interface_##_X_##_from_json(json)) \
-		{ \
-		printf("could not build interface_" #_X_ "() from json:\n"); \
-		char *s = json_dumps(json, JSON_INDENT(2)); \
-		printf(s); \
-		printf("\n"); \
-		free(s); \
-		} \
-	} \
-}
-				INTERFACE_GENERATORS
-
-#undef INTERFACE_GENERATORS
-			}
+			#define INTERFACE(_TYPE_, _FACTORY_) if (strcmp( #_TYPE_, type) == 0 ) _FACTORY_(json);
+			INTERFACES
+			#undef INTERFACE
 		}	
 	}	
 }
@@ -514,6 +334,7 @@ int main(){
 	prune_input = json_is_true(json_object_get(json, "prune_input"));
 
 	webserver *ws = new webserver("gui", 2, 8092);
+	
 	ws->start();
 	
 	touchAllWebins();

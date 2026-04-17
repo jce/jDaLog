@@ -20,28 +20,10 @@
 #include <cstdio>
 #include <memory>
 
-//#define debug
-
-
 using namespace std;
 
 interface_host::interface_host(const string d, const string n, float i):interface(d, n, i), _prevT(0){
 	add_disk("./", "host_disk", "Host disk");
-	//diskfree    = new in("host_disk_free", "Host disk free", "byte");
-	//diskused   = new in("host_disk_used", "Host disk used", "byte");
-	//diskusedp  = new in("host_disk_usedp", "Host disk used p", "%", 7);
-	//wd2diskfree    = new in("wd2_disk_free", "wd2 disk free", "byte");
-	//wd2diskused   = new in("wd2_disk_used", "wd2 disk used", "byte");
-	//wd2diskusedp  = new in("wd2_disk_usedp", "wd2 disk used p", "%", 7);
-	//wd4diskfree    = new in("wd4_disk_free", "wd4 disk free", "byte");
-	//wd4diskused   = new in("wd4_disk_used", "wd4 disk used", "byte");
-	//wd4diskusedp  = new in("wd4_disk_usedp", "wd4 disk used p", "%", 7);
-	//sdfree    = new in("sd_disk_free", "SD card free", "byte");
-	//sdused   = new in("sd_disk_used", "SD card used", "byte");
-	//sdusedp  = new in("sd_disk_usedp", "SD card used p", "%", 7);
-	//ksfree    = new in("ks_disk_free", "Kingston free", "byte");
-	//ksused   = new in("ks_disk_used", "Kingston used", "byte");
-	//ksusedp  = new in("ks_disk_usedp", "Kingston used p", "%", 7);
 	cpuus = new in("prog_utime", "Program cpu time user code", "s", 6);
 	cpuss = new in("prog_stime", "Program cpu time system functions", "s", 6);
 	cpcus = new in("prog_cutime", "Programs children cpu time user code", "s", 6);
@@ -53,28 +35,11 @@ interface_host::interface_host(const string d, const string n, float i):interfac
 	num_threads = new in("prog_threads", "Program number of threads", "");
 	priority = new in("prog_priority", "Program priority", "");
 	vsize = new in("prog_vsize", "Program vsize", "bytes");
-	//rsslim = new in("prog_rsslim", "Program rss limit", "byte");
 	nice = new in("prog_nice", "Program nice value", "");
-	//rss = new in("prog_rss", "Program rss", "pages");
 	VmRSS = new in("prog_rss", "Program RSS", "bytes");
-	/*maxrss = new in(getDescriptor() + "_maxrss", getName() + " prog physical memory allocated", "byte");
-	ixrss = new in(getDescriptor() + "_ixrss", getName() + " prog code memory size", "byte");
-	idrss = new in(getDescriptor() + "_idrss", getName() + " prog heap memory size", "byte");
-	isrss = new in(getDescriptor() + "_isrss", getName() + " prog stack memory size", "byte");
-	minflt = new in(getDescriptor() + "_minflt", getName() + " prog minor page faults: \"page reclaims\"", "");
-	majflt = new in(getDescriptor() + "_majflt", getName() + " prog major page faults: \"swap in\"", "");
-	nswap = new in(getDescriptor() + "_nswap", getName() + " prog page swaps", "");
-	inblock = new in(getDescriptor() + "_inblock", getName() + " prog block input operations", "");
-	oublock = new in(getDescriptor() + "_oublock", getName() + " prog block output operations", "");
-	nvcsw = new in(getDescriptor() + "_nvcsw", getName() + " prog voluntary context switches", "");
-	nivcsw = new in(getDescriptor() + "_nivcsw", getName() + " prog involuntary context switches", "");*/
 	runtime = new in("prog_runtime", "Program runtime", "s");
 	uptime = new in("host_uptime", "Host uptime", "s", 2);
 	totalruntime = new in("prog_runtimetotal", "Program total runtime", "s");
-		//in *hcpuuser, *hcpusystem, *hcpuidle, *hcpuiowait, *hcpuirq, *hcpusoftirq, *hcputotal, *hcputotalnoiowait;
-	#ifdef debug
-		printf("\nstart creating host cpu ins\n");
-	#endif
 	hcpuuser = new in("host_cpu_user", "Host cpu usermode", "s", 6);
 	hcpunice = new in("host_cpu_nice", "Host cpu nicemode", "s", 6);
 	hcpusystem = new in("host_cpu_system", "Host cpu systemmode", "s", 6);
@@ -84,9 +49,6 @@ interface_host::interface_host(const string d, const string n, float i):interfac
 	hcpusoftirq = new in("host_cpu_softirq", "Host cpu softirq", "s", 6);
 	hcputotal = new in("host_cpu_total", "Host cpu total used with iowait", "s", 6);
 	hcputotalnoiowait = new in("host_cpu_total_noiowait", "Host cpu total used without iowait", "s", 6);
-	#ifdef debug
-		printf("\nended creating host cpu ins\n");
-	#endif
 	hcpuuserp = new in("host_cpu_user_p", "Host cpu usermode %", "%", 6);
 	hcpunicep = new in("host_cpu_nice_p", "Host cpu nicemode %", "%", 6);
 	hcpusystemp = new in("host_cpu_system_p", "Host cpu systemmode %", "%", 6);
@@ -169,15 +131,8 @@ string system_exec(const char* cmd) {
     return result;
 }
 
-void interface_host::getIns(){
-	//double start = now();
-	//double end = now();
-	//double t = (start + end) / 2;
-	//latency->setValue((end-start)/2*1000, t); // 2 requests, scale = ms
-
-	#ifdef debug
-		printf("\nstart interface_host::getIns()\n");
-	#endif
+void interface_host::getIns()
+{
 	double thisT = now();
 	static double startTime;
 	if (!startTime) startTime = thisT;
@@ -186,9 +141,6 @@ void interface_host::getIns(){
 	// Data from /proc/blah/stat
 	char procStatFile[101];
 	snprintf(procStatFile, 100, "/proc/%u/stat", getpid());	
-	#ifdef debug
-		printf(procStatFile);
-	#endif
 	FILE *fp;
 	bool allok = false;
 	fp = fopen(procStatFile, "r");
@@ -199,12 +151,6 @@ void interface_host::getIns(){
 		long int rssin, cutime, cstime, num_threadsin, priorityin, nicein;
 
 		rv = fscanf(fp, "%*d %*s %*c %*d %*d %*d %d %*d %*u %lu %lu %lu %lu %lu %lu %ld %ld %ld %ld %ld %*d %*u %lu %ld", &tty_nr, &minflt, &cminflt, &majflt, &cmajflt, &utime, &stime, &cutime, &cstime, &priorityin, &nicein, &num_threadsin, &vsizein, &rssin);
-		#ifdef debug
-			printf("decoded %i variables from proc stat file", rv);
-			//printf("%d (%s) %c %d", pid, s, c, d);
-			if (rv) printf("decoding proc stat file succesful");
-			else printf("decoding proc stat file failed");
-		#endif
 		fclose(fp);
 		allok = rv == 14;
 
@@ -218,25 +164,21 @@ void interface_host::getIns(){
 			priority->setValue(priorityin);
 			vsize->setValue(vsizein);
 			nice->setValue(nicein);
-			//rss->setValue(rssin);
 			double totalCpuTime = (double) (utime + stime + cutime + cstime) / cps;
-			if (_prevT) // Is deze init op 0?
+			if (_prevT)
 				cputp->setValue((totalCpuTime - cputs->getValue()) / (thisT - _prevT) * 100);
 			cputs->setValue(totalCpuTime);
 			}
 		}
 
 	// Proc/stat
-	#ifdef debug
-		printf("\nstart extracting host cpu ins\n");
-	#endif
 	allok = false;
 	fp = fopen("/proc/stat", "r");
 	if (fp){
 		long unsigned user, nice, system, idle, iowait, irq, softirq;
 
 		int rv = fscanf(fp, "cpu %lu %lu %lu %lu %lu %lu %lu", &user, &nice, &system, &idle, &iowait, &irq, &softirq);
-		fclose(fp); // JCE, 13-7-13, f*ck hier zat een open file leak...
+		fclose(fp);
 		allok = rv == 7;
 
 		if (allok){
@@ -271,10 +213,6 @@ void interface_host::getIns(){
 			hcputotalnoiowait->setValue((float)(user+system+nice+irq+softirq) / cps, thisT);
 			}
 		}
-
-	#ifdef debug
-		printf("\nfinished extracting host cpu ins\n");
-	#endif
 
 	// Uptime, from /proc/uptime	
 	allok = false;
@@ -348,8 +286,35 @@ void interface_host::add_disk(string path, string id, string name)
 	di.free = new in(id + "_free", name + " free", "byte");
 	di.used = new in(id + "_used", name + " used", "byte");
 	di.usedp = new in(id + "_usedp", name + " used p", "%", 7);
-	//di.free = new in(getDescriptor() + "_" + id + "f", getName() + " " + name + " free", "byte");
-	//di.used = new in(getDescriptor() + "_" + id + "u", getName() + " " + name + " used", "byte");
-	//di.usedp = new in(getDescriptor() + "_" + id + "p", getName() + " " + name + " used p", "%", 7);
 	disks.push_back(di);
 }
+
+interface_host* interface_host_from_json(const json_t *json )
+{
+	#define JSTR(_X_)	json_string_value(json_object_get(json, #_X_))
+	#define JNR(_X_)	json_number_value(json_object_get(json, #_X_))
+	#define JIN(_X_)	json_is_number(json_object_get(json, #_X_))
+		
+	const char *id = JSTR(id);
+	const char *name = JSTR(name);
+	if (not name)
+		name = id;
+	float scan = JNR(scan);		
+	if (not (id and name and JIN(scan)))
+	{
+		printf("could not build interface_host(%s, %s, %f)\n", id, name, scan);
+		return NULL;
+	}
+	interface_host *h = new interface_host(id, name, scan);
+	const char* path;
+	json_t *disk_j;
+	json_object_foreach(json_object_get(json, "disks"), path, disk_j)
+	{
+		const char *did = json_string_value(json_object_get(disk_j, "id"));
+		const char *dname = json_string_value(json_object_get(disk_j, "name"));
+		
+		h->add_disk(path, did, h->getName() + "_" + dname);
+	}
+	return h;
+}
+

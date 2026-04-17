@@ -1,7 +1,8 @@
 Todo and idea list
-- Removal of old interfaces
 - Test deploy to raspberry pi
 - Resurrection of old "webin" and "out" pages
 - S7 and Modbus interfaces should list the bus and node / tag layout
 - Config page that shows the json and allows saving
+- change autorefresh for some javascript so it wont blink on refresh?
+- Maybe not resurrect any more control features. Instead remove them and stay in datalogging scope.
 - 

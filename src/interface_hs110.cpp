@@ -249,3 +249,23 @@ void interface_hs110::setOut(out* o, float v)
 	
 	getIns();
 }
+
+
+interface_hs110* interface_hs110_from_json(const json_t *json )
+{
+	#define JSTR(_X_)	json_string_value(json_object_get(json, #_X_))
+	#define JNR(_X_)	json_number_value(json_object_get(json, #_X_))
+	#define JIN(_X_)	json_is_number(json_object_get(json, #_X_))
+		
+	const char *id = JSTR(id);
+	const char *name = JSTR(name);
+	if (not name)
+		name = id;
+	float scan = JNR(scan);
+	const char *addr = JSTR(address);
+	
+	if (id and name and JIN(scan) and addr)
+		return new interface_hs110(id, name, scan, addr);
+	printf("could not build interface_hs110(%s, %s, %f, %s)\n", id, name, scan, addr);
+	return NULL;	
+}

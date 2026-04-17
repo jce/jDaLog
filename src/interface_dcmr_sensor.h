@@ -18,4 +18,6 @@ class interface_dcmr_sensor : public interface
 		const std::string _ipstr;
 };
 
+interface_dcmr_sensor* interface_dcmr_sensor_from_json(const json_t*);
+
 #endif // HAVE_INTERFACE_DCMR_SENSOR_H
