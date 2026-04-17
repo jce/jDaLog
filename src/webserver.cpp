@@ -107,25 +107,6 @@ enum MHD_Result dh
     return rv;
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 void webserver::start()
 {
 	daemon= MHD_start_daemon (MHD_USE_INTERNAL_POLLING_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_END);
@@ -202,6 +183,29 @@ struct y_ax
 	bool haveData;
 };
 
+// There is an issue where after pruning, the only items are changed-items. Making the 
+// line just follow the average. Effectively the state in the bins before and/or after
+// the change is forgotten. Try to fix this by introducing the left/right values.
+void patch_stats_edge_bins(vector<flStat> &stats, unsigned bins)
+{
+	for (unsigned i = 0; i < bins-1; i++)
+		if (stats[i+1].nr > 0 and stats[i].nr == 0)
+		{
+			stats[i].avg = stats[i+1].left;
+			stats[i].min = stats[i].avg;
+			stats[i].max = stats[i].avg;
+			stats[i].nr = 1;
+		}
+	for (int i = bins-2; i >= 0; i--)
+		if (stats[i+1].nr == 0 and stats[i].nr > 0)
+		{
+			stats[i+1].avg = stats[i].right;
+			stats[i+1].min = stats[i+1].avg;
+			stats[i+1].max = stats[i+1].avg;
+			stats[i+1].nr = 1;
+		}
+}
+
 // Plots a graph of given ins, between time tmin and tmax, with a width
 // of x and heigth of y. The graph is stored in a specific location
 // and the url to this location is returned.
@@ -244,6 +248,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					iwd.from = tmin - iwd.valid_time;
 					iwd.to = tmax + iwd.valid_time;
 					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
+					patch_stats_edge_bins(iwd.stats, iwd.statLen);
 					yi->iwdl.push_back(iwd);
 					foundyax = true;
 				}
@@ -257,6 +262,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				iwd.from = tmin - iwd.valid_time;
 				iwd.to = tmax + iwd.valid_time;
 				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
+				patch_stats_edge_bins(iwd.stats, iwd.statLen);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
 				y_ax y;
@@ -483,6 +489,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					iwd.from = tmin - iwd.valid_time;
 					iwd.to = tmax + iwd.valid_time;
 					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
+					patch_stats_edge_bins(iwd.stats, iwd.statLen);
 					yi->iwdl.push_back(iwd);
 					foundyax = true;
 				}
@@ -496,6 +503,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				iwd.from = tmin - iwd.valid_time;
 				iwd.to = tmax + iwd.valid_time;
 				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
+				patch_stats_edge_bins(iwd.stats, iwd.statLen);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
 				y_ax y;

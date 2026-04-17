@@ -21,6 +21,8 @@ struct flStat
 	float min; 		// Smallest sample.
 	double avg;		// Time weighed average. 
 	float max;		// Largest sample.
+	float left;		// Leftmost sample.
+	float right;	// Rightmost sample.
 };
 
 class floatLog
@@ -39,16 +41,18 @@ class floatLog
 		// Read series
 		void readFromTo(std::map<double, float> &, double, double);		 // return map, first record time, last record time
 		void getRecords(std::map<double, float> &m, size_t s, size_t l); // return map, first record number, last record number
-		//recordlist* get_recordlist(double from, double to);	// Return a recordlist for given interval.
 
 		// Read all
 		void readBinary(std::map<double, float> &);
 
 		// Summary read series
-		// return vector, number of bins, from time, to time (break length)
-		void summaryFromTo(			std::vector<flStat> &, unsigned, double, double); // Fills nr, min, avg, max based on equal sample weight.
-		//void summaryFromToWeighedC(	std::vector<flStat> &, unsigned, double, double, float); // Based on sample time. Closest time weights sample.
-		void summaryFromToWeighedN(	std::vector<flStat> &, unsigned, double, double, float); // Based on sample time. To next weights sample.
+		// return vector, number of bins, from time, to time
+		// Fills nr, min, avg, max based on equal sample weight.
+		void summaryFromTo(			std::vector<flStat> &, unsigned, double, double); 
+		// Based on sample time. Closest time weights sample.
+		//void summaryFromToWeighedC(	std::vector<flStat> &, unsigned, double, double, float); 
+		// Based on sample time. To next weights sample.
+		void summaryFromToWeighedN(	std::vector<flStat> &, unsigned, double, double, float); 
 
 		// Operation mode control
 		typedef enum operationmode{ to_file, ram_only } operationmode;

@@ -34,7 +34,7 @@ git cmake libjansson-dev libmodbus-dev gnuplot libmicrohttpd-dev libcurl4-openss
 Optional packages:
 
 ```
-libmariadbclient-dev libmariadb-dev-compat p7zip p7zip-full nmap libusb-dev
+p7zip p7zip-full nmap
 ```
 
 Install libsnap7:

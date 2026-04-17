@@ -155,7 +155,8 @@ bool floatLog::get_value_at(double time, float &value, double &valtime)
 	return found;
 }
 
-// function to make a summary of the measurement data without using overhead memory and time to create a list or map with all measurement values.
+// function to make a summary of the measurement data without using overhead memory and time to 
+// create a list or map with all measurement values.
 // parameter 1: stats array. Should be of length (paramer 2)
 void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, double to)
 {
@@ -176,6 +177,8 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
 				{ \
 					stats[bin(t)].avg += v; \
 					stats[bin(t)].nr ++; \
+					if (stats[bin(t)].nr == 1) stats[bin(t)].left = v; \
+					stats[bin(t)].right = v; \
 					if (v < stats[bin(t)].min or stats[bin(t)].nr == 1) \
 						stats[bin(t)].min = v; \
 					if (v > stats[bin(t)].max or stats[bin(t)].nr == 1) \
@@ -201,6 +204,8 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
 			{
 				stats[bin(t)].avg += v;
 				stats[bin(t)].nr ++;
+				if (stats[bin(t)].nr == 1) stats[bin(t)].left = v; \
+				stats[bin(t)].right = v; \
 				if (v < stats[bin(t)].min or stats[bin(t)].nr == 1)
 					stats[bin(t)].min = v;
 				if (v > stats[bin(t)].max or stats[bin(t)].nr == 1)
@@ -210,7 +215,6 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
 		fclose(fp);
 	}
 	pthread_mutex_unlock(&fileMutex);
-
 
 	// Calculate the average
 	for(unsigned i = 0; i<bins; i++)
@@ -523,7 +527,7 @@ void floatLog::openfile_write()
 // File should be open, returns the first record number in the file at or above given timestamp.
 size_t floatLog::from_index(double t)
 {
-	DBG("from_index(%f)\n", t);
+	//DBG("from_index(%f)\n", t);
 	// search between 2 indexes, a and b. both can be one past the last record.
 	size_t a = -1;
 	fseek(fp, 0, SEEK_END);
@@ -535,13 +539,13 @@ size_t floatLog::from_index(double t)
 		x = a + (b-a) / 2;
 		fseek(fp, x * RSIZE, SEEK_SET);
         fread(&d, sizeof(d), 1, fp);
-		DBG("%ld %ld %ld\n", a, b, x);
+		//DBG("%ld %ld %ld\n", a, b, x);
 		if (d >= t)
 			b = x;
 		else
 			a = x;
 	}
-	DBG("found: %ld\n", b);
+	//DBG("found: %ld\n", b);
 	return b;
 }
 
