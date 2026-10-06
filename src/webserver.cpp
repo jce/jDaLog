@@ -24,8 +24,8 @@
 #include <sys/stat.h>
 #include <vector>
 
-#define DBG(...) {printf(__VA_ARGS__); printf("\n");}
-//#define DBG(...)
+//#define DBG(...) {printf(__VA_ARGS__); printf("\n");}
+#define DBG(...)
 
 using namespace std;
 
@@ -191,6 +191,7 @@ void patch_stats_edge_bins(vector<flStat> &stats, unsigned bins)
 	for (unsigned i = 0; i < bins-1; i++)
 		if (stats[i+1].nr > 0 and stats[i].nr == 0)
 		{
+            DBG("%f %f %f %d %f %f", stats[i+1].left, stats[i+1].avg, stats[i+1].right, stats[i+1].nr, stats[i+1].min, stats[i+1].max);
 			stats[i].avg = stats[i+1].left;
 			stats[i].min = stats[i].avg;
 			stats[i].max = stats[i].avg;
@@ -1257,7 +1258,7 @@ enum MHD_Result webserver::handle_request
 	(
     	struct MHD_Connection *connection,
     	const char * url,
-    	const char * method,
+    	const char * /*method*/,
     	const map<string, string> postdata
 	)
 {
