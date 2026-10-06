@@ -958,20 +958,28 @@ string make_in_list_page()
 	return rv;
 }
 
-string webserver::make_webin_page(string webinName)
+string webserver::make_webin_page(string webinName, const map<string, string> &postdata)
 {
     webin *i = get_webin(webinName);
-    if (i == NULL) 
-        return "No webin with that name.";
-
+	if (not i)
+		return "No webin with that name.";
+	
+	if (postdata.find("value") != postdata.end())
+		i->setValue(stof(postdata.at("value")));
+	
     string rv = make_header(60);
 	rv += "<h2>Web in page: " + i->getName() + "</h2>\n";
 	rv += "short name: " + i->getDescriptor() + "<br>\n";
-	char buf[32];
-	snprintf(buf, 32, "%.*f", i->getDecimals(), i->getValue());
+	#define BUFLEN 256
+	char buf[BUFLEN];
+	snprintf(buf, BUFLEN, "%.*f", i->getDecimals(), i->getValue());
 	rv += string("last input: ") + buf + " " + i->getUnits() + "<br>\n";
-	snprintf(buf, 32, "%.3f", i->getAge());
+	snprintf(buf, BUFLEN, "%.3f", i->getAge());
 	rv += string("input age: ") + buf + " seconds<br>\n";
+
+	snprintf(buf, BUFLEN, "<form method=\"POST\">Set to:<INPUT type=\"TEXT\" name=\"value\" value=\"%.*f\"> %s<br>\n", i->getDecimals(), i->getValue(), i->getUnits().c_str());
+	rv += buf;
+	rv += "<INPUT type=\"submit\" name=\"Submit\" value=\"Submit\"></form><br>\n";
 
 	rv += make_image_line(i, now() - 3600, now(), def_w, def_h);
 	rv += make_image_line(i, now() - 24*3600, now(), def_w, def_h);
@@ -1006,7 +1014,7 @@ string make_webin_list_page()
 	return rv;
 }
 
-string webserver::make_out_page(string outName)
+string webserver::make_out_page(string outName, const map<string, string> &postdata)
 {
     string rv;
 	out* o = get_out(outName);
@@ -1035,21 +1043,43 @@ string webserver::make_out_page(string outName)
 		if (mg_get_var(post_data, post_data_len, "note", newNote, sizeof(newNote)) > -1)
 			myOut->setNote(newNote);
 		}
+		* 
+		* 
+		if (postdata.find("value") != postdata.end())
+		i->setValue(stof(postdata.at("value")));
     */
-	rv = make_header(10);
+    if (postdata.find("set") != postdata.end())
+    {
+		if (postdata.at("set").compare(0,4,"auto") == 0)
+			o->setMan(false);
+			//{}
+		if (postdata.at("set").compare(0,6,"manual") == 0)
+		{
+		o->setMan(true);
+			if (postdata.at("set") == "manual: 0")
+				o->setManOut(0);
+			if (postdata.at("set") == "manual: 1")
+				o->setManOut(1);
+			if (postdata.at("set") == "manual:" and (postdata.find("setv") != postdata.end()))
+				o->setManOut(stof(postdata.at("setv")));
+		}
+	}
+    
+	rv = make_header(60);
 	rv += "<h2>Out page: " + o->getName() + "</h2>\n";
 	rv += "short name: "+ o->getDescriptor() + "<br>\n";
     
-    char buf[32];
-	snprintf(buf, 32, "%.*f", o->getDecimals(), o->getValue());
+	#define BUFLEN 256
+	char buf[BUFLEN];
+	snprintf(buf, BUFLEN, "%.*f", o->getDecimals(), o->getValue());
 	rv += string("last measurement: ") + buf + " " + o->getUnits() + "<br>\n";
-	snprintf(buf, 32, "%.3f", o->getAge());
+	snprintf(buf, BUFLEN, "%.3f", o->getAge());
 	rv += string("measurement age: ") + buf + " seconds<br>\n";
 	// The validity of this measurement
 	if (o->isValid())
-		rv += "this out is valid<br>\n";
+		rv += "this out is valid (readback succeeds)<br>\n";
 	else
-		rv += "this out is invalid<br>\n";
+		rv += "this out is invalid (readback fails)<br>\n";
     
 
 	if (o->getMan())
@@ -1061,13 +1091,19 @@ string webserver::make_out_page(string outName)
 	else
 		rv += "this out is not controlling the physical interface or output. Can be auto mode without controlling logic.<br>\n";
 	if (o->getControl())	
-		rv += "<form method=\"POST\">Set output<br><input type=\"submit\" name=\"set\", value=\"auto\"><br>\n";
+	{
+		//rv += "<form method=\"POST\">Set output<br><input type=\"submit\" name=\"set\", value=\"auto (%.*f %s)\"><br>\n";
+		snprintf(buf, BUFLEN, "<form method=\"POST\">Set output<br><input type=\"submit\" name=\"set\", value=\"auto (%.*f %s)\"><br>\n", o->getDecimals(), o->getOut(), o->getUnits().c_str());
+		rv += buf;
+	}
 	else
-		rv += "<form method=\"POST\">Set output<br>""<input type=\"submit\" name=\"set\", value=\"auto (no data)\"><br>\n";
+		rv += "<form method=\"POST\">Set output<br>""<input type=\"submit\" name=\"set\" value=\"auto (no data)\"><br>\n";
 
-	rv += "<INPUT type=\"submit\" name=\"set\" value=\"manual: 0\"><br>\n";
-    rv += "<INPUT type=\"submit\" name=\"set\" value=\"manual: 1\"><br>\n";
-    rv += string("<INPUT type=\"submit\" name=\"set\" value=\"manual:\">\n<INPUT type=\"TEXT\" name=\"setv\" value=\"") + to_string(o->getManOut()) + "\"<br>\n";
+	rv += "<INPUT type=\"submit\" name=\"set\" value=\"manual: 0\">" + o->getUnits() + "<br>\n";
+    rv += "<INPUT type=\"submit\" name=\"set\" value=\"manual: 1\">" + o->getUnits() + "<br>\n";
+	snprintf(buf, BUFLEN, "<INPUT type=\"submit\" name=\"set\" value=\"manual:\">\n<INPUT type=\"TEXT\" name=\"setv\" value=\"%.*f\">%s<br>\n", o->getDecimals(), o->getManOut(), o->getUnits().c_str());
+	rv += buf;
+
 	rv += "</form>\n";
 
 	in_equation *ie = dynamic_cast<in_equation*>(o);
@@ -1076,10 +1112,10 @@ string webserver::make_out_page(string outName)
 		rv += make_equation_section(ie->eq);
 	}
 
-	//rv += make_image_line(o, now() - 3600, now(), def_w, def_h);
-	//rv += make_image_line(o, now() - 24*3600, now(), def_w, def_h);
-	//rv += make_image_line(o, now() - 7*243600, now(), def_w, def_h);
-	//rv += make_image_line(o, now() - 4*7*243600, now(), def_w, def_h);
+	rv += make_image_line(o, now() - 3600, now(), def_w, def_h);
+	rv += make_image_line(o, now() - 24*3600, now(), def_w, def_h);
+	rv += make_image_line(o, now() - 7*243600, now(), def_w, def_h);
+	rv += make_image_line(o, now() - 4*7*243600, now(), def_w, def_h);
 
 	char from[32], to[32];
 	double tnow = now();
@@ -1222,7 +1258,7 @@ enum MHD_Result webserver::handle_request
     	struct MHD_Connection *connection,
     	const char * url,
     	const char * method,
-    	const map<string, string> /*keyvalue*/
+    	const map<string, string> postdata
 	)
 {
 	DBG("%s %s", method, url);
@@ -1296,12 +1332,12 @@ enum MHD_Result webserver::handle_request
 	if (!strcmp(url, "/webin") or !strcmp(url, "/webin/"))
 		s = make_webin_list_page();
 	if (!strncmp(url, "/webin/", 7))
-        s = make_webin_page(url+7);
+        s = make_webin_page(url+7, postdata);
 
 	if (!strcmp(url, "/out") or !strcmp(url, "/out/"))
 		s = make_out_list_page();
 	if (!strncmp(url, "/out/", 5))
-        s = make_out_page(url+5);
+        s = make_out_page(url+5, postdata);
 
 /*
 	if (!strcmp(ri->uri, "/webin") or !strcmp(ri->uri, "/webin/"))

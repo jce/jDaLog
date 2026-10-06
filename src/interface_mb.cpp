@@ -65,10 +65,16 @@ void interface_mb::setOut(out *o, float v)
 		regcon->writeconv(v, buf);
 	if (key.regtype == mb_coil)
 		buf[0] = v >= 0.5;
-
+	DBG("before mb calls")
 	modbus_t *ctx = new_context();
 	if(ctx)
-	{
+	{		
+		struct timeval timeout;
+		timeout.tv_sec = 1;
+		timeout.tv_usec = 0;
+		modbus_set_response_timeout(ctx, timeout.tv_sec, timeout.tv_usec);
+		modbus_set_byte_timeout(ctx, timeout.tv_sec, timeout.tv_usec);
+
 		modbus_connect(ctx);
 		modbus_set_slave(ctx, key.id);
 
@@ -80,6 +86,7 @@ void interface_mb::setOut(out *o, float v)
 		modbus_close(ctx);
 		modbus_free(ctx);
 	}
+	DBG("after mb calls");
 }
 
 void interface_mb::start()
