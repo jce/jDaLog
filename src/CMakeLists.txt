@@ -10,6 +10,7 @@ link_directories(/usr/local/lib)
 
 option(HAVE_S7 "Build with Siemens S7 support" ON)
 option(HAVE_RPI "Build with Raspberry Pi IO support and CPU temperature" OFF)
+option(ENABLE_ASAN "Build with AddressSanitizer" OFF)
 
 project(jDaLog VERSION 1.0.0)
 add_executable(jDaLog
@@ -23,6 +24,11 @@ endif()
 
 IF(HAVE_RPI)
 	list(APPEND EXTRA_SRC interface_pi_gpio.cpp)
+endif()
+
+if(ENABLE_ASAN)
+    add_compile_options(-fsanitize-address -fno-omit-frame-pointer -g -O1)
+    add_link_options(-fsanitize=address)
 endif()
 
 target_link_libraries(jDaLog 
@@ -74,6 +80,7 @@ target_sources(jDaLog PUBLIC
 	stringStore.cpp
 	webserver.cpp
 	webin.cpp
+    interface_ct003.cpp
 	${EXTRA_SRC}
 )
 

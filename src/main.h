@@ -39,6 +39,7 @@ extern bool prune_input;
 	INTERFACE(	dcmr,		interface_dcmr_from_json)\
 	INTERFACE(	macp,		interface_macp_from_json)\
 	INTERFACE(	host,		interface_host_from_json)\
+	INTERFACE(	ct003,		interface_ct003_from_json)\
 	/* Partial lists based on precompiler options */	\
 	S7INTERFACE											\
 	RPI_INTERFACE										\

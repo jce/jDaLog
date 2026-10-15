@@ -42,6 +42,7 @@
 #include "interface_circulac.h"
 #include "interface_dcmr.h"
 #include "interface_dcmr_sensor.h"
+#include "interface_ct003.h"
 
 using namespace std;
 //#define debug
