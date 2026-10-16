@@ -51,7 +51,7 @@ interface_ct003::interface_ct003(const string d, const string n, float i, const 
 	Pb = 	        	new in(getDescriptor() + "_pb", getName() + " P2", "W", 0);
 	Pc = 	        	new in(getDescriptor() + "_pc", getName() + " P3", "W", 0);
 	Pd =       			new in(getDescriptor() + "_pd", getName() + " Ptotaal", "W", 0);
-	rssi =     			new in(getDescriptor() + "_rssi", getName() + " rssi", "db", 0);
+	rssi =     			new in(getDescriptor() + "_rssi", getName() + " rssi", "dBm", 0);
 	info_idx = 			new in(getDescriptor() + "_idx", getName() + " info_idx", "", 0);
 	low_in = 			new in(getDescriptor() + "_li", getName() + " low_in", "", 0);
 	norm_in = 			new in(getDescriptor() + "_ni", getName() + " norm_in", "", 0);

@@ -14,7 +14,7 @@
 
 // The In has a separate name and descriptor. The second is used for file identification, so a namechange wont result in losing all measurement data. JCE, 20-6-13
 
-#define IN_VALIDTIME_SCAN_MULTIPLY 2.5
+#define IN_VALIDTIME_SCAN_MULTIPLY 5
 
 class in{
 	public:

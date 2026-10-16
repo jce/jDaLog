@@ -340,10 +340,11 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 		fprintf(fp, "\"]\n");		
 
 		fprintf(fp, "set format x \"");
-		if      ( tmax-tmin > 364*24*60*60 	) fprintf(fp, "%%m-%%Y");
-        else if ( tmax-tmin > 24*60*60 - 10	) fprintf(fp, "%%d-%%m");
-		else if ( tmax-tmin > 60 			) fprintf(fp, "%%H:%%M");
-		else if ( tmax-tmin <= 3600 - 10 	) fprintf(fp, "%%M:%%S");
+		if      ( tmax-tmin > 364*24*60*60      ) fprintf(fp, "%%m-%%Y");   // Year scale: Show month and year.
+        else if ( tmax-tmin > 24*60*60 + 10	    ) fprintf(fp, "%%d-%%m");   // Month scale: Show dat and month.
+        else if ( tmax-tmin > 60*60 + 10	    ) fprintf(fp, "%%H %%d-%%m");// Day scale: Show hour, day and month.
+		else if ( tmax-tmin > 60 + 10		    ) fprintf(fp, "%%H:%%M");   // Hour scale: Show hour and minute.
+		else if ( tmax-tmin <= 60 + 10 	        ) fprintf(fp, "%%M:%%S");   // Minute scale: Show minute and second.
 		fprintf(fp, "\n");		
 
 		fprintf(fp, "set yrange [%.8f:%.8f]\n", y1.ymin, y1.ymax);
