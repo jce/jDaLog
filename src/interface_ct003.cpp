@@ -85,7 +85,7 @@ static std::string ct003_checksum(const std::string &frame_so_far)
     uint8_t chk = 0;
     for (unsigned char c : frame_so_far) chk ^= c;
     char hex[3];
-    snprintf(hex, sizeof hex, "%02x", chk);
+    snprintf(hex, sizeof hex, "%02X", chk);
     return hex;
 }
 
@@ -131,13 +131,15 @@ static bool ct003_check_frame(const char *buf, size_t len, std::string &body)
         if (declared > CT003_BUFLEN) return false;    // onzin-lengte
     }
     if (p == 2) return false;                         // geen len-digits
-    if (declared < p + 1 || declared > len)       // frame + chk moet er zijn
+    if (declared < p + 1 || declared > len)           // frame + chk moet er zijn
         return false;
-    if ((uint8_t)buf[declared - 3] != ETX)             // ETX precies op len-3
+    if ((uint8_t)buf[declared - 3] != ETX)            // ETX precies op len-3
         return false;
 
     // checksum over SOH t/m ETX (== buf[0 .. declared-2)), 2 ascii-hex erbuiten
     string want(buf + declared-2, 2);
+    for (size_t i = 0; i < want.length(); i++)           // Turns out the CT003 uses capitals and lowers at will.
+        want[i] = toupper(want[i]);
     string got = ct003_checksum(string(buf, declared-2));
     if (want != got)
         return false;
