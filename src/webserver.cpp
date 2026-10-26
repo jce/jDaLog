@@ -23,6 +23,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <vector>
+#include <charconv>
 
 //#define DBG(...) {printf(__VA_ARGS__); printf("\n");}
 #define DBG(...)
@@ -931,6 +932,47 @@ std::string table_fromto_h(in *i, double from, double to)
     rv += "</table>";
 	return rv;
 }
+
+// Json fromto
+string json_fromto(in *i, double from, double to)
+{
+    string rv = "{\"" + i->getDescriptor() + "\":{\n";
+    map<double, float> data;
+    i->getData(data, from, to);
+    char buf[16];
+    for (auto d = data.begin(); d != data.end(); d++)
+    {
+        auto res = to_chars(buf, buf+sizeof(buf), d->second);
+        rv += "\"" + to_string(d->first) + "\":" + string(buf, res.ptr) + ", \n";
+    }
+    return rv.substr(0, rv.size() >= 3 ? rv.size()-3 : 0) + "}}";
+}
+
+string make_in_list_json()
+{
+    string rv = "{\r\n";
+    for (auto i = inmap.begin(); i != inmap.end(); i++)
+    {
+        rv += "\"" + i->second->getDescriptor() + "\":{\"name\":\"" + i->second->getName() + "\", \"value\":";
+        char buf[32];
+        snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+        rv += buf;
+        rv += ", \"decimals\":";
+        snprintf(buf, 32, "%d", i->second->getDecimals());
+        rv += buf;
+        if (i->second->getUnits() != "")
+            rv += ", \"unit\":\"" + i->second->getUnits()+"\"";
+        rv += ", \"age\":";
+        snprintf(buf, 32, "%.3f", i->second->getAge());
+        rv += buf;
+        rv += ",\"valid\":";
+        rv += i->second->isValid() ? "true" : "false";
+        rv += "},\r\n";
+    }
+    rv.erase(rv.size() - 3);
+    rv += "\r\n}";
+    return rv;
+}
  
 string make_in_list_page()
 {
@@ -1263,7 +1305,7 @@ enum MHD_Result webserver::handle_request
     	const map<string, string> postdata
 	)
 {
-	DBG("%s %s", method, url);
+	//DBG("%s %s", method, url);
 
 	string s;
 
@@ -1271,7 +1313,10 @@ enum MHD_Result webserver::handle_request
 	requests->setValue(requests->getValue() + 1);
 	pthread_mutex_unlock(&request_counter_mutex);
 
-	if (!strcmp(url, "/in") or !strcmp(url, "/in/"))
+    if (!strcmp(url, "/in.json"))
+        s = make_in_list_json();
+
+    if (!strcmp(url, "/in") or !strcmp(url, "/in/"))
 		s = make_in_list_page();
 
 	if (!strncmp(url, "/in/", 4))
@@ -1284,14 +1329,26 @@ enum MHD_Result webserver::handle_request
 		const char *slash3 = slash2 ? strpbrk(slash2+1, "/") : NULL;
 		//const char *slash4 = slash3 ? strpbrk(slash3+1, "/") : NULL;
 		//const char *slash5 = slash4 ? strpbrk(slash4+1, "/") : NULL;
-
 		if (slash1)
 			i = get_in(string(uri, slash1 - uri)); // http://a.b.c.d/in/in-name/more_follows
-		else
+        else
 			i = get_in(uri); // http://a.b.c.d/in/in-name						
-		
 		if (i and slash2)
 		{
+			// http://a.b.c.d/in/in-name.json
+			if (!strncmp(slash1, "/json/", 6))
+            {
+                if (strncmp(slash2, "/hour.json", 10) == 0)
+                    s = json_fromto(i, now()-3600, now());
+                if (strncmp(slash2, "/day.json", 9) == 0)
+                    s = json_fromto(i, now()-3600*24, now());
+                if (strncmp(slash2, "/week.json", 10) == 0)
+                    s = json_fromto(i, now() - 3600*24*7, now());
+                if (strncmp(slash2, "/month.json", 11) == 0)
+                    s = json_fromto(i, now()-3600*24*7*4, now());
+                if (strncmp(slash2, "/year.json", 10) == 0)
+                    s = json_fromto(i, now() - 3600*24*365, now());
+            }
 		
 			// http://a.b.c.d/in/in-name/table/ *end*
 			if (slash3 && !strncmp(slash1, "/table/", 7) && read_human_time(slash2+1, &from) && read_human_time(slash3+1, &to))
@@ -1328,7 +1385,8 @@ enum MHD_Result webserver::handle_request
 				s = make_in_remove_reply(i->remove_value_from_to(from, to));			
 		}
 		else
-			s = make_in_page(i);
+            if (i)
+			    s = make_in_page(i);
 	}
 	
 	if (!strcmp(url, "/webin") or !strcmp(url, "/webin/"))
