@@ -948,9 +948,49 @@ string json_fromto(in *i, double from, double to)
     return rv.substr(0, rv.size() >= 3 ? rv.size()-3 : 0) + "}}";
 }
 
+// json summary
+
+string json_summary(in *i, unsigned bins, double from, double to)
+{
+    char buf[32];
+    vector<flStat> stats(bins);
+    i->getDataSummary(bins, from, to);
+    string rv = "{\n";
+    snprintf(buf, 32, "\"from\": %.0f", from); rv += buf;
+    snprintf(buf, 32, "\"to\": %.0f", to); rv += buf;
+    snprintf(buf, 32, "\"bins\": %i", bins); rv += buf;
+    /*
+    
+
+    rv += "\"" + i->second->getDescriptor() + "\":{\"name\":\"" + i->second->getName() + "\", \"value\":";
+        snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+        rv += buf;
+        rv += ", \"decimals\":";
+        snprintf(buf, 32, "%d", i->second->getDecimals());
+        rv += buf;
+        if (i->second->getUnits() != "")
+            rv += ", \"unit\":\"" + i->second->getUnits()+"\"";
+        rv += ", \"age\":";
+        snprintf(buf, 32, "%.3f", i->second->getAge());
+        rv += buf;
+        rv += ",\"valid\":";
+        rv += i->second->isValid() ? "true" : "false";
+        rv += "},\n";
+    for (auto i = stats.begin(); i != stats.end(); i++)
+    {
+        
+
+    }
+    */
+    rv.erase(rv.size() - 3);
+    rv += "\n}";
+    return rv;
+}
+
+
 string make_in_list_json()
 {
-    string rv = "{\r\n";
+    string rv = "{\n";
     for (auto i = inmap.begin(); i != inmap.end(); i++)
     {
         rv += "\"" + i->second->getDescriptor() + "\":{\"name\":\"" + i->second->getName() + "\", \"value\":";
@@ -967,10 +1007,10 @@ string make_in_list_json()
         rv += buf;
         rv += ",\"valid\":";
         rv += i->second->isValid() ? "true" : "false";
-        rv += "},\r\n";
+        rv += "},\n";
     }
     rv.erase(rv.size() - 3);
-    rv += "\r\n}";
+    rv += "\n}";
     return rv;
 }
  
