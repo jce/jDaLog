@@ -226,64 +226,70 @@ bool floatLog::next_iteration(double &t, float &v)   // Next iteration step, agn
 // parameter 1: stats array. Should be of length (paramer 2)
 void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, double to/*, float validtime*/)
 {
+    int b;
 	double interval =(( double) to - from) / bins;
-	#define bin(t)      (0 + (t-from) / interval)       // Get the bin for a given timestamp
-    #define binedge(b)  (from + (to-from)/bins*(b+1))   // Get the end timestamp for a given bin
     float validtime = 1.0; // Should be a function input.
-    double t, t1, t2, dur, durnb;   // time, last time, duration, duration in next bin.
+    double t, t1, dur, tcur, tend, binedge, dt;
     float v, v1, v2;
-    int lbin, rbin;
-    bool havetv1 = false, havetv2 = false;
+    bool havetv1 = false, havev2 = false, lastrun = false, rv = true;
 	DBG("summaryFromTo(vector %p, bins %d, from %lf, to %lf)\n", &stats, bins, from, to);
 
     start_iteration(from, to);
-    while (next_iteration(t, v))
+    while (true)
     {
+        if (rv)                             // rv has to start true or the iteration wont work.
+            rv = next_iteration(t,v);       // Stop calling next_iteration once it has returned false.
+        if (!rv and lastrun)
+            break;
+        if (!rv and !lastrun)
+        {
+            t = to;         // After the lastrun block, t1 and v1 are garbage.
+            v = 0.0;
+            lastrun = true;
+        }
+ 
         if (havetv1) // Only upon reading sample x, do we know the duration for sample x-1.
         {
-            dur = t - t1;           // Duration that v1 is valid.
-            if (dur > validtime)
-                dur = validtime;
-            lbin = bin(t1);         // The bin that t1 is part of
-            rbin = bin(t1+dur);     // the bin that the end of t1's duration is part of
-            if (lbin != rbin)       // Are we on a bin boundary? (assumed this is just one boundary, not 2 or more)
+            dur = fmin(t-t1, validtime); // Duration that v1 is valid.
+            tcur = fmax(t1, from);       // Start from within the binrange.
+            tend = fmin(t1+dur, to);     // End at most at the last bin edge.
+
+            while (tcur < tend)                 // Deposit in all intermediate bins.
             {
-                durnb = t1+dur-binedge(t1); // The part of duration in the next bin
-                dur -= durnb;       // The part of duration in this bin
-                if (lbin >= 0)
+                b = (int) (( tcur - from ) / interval );
+                binedge = from + interval * ( b + 1);
+                dt = fmin(tend, binedge) - tcur;
+
+                stats[b].avg += v1 * dt;
+                stats[b].t += dt;
+                tcur = binedge;        // This overshoots tcur += dt, but is faster.
+            }
+
+            if (t1 >= from and t1 < to)
+            {
+                b = (int) ((t1 - from) / interval);
+                stats[b].nr++;      // Count the amount of samples
+                if (stats[b].nr == 1)
                 {
-                    stats[lbin].avg += dur * v1;
-                    stats[lbin].t += dur;
+                    stats[b].min = v1;
+                    stats[b].max = v1;
                 }
-                stats[rbin].avg += durnb * v1;
-                stats[rbin].t += durnb;
-            }        
-            else
-            {
-                if (lbin >= 0)
+                else
                 {
-                    stats[lbin].avg += dur * v1;
-                    stats[lbin].t += dur;
+                    stats[b].min = fmin(stats[b].min, v1);
+                    stats[b].max = fmax(stats[b].max, v1);
                 }
-            }    
-            stats[lbin].nr++;
-			if (stats[lbin].nr == 1) stats[lbin].left = v1;
-			stats[lbin].right = v1;
-			if (v1 < stats[lbin].min or stats[lbin].nr == 1)
-				stats[lbin].min = v1;
-			if (v1 > stats[lbin].max or stats[lbin].nr == 1)
-				stats[lbin].max = v1;
-            if (havetv2)
-            {
-                stats[lbin].pedge += v1 > v2;
-                stats[lbin].nedge += v1 < v2;
+                if (havev2)
+                {   
+                    stats[b].pedge += v1 > v2;
+                    stats[b].nedge += v1 < v2;
+                }
             }
             v2 = v1;
-            t2 = t1;
-            havetv2 = true;
+            havev2 = true;
         }
-        t1 = t;
         v1 = v;
+        t1 = t;
         havetv1 = true;
     }
 
