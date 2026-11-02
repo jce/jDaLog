@@ -49,9 +49,10 @@ class floatLog
 		void readBinary(std::map<double, float> &);
 
 		// Summary read
-		// return vector, number of bins, from time, to time
+        // parameters: flStat vector, length of vector, fromtime, totime, maximum sample valid time.
+		// return vector, number of bins, from time, to time.
 		// Fills nr, min, avg, max, left and right.
-		void summaryFromTo(			std::vector<flStat> &, unsigned, double, double); 
+		void summaryFromTo(			std::vector<flStat> &, unsigned, double, double, float); 
 
 		// Operation mode control
 		typedef enum operationmode{ to_file, ram_only } operationmode;

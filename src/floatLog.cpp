@@ -161,7 +161,6 @@ void floatLog::switch_to_mem()
         pthread_mutex_unlock(&fileMutex);
         pthread_mutex_lock(&memMutex);
         rtf = recordsToFile.begin();
-        DBG("TO MEM ============================================== TO MEM\n");
     }
 
 void floatLog::start_iteration(double from, double to)
@@ -196,7 +195,6 @@ bool floatLog::next_iteration(double &t, float &v)   // Next iteration step, agn
     {
     	if ( iremain && fread(&t, sizeof(t), 1, fp) && fread(&v, sizeof(v), 1, fp) )
         {
-            DBG("%f: %f\n", t, v);
             iremain--;
             return true;
         }
@@ -224,15 +222,13 @@ bool floatLog::next_iteration(double &t, float &v)   // Next iteration step, agn
 // function to make a summary of the measurement data without using overhead memory and time to 
 // create a list or map with all measurement values.
 // parameter 1: stats array. Should be of length (paramer 2)
-void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, double to/*, float validtime*/)
+void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, double to, float validtime)
 {
     int b;
 	double interval =(( double) to - from) / bins;
-    float validtime = 1.0; // Should be a function input.
     double t, t1, dur, tcur, tend, binedge, dt;
-    float v, v1, v2;
+    float v, v1, v2, slope, va, vb, lo, hi;
     bool havetv1 = false, havev2 = false, lastrun = false, rv = true;
-	DBG("summaryFromTo(vector %p, bins %d, from %lf, to %lf)\n", &stats, bins, from, to);
 
     start_iteration(from, to);
     while (true)
@@ -244,7 +240,7 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
         if (!rv and !lastrun)
         {
             t = to;         // After the lastrun block, t1 and v1 are garbage.
-            v = 0.0;
+            v = v1;
             lastrun = true;
         }
  
@@ -253,32 +249,40 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
             dur = fmin(t-t1, validtime); // Duration that v1 is valid.
             tcur = fmax(t1, from);       // Start from within the binrange.
             tend = fmin(t1+dur, to);     // End at most at the last bin edge.
+            slope = (v - v1) / (t - t1); // Slope of the line
 
-            while (tcur < tend)                 // Deposit in all intermediate bins.
+            while (tcur < tend)          // Deposit in all intermediate bins.
             {
                 b = (int) (( tcur - from ) / interval );
+                if (from + interval * (b+1) <= tcur)
+                    b++;                    // Prevents getting locked on the edge.
                 binedge = from + interval * ( b + 1);
                 dt = fmin(tend, binedge) - tcur;
-
-                stats[b].avg += v1 * dt;
+                va = v1 + slope * (tcur - t1);
+                vb = v1 + slope * (fmin(tend, binedge) - t1);
+                lo = fmin(va, vb);
+                hi = fmax(va, vb);
+    
+                if (stats[b].t == 0.0)
+                {
+                    stats[b].min = lo;
+                    stats[b].max = hi;
+                }
+                else
+                {
+                    stats[b].min = fmin(stats[b].min, lo);
+                    stats[b].max = fmax(stats[b].max, hi);
+                }
+                    
+                stats[b].avg += 0.5 * (va+vb) *dt;
                 stats[b].t += dt;
-                tcur = binedge;        // This overshoots tcur += dt, but is faster.
+                tcur += dt;
             }
 
             if (t1 >= from and t1 < to)
             {
                 b = (int) ((t1 - from) / interval);
                 stats[b].nr++;      // Count the amount of samples
-                if (stats[b].nr == 1)
-                {
-                    stats[b].min = v1;
-                    stats[b].max = v1;
-                }
-                else
-                {
-                    stats[b].min = fmin(stats[b].min, v1);
-                    stats[b].max = fmax(stats[b].max, v1);
-                }
                 if (havev2)
                 {   
                     stats[b].pedge += v1 > v2;
@@ -296,7 +300,10 @@ void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, 
 	// Calculate the average
 	for(unsigned i = 0; i<bins; i++)
 		if (stats[i].t)
+        {
 			stats[i].avg = stats[i].avg / stats[i].t;
+            DBG("bin: %i, samples: %i, min: %f, avg: %f, max: %f\n", i, stats[i].nr, stats[i].min, stats[i].avg, stats[i].max);
+        }
 }
 
 record floatLog::getLast()

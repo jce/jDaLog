@@ -123,7 +123,7 @@ out* get_out(const std::string &descr)
 
 void out::getDataSummary(vector<flStat> &stats, unsigned length , double from, double to)
 {
-	_logger->summaryFromTo(stats, length, from, to);
+	_logger->summaryFromTo(stats, length, from, to, valid_time);
 }
 
 void out_conf(json_t* json)	// Modifies existing outs by given json.

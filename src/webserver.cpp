@@ -250,7 +250,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					iwd.from = tmin - iwd.valid_time;
 					iwd.to = tmax + iwd.valid_time;
 					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-					patch_stats_edge_bins(iwd.stats, iwd.statLen);
+					//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 					yi->iwdl.push_back(iwd);
 					foundyax = true;
 				}
@@ -264,7 +264,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				iwd.from = tmin - iwd.valid_time;
 				iwd.to = tmax + iwd.valid_time;
 				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-				patch_stats_edge_bins(iwd.stats, iwd.statLen);
+				//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
 				y_ax y;
@@ -492,7 +492,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					iwd.from = tmin - iwd.valid_time;
 					iwd.to = tmax + iwd.valid_time;
 					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-					patch_stats_edge_bins(iwd.stats, iwd.statLen);
+					//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 					yi->iwdl.push_back(iwd);
 					foundyax = true;
 				}
@@ -506,7 +506,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				iwd.from = tmin - iwd.valid_time;
 				iwd.to = tmax + iwd.valid_time;
 				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-				patch_stats_edge_bins(iwd.stats, iwd.statLen);
+				//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
 				y_ax y;
