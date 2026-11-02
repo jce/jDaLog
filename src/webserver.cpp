@@ -955,36 +955,43 @@ string json_summary(in *i, unsigned bins, double from, double to)
 {
     char buf[32];
     vector<flStat> stats(bins);
-    i->getDataSummary(bins, from, to);
+    i->getDataSummary(stats, bins, from, to);
     string rv = "{\n";
-    snprintf(buf, 32, "\"from\": %.0f", from); rv += buf;
-    snprintf(buf, 32, "\"to\": %.0f", to); rv += buf;
-    snprintf(buf, 32, "\"bins\": %i", bins); rv += buf;
-    /*
-    
-
-    rv += "\"" + i->second->getDescriptor() + "\":{\"name\":\"" + i->second->getName() + "\", \"value\":";
-        snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
-        rv += buf;
-        rv += ", \"decimals\":";
-        snprintf(buf, 32, "%d", i->second->getDecimals());
-        rv += buf;
-        if (i->second->getUnits() != "")
-            rv += ", \"unit\":\"" + i->second->getUnits()+"\"";
-        rv += ", \"age\":";
-        snprintf(buf, 32, "%.3f", i->second->getAge());
-        rv += buf;
-        rv += ",\"valid\":";
-        rv += i->second->isValid() ? "true" : "false";
-        rv += "},\n";
-    for (auto i = stats.begin(); i != stats.end(); i++)
+    snprintf(buf, 32, "\"from\": %.0f,\n", from); rv += buf;
+    snprintf(buf, 32, "\"to\": %.0f,\n", to); rv += buf;
+    snprintf(buf, 32, "\"bins\": %i,\n", bins); rv += buf;
+    snprintf(buf, 32, "\"interval\": %f,\n", (to-from)/bins); rv += buf;
+    rv += "\"signals\":{\n";
+    rv += "\"" + i->getDescriptor() + "\": {\n";
+    rv += "\"name\":\"" + i->getName() + "\",\n";
+    rv += "\"unit\":\"" + i->getUnits() + "\",\n";
+    snprintf(buf, 32, "\"decimals\": %d,\n", i->getDecimals()); rv += buf;
+    rv += "\"bins\":[\n";
+    for (unsigned b = 0; b < bins; b++)
     {
-        
-
+        rv += "{\n";
+        snprintf(buf, 32, "\"t\": %.3f,\n", from + (to-from) / bins * b); rv += buf;
+        float pvalid = stats[b].t / ((to-from)/bins);
+        if (pvalid > 0)
+        {
+            snprintf(buf, 32, "\"min\": %f,\n", stats[b].min); rv += buf;
+            snprintf(buf, 32, "\"avg\": %f,\n", stats[b].avg); rv += buf;
+            snprintf(buf, 32, "\"max\": %f,\n", stats[b].max); rv += buf;
+        }
+        else // pvalid == 0
+        {
+            rv += "\"min\": null,\n";
+            rv += "\"avg\": null,\n";
+            rv += "\"max\": null,\n";
+        }
+        snprintf(buf, 32, "\"pvalid\": %f,\n", pvalid); rv += buf;
+        snprintf(buf, 32, "\"samples\": %d,\n", stats[b].nr); rv += buf;
+        snprintf(buf, 32, "\"pos_edge\": %d,\n", stats[b].pedge); rv += buf;
+        snprintf(buf, 32, "\"neg_edge\": %d\n", stats[b].nedge); rv += buf;
+        rv += "}, \n";
     }
-    */
     rv.erase(rv.size() - 3);
-    rv += "\n}";
+    rv += "]}}}\n";
     return rv;
 }
 
@@ -1013,7 +1020,7 @@ string make_in_list_json()
         rv += i->second->isValid() ? "true" : "false";
         rv += "},\n";
     }
-    rv.erase(rv.size() - 3);
+    rv.erase(rv.size() - 2);
     rv += "\n}";
     return rv;
 }
@@ -1392,6 +1399,11 @@ enum MHD_Result webserver::handle_request
                     s = json_fromto(i, now()-3600*24*7*4, now());
                 if (strncmp(slash2, "/year.json", 10) == 0)
                     s = json_fromto(i, now() - 3600*24*365, now());
+                
+                long unsigned from, to;
+                unsigned bins;
+                if (sscanf(slash2, "/summary_%ld_%ld_%d.json", &from, &to, &bins) == 3)
+                    s = json_summary(i, bins, from, to);
             }
 		
 			// http://a.b.c.d/in/in-name/table/ *end*

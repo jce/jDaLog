@@ -13,8 +13,8 @@
 
 using namespace std;
 
-#define DBG(...) printf(__VA_ARGS__);
-//#define DBG(...)
+//#define DBG(...) printf(__VA_ARGS__);
+#define DBG(...)
 
 #define FOR_ALL_IN_FILE_UNM(...) \
 { \
