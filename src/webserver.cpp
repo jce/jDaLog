@@ -53,9 +53,9 @@ struct connection_info
 enum MHD_Result post_iter(void *cls,
               enum MHD_ValueKind /*kind*/,
               const char *key,
-              const char */*filename*/,
-              const char */*content_type*/,
-              const char */*transfer_encoding*/,
+              const char* /* filename */,
+              const char* /* content_type */,
+              const char* /* transfer_encoding */,
               const char *data,
               uint64_t /*off*/,
               size_t /*size*/)
@@ -110,7 +110,7 @@ enum MHD_Result dh
 
 void webserver::start()
 {
-	daemon= MHD_start_daemon (MHD_USE_INTERNAL_POLLING_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_END);
+	daemon= MHD_start_daemon (MHD_USE_AUTO_INTERNAL_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_THREAD_POOL_SIZE, 4, MHD_OPTION_END);
 	DBG("Webserver %s started on port %i", name.c_str(), port);
 }
 
@@ -948,6 +948,25 @@ string json_fromto(in *i, double from, double to)
     return rv.substr(0, rv.size() >= 3 ? rv.size()-3 : 0) + "}}";
 }
 
+string json_in_bins(in *i, double from, double to, unsigned int bins)
+{
+    string rv = "{\"" + i->getDescriptor() + "\":{\n";
+    vector<flStat> stats;
+    i->getDataSummary(stats, bins, from, to);
+
+/*
+    char buf[16];
+    for (auto d = data.begin(); d != data.end(); d++)
+    {
+        auto res = to_chars(buf, buf+sizeof(buf), d->second);
+        rv += "\"" + to_string(d->first) + "\":" + string(buf, res.ptr) + ", \n";
+    }
+    return rv.substr(0, rv.size() >= 3 ? rv.size()-3 : 0) + "}}";
+    */
+    return string();
+}   
+
+// In list as json
 string make_in_list_json()
 {
     string rv = "{\r\n";
@@ -956,6 +975,9 @@ string make_in_list_json()
         rv += "\"" + i->second->getDescriptor() + "\":{\"name\":\"" + i->second->getName() + "\", \"value\":";
         char buf[32];
         snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+        rv += buf;
+        rv += ", \"time\":";
+        snprintf(buf, 32, "%.3f", i->second->getTime());
         rv += buf;
         rv += ", \"decimals\":";
         snprintf(buf, 32, "%d", i->second->getDecimals());

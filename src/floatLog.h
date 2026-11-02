@@ -17,10 +17,13 @@ typedef struct record
 struct flStat
 {
 	unsigned int nr;// Number of samples in interval.
-	float t;		// Total described time [s]. 
+	double t;		// Total described time [s]. 
 	float min; 		// Smallest sample.
 	double avg;		// Time weighed average. 
 	float max;		// Largest sample.
+    uint32_t pedge; // Positive edges
+    uint32_t nedge; // Negative edges
+
 	float left;		// Leftmost sample.
 	float right;	// Rightmost sample.
 };
@@ -88,8 +91,16 @@ class floatLog
 		record read_last_from_file();
 		record read_last_from_file_unlocked();
 		record last = {0, 0};
+        
+        void start_iteration(double, double);   // Start an iteration range. Only call once at a time.
+        bool next_iteration(double &, float &);   // Next iteration step, agnostic to source (disk/ram) Must be called untill returns false.
+        void switch_to_mem();
+        pthread_mutex_t iterationMutex = PTHREAD_MUTEX_INITIALIZER;
+        size_t istop, istart, iremain;
+        double ifrom, ito; 
+        std::list<record>::iterator rtf;
 
-		FILE *fp;
+		FILE *fp = 0;
 		void openfile_read();
 		void openfile_write();
 		size_t from_index(double); // File should be open, returns the first record number in the file at or above given timestamp.

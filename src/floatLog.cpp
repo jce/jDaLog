@@ -13,8 +13,8 @@
 
 using namespace std;
 
-//#define DBG(...) printf(__VA_ARGS__);
-#define DBG(...)
+#define DBG(...) printf(__VA_ARGS__);
+//#define DBG(...)
 
 #define FOR_ALL_IN_FILE_UNM(...) \
 { \
@@ -155,71 +155,142 @@ bool floatLog::get_value_at(double time, float &value, double &valtime)
 	return found;
 }
 
+void floatLog::switch_to_mem()
+    {
+        fp = 0;
+        pthread_mutex_unlock(&fileMutex);
+        pthread_mutex_lock(&memMutex);
+        rtf = recordsToFile.begin();
+        DBG("TO MEM ============================================== TO MEM\n");
+    }
+
+void floatLog::start_iteration(double from, double to)
+{
+    ifrom = from;
+    ito = to;
+    pthread_mutex_lock(&iterationMutex);
+    pthread_mutex_lock(&fileMutex);
+    openfile_read();
+    if(fp)
+    {
+        istart = from_index(from);
+        if (istart)
+            istart--;                       // Start from one record before first, if possible
+        istop = from_index(to);             // End time does not have such a peculiarity.
+        fseek(fp, istart * RSIZE, SEEK_SET);
+        iremain = istop > istart ? istop - istart : 0; // iremain will be our counter
+        if (!iremain)                         // Can happen, no data to be fetched from disk.
+        {
+            fclose(fp);
+            switch_to_mem();
+        }
+    }
+    else                                    // Can also happen: No file.
+        switch_to_mem();    
+}
+
+bool floatLog::next_iteration(double &t, float &v)   // Next iteration step, agnostic to source (disk/ram)
+{
+    // Are we in disk stage? That is: file open.
+    if (fp)
+    {
+    	if ( iremain && fread(&t, sizeof(t), 1, fp) && fread(&v, sizeof(v), 1, fp) )
+        {
+            DBG("%f: %f\n", t, v);
+            iremain--;
+            return true;
+        }
+        fclose(fp);
+        switch_to_mem();                    // Intentional fall-through to memory stage!
+    }
+    // Nope, we are in memory stage
+    while (rtf != recordsToFile.end())    
+    {
+        if (rtf->t >= ifrom and rtf->t <= ito)
+        {
+            t = rtf->t;
+            v = rtf->v;
+            rtf++;
+            return true;
+        }
+        rtf++;
+    }
+    pthread_mutex_unlock(&memMutex);
+    pthread_mutex_unlock(&iterationMutex);
+    return false;
+}
+
+
 // function to make a summary of the measurement data without using overhead memory and time to 
 // create a list or map with all measurement values.
 // parameter 1: stats array. Should be of length (paramer 2)
-void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, double to)
+void floatLog::summaryFromTo(vector<flStat> &stats, unsigned bins, double from, double to/*, float validtime*/)
 {
-	DBG("summaryFromTo(vector %p, bins %d, from %lf, to %lf)\n", &stats, bins, from, to);
 	double interval =(( double) to - from) / bins;
-	#define bin(t) 0 + (t-from) / interval
+	#define bin(t)      (0 + (t-from) / interval)       // Get the bin for a given timestamp
+    #define binedge(b)  (from + (to-from)/bins*(b+1))   // Get the end timestamp for a given bin
+    float validtime = 1.0; // Should be a function input.
+    double t, t1, t2, dur, durnb;   // time, last time, duration, duration in next bin.
+    float v, v1, v2;
+    int lbin, rbin;
+    bool havetv1 = false, havetv2 = false;
+	DBG("summaryFromTo(vector %p, bins %d, from %lf, to %lf)\n", &stats, bins, from, to);
 
-	// Set the stats to a known value
-	for(unsigned i = 0; i<bins; i++)
-	{
-		stats[i] = {};
-	}
-
-	// This fills the stats.avg as the sum of stats.nr measurement values.
-	// And fills stats.min, stats.max.
-
-	FOR_ALL_IN_MEM(	if (t >= from and t <= to and isfinite(v)) \
-				{ \
-					stats[bin(t)].avg += v; \
-					stats[bin(t)].nr ++; \
-					if (stats[bin(t)].nr == 1) stats[bin(t)].left = v; \
-					stats[bin(t)].right = v; \
-					if (v < stats[bin(t)].min or stats[bin(t)].nr == 1) \
-						stats[bin(t)].min = v; \
-					if (v > stats[bin(t)].max or stats[bin(t)].nr == 1) \
-						stats[bin(t)].max = v; \
-					} );
-
-	// Seeking boundaries first.
-	pthread_mutex_lock(&fileMutex);
-	openfile_read();
-	if(fp)
-	{
-		size_t istart = from_index(from);
-		size_t istop = from_index(to);
-		fseek(fp, istart * RSIZE, SEEK_SET);
-		istop -= istart;
-		double t;
-		float v;
-		for(; istop; istop--)
-		{
-    		fread(&t, sizeof(t), 1, fp);
-			fread(&v, sizeof(v), 1, fp);
-			if (isfinite(v))
-			{
-				stats[bin(t)].avg += v;
-				stats[bin(t)].nr ++;
-				if (stats[bin(t)].nr == 1) stats[bin(t)].left = v; \
-				stats[bin(t)].right = v; \
-				if (v < stats[bin(t)].min or stats[bin(t)].nr == 1)
-					stats[bin(t)].min = v;
-				if (v > stats[bin(t)].max or stats[bin(t)].nr == 1)
-					stats[bin(t)].max = v;
-			}
-		}
-		fclose(fp);
-	}
-	pthread_mutex_unlock(&fileMutex);
+    start_iteration(from, to);
+    while (next_iteration(t, v))
+    {
+        if (havetv1) // Only upon reading sample x, do we know the duration for sample x-1.
+        {
+            dur = t - t1;           // Duration that v1 is valid.
+            if (dur > validtime)
+                dur = validtime;
+            lbin = bin(t1);         // The bin that t1 is part of
+            rbin = bin(t1+dur);     // the bin that the end of t1's duration is part of
+            if (lbin != rbin)       // Are we on a bin boundary? (assumed this is just one boundary, not 2 or more)
+            {
+                durnb = t1+dur-binedge(t1); // The part of duration in the next bin
+                dur -= durnb;       // The part of duration in this bin
+                if (lbin >= 0)
+                {
+                    stats[lbin].avg += dur * v1;
+                    stats[lbin].t += dur;
+                }
+                stats[rbin].avg += durnb * v1;
+                stats[rbin].t += durnb;
+            }        
+            else
+            {
+                if (lbin >= 0)
+                {
+                    stats[lbin].avg += dur * v1;
+                    stats[lbin].t += dur;
+                }
+            }    
+            stats[lbin].nr++;
+			if (stats[lbin].nr == 1) stats[lbin].left = v1;
+			stats[lbin].right = v1;
+			if (v1 < stats[lbin].min or stats[lbin].nr == 1)
+				stats[lbin].min = v1;
+			if (v1 > stats[lbin].max or stats[lbin].nr == 1)
+				stats[lbin].max = v1;
+            if (havetv2)
+            {
+                stats[lbin].pedge += v1 > v2;
+                stats[lbin].nedge += v1 < v2;
+            }
+            v2 = v1;
+            t2 = t1;
+            havetv2 = true;
+        }
+        t1 = t;
+        v1 = v;
+        havetv1 = true;
+    }
 
 	// Calculate the average
 	for(unsigned i = 0; i<bins; i++)
-		if (stats[i].nr)
-			stats[i].avg = stats[i].avg / stats[i].nr;
+		if (stats[i].t)
+			stats[i].avg = stats[i].avg / stats[i].t;
 }
 
 record floatLog::getLast()

@@ -383,6 +383,8 @@ void interface_S7_from_json(const json_t *json)
 		#define JNR(_X_)	json_number_value(json_object_get(in_j, #_X_))
 		#define JIN(_X_)	json_is_number(json_object_get(in_j, #_X_))
 		const char *regtypestr = JSTR(type);
+        if (! regtypestr)
+            continue;
 		S7_regtype type = S7_int16;
 		for( int j = S7_bool; j < S7_regnum; j++)
 			if (strcmp(regtypestr, S7_regtype_str[j]) == 0 ) type = (S7_regtype) j;
