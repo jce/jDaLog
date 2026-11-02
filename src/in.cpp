@@ -212,7 +212,7 @@ void in::getRecords(map<double, float> &m, size_t s, size_t l)
 
 void in::getDataSummary(vector<flStat> &stats, unsigned length , double from, double to)
 {
-	_logger->summaryFromTo(stats, length, from, to);
+	_logger->summaryFromTo(stats, length, from, to, valid_time);
 }
 
 // Function to start importing a preconfigured text file. JCE, 18-7-13

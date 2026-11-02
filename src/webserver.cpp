@@ -53,9 +53,9 @@ struct connection_info
 enum MHD_Result post_iter(void *cls,
               enum MHD_ValueKind /*kind*/,
               const char *key,
-              const char */*filename*/,
-              const char */*content_type*/,
-              const char */*transfer_encoding*/,
+              const char* /* filename */,
+              const char* /* content_type */,
+              const char* /* transfer_encoding */,
               const char *data,
               uint64_t /*off*/,
               size_t /*size*/)
@@ -110,7 +110,7 @@ enum MHD_Result dh
 
 void webserver::start()
 {
-	daemon= MHD_start_daemon (MHD_USE_INTERNAL_POLLING_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_END);
+	daemon= MHD_start_daemon (MHD_USE_AUTO_INTERNAL_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_THREAD_POOL_SIZE, 4, MHD_OPTION_END);
 	DBG("Webserver %s started on port %i", name.c_str(), port);
 }
 
@@ -250,7 +250,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					iwd.from = tmin - iwd.valid_time;
 					iwd.to = tmax + iwd.valid_time;
 					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-					patch_stats_edge_bins(iwd.stats, iwd.statLen);
+					//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 					yi->iwdl.push_back(iwd);
 					foundyax = true;
 				}
@@ -264,7 +264,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				iwd.from = tmin - iwd.valid_time;
 				iwd.to = tmax + iwd.valid_time;
 				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-				patch_stats_edge_bins(iwd.stats, iwd.statLen);
+				//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
 				y_ax y;
@@ -492,7 +492,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					iwd.from = tmin - iwd.valid_time;
 					iwd.to = tmax + iwd.valid_time;
 					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-					patch_stats_edge_bins(iwd.stats, iwd.statLen);
+					//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 					yi->iwdl.push_back(iwd);
 					foundyax = true;
 				}
@@ -506,7 +506,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				iwd.from = tmin - iwd.valid_time;
 				iwd.to = tmax + iwd.valid_time;
 				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-				patch_stats_edge_bins(iwd.stats, iwd.statLen);
+				//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
 				y_ax y;
@@ -948,6 +948,7 @@ string json_fromto(in *i, double from, double to)
     return rv.substr(0, rv.size() >= 3 ? rv.size()-3 : 0) + "}}";
 }
 
+
 // json summary
 
 string json_summary(in *i, unsigned bins, double from, double to)
@@ -987,7 +988,7 @@ string json_summary(in *i, unsigned bins, double from, double to)
     return rv;
 }
 
-
+// In list as json
 string make_in_list_json()
 {
     string rv = "{\n";
@@ -996,6 +997,9 @@ string make_in_list_json()
         rv += "\"" + i->second->getDescriptor() + "\":{\"name\":\"" + i->second->getName() + "\", \"value\":";
         char buf[32];
         snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+        rv += buf;
+        rv += ", \"time\":";
+        snprintf(buf, 32, "%.3f", i->second->getTime());
         rv += buf;
         rv += ", \"decimals\":";
         snprintf(buf, 32, "%d", i->second->getDecimals());
