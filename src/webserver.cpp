@@ -184,28 +184,17 @@ struct y_ax
 	bool haveData;
 };
 
-// There is an issue where after pruning, the only items are changed-items. Making the 
-// line just follow the average. Effectively the state in the bins before and/or after
-// the change is forgotten. Try to fix this by introducing the left/right values.
-void patch_stats_edge_bins(vector<flStat> &stats, unsigned bins)
+// Generatie-header voor de .gps: tijdstip + thread-id + signalen.
+// Race-onderzoek: twee gps-bestanden met overlappend generatietijdstip = de race zelf.
+static void fprint_generation_header(FILE *fp, const list<in*> &ins, double tmin, double tmax, double bins, unsigned int x, unsigned int y)
 {
-	for (unsigned i = 0; i < bins-1; i++)
-		if (stats[i+1].nr > 0 and stats[i].nr == 0)
-		{
-            DBG("%f %f %f %d %f %f", stats[i+1].left, stats[i+1].avg, stats[i+1].right, stats[i+1].nr, stats[i+1].min, stats[i+1].max);
-			stats[i].avg = stats[i+1].left;
-			stats[i].min = stats[i].avg;
-			stats[i].max = stats[i].avg;
-			stats[i].nr = 1;
-		}
-	for (int i = bins-2; i >= 0; i--)
-		if (stats[i+1].nr == 0 and stats[i].nr > 0)
-		{
-			stats[i+1].avg = stats[i].right;
-			stats[i+1].min = stats[i+1].avg;
-			stats[i+1].max = stats[i+1].avg;
-			stats[i+1].nr = 1;
-		}
+    fprintf(fp, "# generation: ");
+    fprintt(fp, now());
+    fprintf(fp, "\n# thread: %lu\n", (unsigned long) pthread_self());
+    fprintf(fp, "# signals:");
+    for (auto i = ins.begin(); i != ins.end(); i++)
+        fprintf(fp, " %s", (*i)->getDescriptor().c_str());
+    fprintf(fp, "\n# window: %.3f - %.3f  bins %.0f  size %u,%u\n", tmin, tmax, bins, x, y);
 }
 
 // Plots a graph of given ins, between time tmin and tmax, with a width
@@ -231,6 +220,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 	FILE* fp = fopen(scriptName.c_str(), "w");
 	if (fp)
 	{
+        fprint_generation_header(fp, ins, tmin, tmax, bins, x, y);
 		// Deel de ins in, in een lijst met y-assen. Vooral ter behoeve van berekenen van yrange
 		list<y_ax> y_axes;
 		list<y_ax>::iterator yi;
@@ -250,7 +240,6 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					iwd.from = tmin - iwd.valid_time;
 					iwd.to = tmax + iwd.valid_time;
 					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-					//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 					yi->iwdl.push_back(iwd);
 					foundyax = true;
 				}
@@ -264,7 +253,6 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				iwd.from = tmin - iwd.valid_time;
 				iwd.to = tmax + iwd.valid_time;
 				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-				//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
 				y_ax y;
@@ -284,7 +272,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 			{
 				for(unsigned i = 0; i < iwdli->statLen; i++)
 				{
-					if (iwdli->stats[i].nr)
+					if (iwdli->stats[i].t > 0) // Changed from ".nr". JCE, 7-11-2026
 					{
 						iwdli->haveData = true;
 						if (yi->haveData == false)
@@ -357,7 +345,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 		else		fprintf(fp, "set key off\n");
 		fprintf(fp, "set grid\n");
 		fprintf(fp, "set style fill transparent solid 0.25 noborder\n");
-		string linecolor[] = {"blue", "red", "black", "green", "magenta", "brown", "spring-green", "cyan", "dark-orange", "violet", "sienna4", "steelblue", "dark-spring-green", "goldenrod"};
+		string linecolor[] = {"blue", "red", "forest-green", "black", "magenta", "brown", "spring-green", "cyan", "dark-orange", "violet", "sienna4", "steelblue", "dark-spring-green", "goldenrod"};
 		unsigned int colornr(0);
 		string plotline;
 		bool first = true;
@@ -413,7 +401,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				double prevt = 0;		
 				for (unsigned i = 0; i <  iwdli->statLen; i++)
 				{
-					if (iwdli->stats[i].nr)
+					if (iwdli->stats[i].t > 0)
 					{			
 						t = iwdli->from + i * interval;
 						if (prevt and t - prevt > (iwdli->valid_time * 1.1) and t - prevt > (1.1 * interval))
@@ -429,7 +417,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				prevt = 0;
 				for (unsigned i = 0; i <  iwdli->statLen; i++)
 				{
-					if (iwdli->stats[i].nr)
+					if (iwdli->stats[i].t > 0)
 					{	
 						t = iwdli->from + i * interval;		
 						if (prevt and t - prevt > (iwdli->valid_time * 1.1) and t - prevt > (1.1 * interval))
@@ -442,6 +430,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				if (!iwdli->haveData) fprintf(fp, "1970-1-1 0:0:0 0 0\n");
 			}
 		}
+
 		fclose(fp);
 		
 		// Klaar. start gnuplot.
@@ -492,7 +481,6 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					iwd.from = tmin - iwd.valid_time;
 					iwd.to = tmax + iwd.valid_time;
 					(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-					//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 					yi->iwdl.push_back(iwd);
 					foundyax = true;
 				}
@@ -506,7 +494,6 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				iwd.from = tmin - iwd.valid_time;
 				iwd.to = tmax + iwd.valid_time;
 				(*ini)->getDataSummary(iwd.stats, iwd.statLen, iwd.from, iwd.to);
-				//patch_stats_edge_bins(iwd.stats, iwd.statLen);
 				list<inWithData> iwdl;								
 				iwdl.push_back(iwd);
 				y_ax y;
@@ -526,7 +513,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 			{
 				for(unsigned i = 0; i < iwdli->statLen; i++)
 				{
-					if (iwdli->stats[i].nr)
+					if (iwdli->stats[i].t > 0)
 					{
 						iwdli->haveData = true;
 						if (yi->haveData == false)
@@ -606,7 +593,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 			
 		fprintf(fp, "set grid\n");
 		fprintf(fp, "set style fill transparent solid %f noborder\n", 0.10);
-		string linecolor[] = {"blue", "red", "black", "green", "magenta", "brown", "spring-green", "cyan", "dark-orange", "violet", "sienna4", "steelblue", "dark-spring-green", "goldenrod"};
+		string linecolor[] = {"blue", "red", "forest-green", "black", "magenta", "brown", "spring-green", "cyan", "dark-orange", "violet", "sienna4", "steelblue", "dark-spring-green", "goldenrod"};
 		unsigned int colornr(0);
 		string plotline;
 		bool first = true;
@@ -665,7 +652,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				// range		
 				for (unsigned i = 0; i <  iwdli->statLen; i++)
 				{
-					if (iwdli->stats[i].nr)
+					if (iwdli->stats[i].t > 0)
 					{			
 						t = iwdli->from + i * interval;
 						if (prevt and ((t - prevt > (iwdli->valid_time * 1.1) and t - prevt > (1.1 * interval)) or ( floor((t + interval / 2) / cycle) != floor((prevt + interval / 2) / cycle) ) ))
@@ -682,7 +669,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				prevt = 0;
 				for (unsigned i = 0; i <  iwdli->statLen; i++)
 				{
-					if (iwdli->stats[i].nr)
+					if (iwdli->stats[i].t > 0)
 					{	
 						t = iwdli->from + i * interval;		
 						if (prevt and ((t - prevt > (iwdli->valid_time * 1.1) and t - prevt > (1.1 * interval)) or ( floor((t + interval / 2) / cycle) != floor((prevt + interval / 2) / cycle) ) ))
@@ -1484,8 +1471,12 @@ enum MHD_Result webserver::handle_request
 
 	// If any url looks in graph
 	if (!strncmp(url, "/graphs/", 7))
-		make_graph_from_url(url+7);
-
+    {
+        size_t len = strlen(url+7);
+        if (len >= 4 && strcmp(url+7+len-4, ".png") == 0)
+		    make_graph_from_url(url+7);
+    }
+    
 	if (!strcmp(url, "/") or !strcmp(url, "/index.htm") or !strcmp(url, "/index.html"))
 		s = make_root_page();
 

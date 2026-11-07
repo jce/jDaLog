@@ -165,9 +165,9 @@ void floatLog::switch_to_mem()
 
 void floatLog::start_iteration(double from, double to)
 {
+    pthread_mutex_lock(&iterationMutex);
     ifrom = from;
     ito = to;
-    pthread_mutex_lock(&iterationMutex);
     pthread_mutex_lock(&fileMutex);
     openfile_read();
     if(fp)

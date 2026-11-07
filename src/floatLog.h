@@ -23,9 +23,6 @@ struct flStat
 	float max;		// Largest sample.
     uint32_t pedge; // Positive edges
     uint32_t nedge; // Negative edges
-
-	float left;		// Leftmost sample.
-	float right;	// Rightmost sample.
 };
 
 class floatLog
