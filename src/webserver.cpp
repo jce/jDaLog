@@ -12,7 +12,9 @@
 #include "webserver.h"
 #include "webin.h"
 
-#include <cstdlib> // system()
+#include <cctype> // isalnum
+#include <cerrno> // errno
+#include <cstdlib> // malloc
 #include <fcntl.h>
 #include <inttypes.h> // Macros like SCNu16
 #include <list>
@@ -22,6 +24,8 @@
 #include <string>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h> // fork, execvp
+#include <sys/wait.h> // waitpid
 #include <vector>
 #include <charconv>
 
@@ -29,6 +33,58 @@
 #define DBG(...)
 
 using namespace std;
+
+// Checks that a URL-derived name is safe to use in file paths and
+// command lines: only [A-Za-z0-9._+-/], and no ".." path component.
+// Prevents path traversal and injection into shell or gnuplot scripts.
+static bool is_safe_url_name(const string &s)
+{
+	if (s.empty() or s.size() > 500)
+		return false;
+	for (char c : s)
+		if (! (isalnum((unsigned char) c) or c == '.' or c == '_' or c == '-' or c == '+' or c == '/'))
+			return false;
+	size_t start = 0;
+	while (start < s.size())
+	{
+		size_t slash = s.find('/', start);
+		size_t len = slash == string::npos ? s.size() - start : slash - start;
+		if (len == 2 and s.compare(start, 2, "..") == 0)
+			return false;
+		if (slash == string::npos)
+			break;
+		start = slash + 1;
+	}
+	return true;
+}
+
+// Runs a program with the given arguments without a shell, so the
+// arguments cannot inject shell commands. stdout is sent to /dev/null.
+// Blocks until the program has exited.
+static void run_execvp(const vector<string> &args)
+{
+	if (args.empty())
+		return;
+	pid_t pid = fork();
+	if (pid < 0)
+	{
+		perror("fork");
+		return;
+	}
+	if (pid == 0)
+	{
+		freopen("/dev/null", "w", stdout);
+		vector<char*> argv;
+		for (const string &a : args)
+			argv.push_back((char*) a.c_str());
+		argv.push_back(NULL);
+		execvp(argv[0], argv.data());
+		_exit(127);	// Only reached when execvp fails.
+	}
+	int status = 0;
+	while (waitpid(pid, &status, 0) < 0 and errno == EINTR)
+		;
+}
 
 
 webserver::webserver(string n, uint16_t t, uint16_t p): name(n), threads(t), port(p)
@@ -46,7 +102,7 @@ webserver::~webserver()
 
 struct connection_info 
 {
-    struct MHD_PostProcessor *pp;
+    struct MHD_PostProcessor *pp = NULL;
     map<string, string> keyvalue;
 };
 
@@ -58,11 +114,31 @@ enum MHD_Result post_iter(void *cls,
               const char* /* transfer_encoding */,
               const char *data,
               uint64_t /*off*/,
-              size_t /*size*/)
+              size_t size)
 {
     struct connection_info *ci = (struct connection_info *)cls;
-    ci->keyvalue[key] = data;
+    ci->keyvalue[key] = string(data, size);	// data is not NUL-terminated
     return MHD_YES;
+}
+
+// Frees the per-connection data and resets *con_cls, so it cannot dangle.
+static void free_connection_info(void **con_cls)
+{
+    struct connection_info *ci = (struct connection_info *) *con_cls;
+    if (ci)
+    {
+        if (ci->pp)
+            MHD_destroy_post_processor(ci->pp);
+        delete ci;
+        *con_cls = NULL;
+    }
+}
+
+// Called by MHD when a connection is finished - also when it was aborted
+// before the request completed, in which case dh never got its final call.
+static void connection_completed_cb(void * /*cls*/, struct MHD_Connection * /*connection*/, void **con_cls, enum MHD_RequestTerminationCode /*toe*/)
+{
+    free_connection_info(con_cls);
 }
 
 // Default handler, https://www.gnu.org/software/libmicrohttpd/manual/libmicrohttpd.html#microhttpd_002dcb
@@ -83,17 +159,20 @@ enum MHD_Result dh
     if (!ci)
     {
         ci = new struct connection_info;
-        ci->pp = MHD_create_post_processor(connection, 1024, post_iter, ci);
         *con_cls = ci;
+        // MHD_create_post_processor returns NULL for non-form content types.
+        if (strcmp(method, "POST") == 0)
+            ci->pp = MHD_create_post_processor(connection, 1024, post_iter, ci);
         return MHD_YES;
     }
     
-    if (strcmp(method, "POST") == 0) 
+    if (strcmp(method, "POST") == 0)
     {
         if (*upload_data_size != 0) 
         {
-            MHD_post_process(ci->pp, upload_data, *upload_data_size);
-            *upload_data_size = 0;
+            if (ci->pp)
+                MHD_post_process(ci->pp, upload_data, *upload_data_size);
+            *upload_data_size = 0;	// Consume the body also when pp == NULL (non-form content type).
             return MHD_YES;
         }
     }
@@ -104,13 +183,13 @@ enum MHD_Result dh
 	for (auto i = ci->keyvalue.begin(); i != ci->keyvalue.end(); i++)
 		DBG("%s: %s",  i->first.c_str(), i->second.c_str());
 
-    delete ci;
+    free_connection_info(con_cls);
     return rv;
 }
 
 void webserver::start()
 {
-	daemon= MHD_start_daemon (MHD_USE_AUTO_INTERNAL_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_THREAD_POOL_SIZE, 4, MHD_OPTION_END);
+	daemon= MHD_start_daemon (MHD_USE_AUTO_INTERNAL_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_THREAD_POOL_SIZE, 4, MHD_OPTION_NOTIFY_COMPLETED, &connection_completed_cb, NULL, MHD_OPTION_END);
 	DBG("Webserver %s started on port %i", name.c_str(), port);
 }
 
@@ -129,7 +208,7 @@ string make_root_page();
 void deleteOldFiles()
 {
 	// https://stackoverflow.com/questions/249578/how-to-delete-files-older-than-x-hours
-	system("find -L http/graphs -name '*.*' -mmin +3 -delete > /dev/null");
+	run_execvp({ "find", "-L", "http/graphs", "-name", "*.*", "-mmin", "+3", "-delete" });
 }
 
 void fprintt(FILE *fp, double a, float cycle = 0)
@@ -434,9 +513,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 		fclose(fp);
 		
 		// Klaar. start gnuplot.
-		char systemCommand[1100];
-		snprintf(systemCommand, 1100, "gnuplot \"%s\"", scriptName.c_str());
-		system(systemCommand);
+		run_execvp({ "gnuplot", scriptName });
 	}
 }
 
@@ -686,9 +763,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 		
 		DBG("gps written: %s\n", scriptName.c_str()); 	
 		// Klaar. start gnuplot.
-		char systemCommand[1100];
-		snprintf(systemCommand, 1100, "gnuplot \"%s\"", scriptName.c_str());
-		system(systemCommand);
+		run_execvp({ "gnuplot", scriptName });
 	}
 }
 
@@ -711,6 +786,8 @@ vector<string> split(const char *s, char delimiter)
 
 void make_graph_from_url(const char *url)
 {
+	if (!url or !is_safe_url_name(url))
+		return;
 	vector<string> fields = split(url, '+');
 
 	// Find the in's. For convenience, we assume there are no
@@ -724,14 +801,18 @@ void make_graph_from_url(const char *url)
 	}
 
 	// starttime, endtime, x and y dimensions
-	double start, end;
-	unsigned int x, y;
-    if (not read_human_time(fields[fields.size() - 4].c_str(), &start))
-	    sscanf(fields[fields.size()-4].c_str(), "%lf", &start);
-    if (not read_human_time(fields[fields.size() - 3].c_str(), &end))
-	    sscanf(fields[fields.size()-3].c_str(), "%lf", &end);
-    sscanf(fields[fields.size()-2].c_str(), "%u", &x);
-    sscanf(fields[fields.size()-1].c_str(), "%u", &y);
+	if (fields.size() < 4)	// fields[size-4 .. size-1] are accessed below.
+		return;
+	double start = 0, end = 0;
+	unsigned int x = 0, y = 0;
+    if (not read_human_time(fields[fields.size() - 4].c_str(), &start) and sscanf(fields[fields.size()-4].c_str(), "%lf", &start) != 1)
+	    return;
+    if (not read_human_time(fields[fields.size() - 3].c_str(), &end) and sscanf(fields[fields.size()-3].c_str(), "%lf", &end) != 1)
+	    return;
+    if (sscanf(fields[fields.size()-2].c_str(), "%u", &x) != 1)
+	    return;
+    if (sscanf(fields[fields.size()-1].c_str(), "%u", &y) != 1)
+	    return;
 
     // If the graph is a normal time graph	    
     if (fields.size() >= 6 and fields[0] == "/graph" and end > start)
@@ -1495,6 +1576,19 @@ enum MHD_Result webserver::handle_request
     	return ret;
 	}
 	// No response. See if a file exists at this url, else server error.
+
+	if (!url or !is_safe_url_name(url))	// No path traversal outside the webroot.
+	{
+		const char *errorstr = "<html><body>403 Forbidden</body></html>";
+		struct MHD_Response *response = MHD_create_response_from_buffer(strlen(errorstr), (void *) errorstr, MHD_RESPMEM_PERSISTENT);
+		if (NULL != response)
+		{
+			enum MHD_Result ret = MHD_queue_response(connection, MHD_HTTP_FORBIDDEN, response);
+			MHD_destroy_response(response);
+			return ret;
+		}
+		return MHD_NO;
+	}
 
 	string fap = webroot + url;	// File And Path
 	int fd;

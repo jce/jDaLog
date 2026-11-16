@@ -1,0 +1,158 @@
+jDaLog code review
+==================
+Date:  2026-11-16 09:57 UTC
+Scope: all first-party code in src/ (~11k lines; vendored snap7.h and tinyexpr.c excluded).
+Method: read-only review. Core files (main, in, floatLog, interface, out) read directly;
+webserver/scheduler, interfaces, and logic/equations reviewed in parallel.
+No files were modified as part of this review.
+
+
+HIGH SEVERITY - crashes, injection, corruption, UB
+---------------------------------------------------
+
+Webserver (network-facing, most urgent):
+  webserver.cpp:438        command injection: system("gnuplot \"" + scriptName + "\"") where
+                           scriptName comes from the /graphs/... URL; `"; cmd; #` in the URL
+                           escapes the quotes -> arbitrary shell command as the daemon user.
+  webserver.cpp:1499       path traversal: static file serving does open(webroot + url) with no
+                           sanitization; GET /../../etc/passwd reads outside the webroot.
+  webserver.cpp:85-95      MHD_create_post_processor result never NULL-checked, then
+                           MHD_post_process(ci->pp, ...) -> segfault on non-form POST; ci is
+                           deleted while *con_cls still points at it (dangling); pp never
+                           destroyed -> per-request leaks.
+  webserver.cpp:729-734    fields[fields.size()-4 .. size-1] indexed before any size check ->
+                           OOB vector access on short URLs; sscanf/read_human_time return values
+                           ignored -> uninitialized start/end/x/y used.
+  webserver.cpp:1392       /summary_%ld_%ld_%d.json: bins parsed with %d into unsigned with no
+                           range check; negative -> vector<flStat>(huge) throws inside the MHD
+                           callback -> uncaught -> std::terminate.
+  webserver.cpp:1050,1131,1146  stof(postdata.at(...)) on user POST data throws
+                           invalid_argument/out_of_range -> terminate.
+
+Storage core:
+  floatLog.cpp:78          read_last_from_file_unlocked unlocks fileMutex it does not hold when
+                           the file is empty; caller unlocks again -> double unlock (also
+                           triggered from writeToFile).
+  floatLog.cpp:130-137     get_value_at: extra pthread_mutex_unlock(&memMutex) after FOR_ALL
+                           (which already unlocked it) + _valtime used uninitialized when no
+                           record matches.
+  floatLog.cpp records_in_file  num uninitialized when the file does not exist; returned as-is
+                           by getNumRecords.
+  tcmath.h:23,28 + tcmath.c:44  float16 conversion masks include sign/exponent bits and the bias
+                           is +1023-15 instead of -1023+15 -> every float16 conversion is wrong
+                           (silent data corruption if used).
+  filters.c:46             new_blockfilter(0) allowed -> % bf->len is SIGFPE and the write goes
+                           past the 0-length flexible array.
+
+Interfaces:
+  interface_mb.cpp:386-393   32-bit writes (htobe32) stored into a single uint16_t -> truncated,
+                           m[1] never written.
+  interface_mb.cpp:60-84     setOut sends an uninitialized stack buffer over Modbus for
+                           multi-register writes; write/connect return codes ignored.
+  interface_mb.cpp:149       run() sets run_flg = true inside the thread; if stop() ran first, the
+                           loop re-enables -> join() hangs forever.
+  interface_S7.cpp:222       64-bit S7 values decoded with be16toh instead of be64toh.
+  interface_S7.cpp:149,209   OOB read before msg[1024] when schedule contains items before first.
+  interface_solarlog.cpp:85-92  regs[1]*65536 + regs[0] in int overflows (UB) for high word > 32767.
+  interface_adam6052.cpp:92  counter uses 65535* instead of 65536* and overflows int;
+  interface_adam6052.cpp:95-111  setOut (web thread) and getIns (interface thread) share one
+                           libmodbus context with no lock; setOut re-enters getIns().
+  interface_hs110.cpp:166    read() can return HS110_BUFSIZE -> buf[ans_len]=0 writes one past the
+                           2048-byte stack buffer.
+  interface_hs110.cpp:112    if (!sock) instead of < 0 -> FD_SET(-1) is UB.
+  interface_dcmr_sensor.cpp:48  sleep(0.2) truncates to sleep(0) -> 100% CPU busy-spin.
+  interface_pi_gpio.cpp:251  under HAVE_RPI the file does not compile (new interface_macp(...)
+                           copy-paste leftover).
+  interface_pi_gpio.cpp:57   gpioReg never initialized when gpioInitialise() fails -> garbage
+                           pointer deref.
+
+Logic / equations / outs:
+  equation.cpp:273-279,176   config errors crash: strdup(NULL) when "expr" missing; eq->vars[i]
+                           dereferenced after delete eq.
+  in_equation.cpp:44-53      on-update/on-change callbacks are EMPTY, so equation results are never
+                           written to the in - the feature silently does not work; plus
+                           use-after-free on destruction (no unregister API in callback.c).
+  out.cpp:38-47              _setout() unlocks _mutex, but out_cb_in_updated calls it without
+                           holding the lock -> unlock-of-unowned-mutex UB, possible double-unlock.
+  logic_pi_reg.h:17          myIratelim uninitialized -> destructor may delete a caller-owned in.
+
+
+MEDIUM - races, error handling, leaks
+--------------------------------------
+
+  Data races on shared state:
+    interface.cpp:183        run_flg plain bool written by stop(), read in run() - no atomic/mutex.
+    in.cpp setValue          mutates _value/_time/_isValid and fires callbacks with no lock while
+                             web threads read via getValue().
+    out.cpp eval_expr        races with out_conf swapping vars/expr.
+    webin.cpp / logic.h      webinmap and global logics map iterated without their mutexes.
+    callback.c               no locking and no remove API -> dangling callbacks after any
+                             subscriber is destroyed (equation, pi_reg, webin).
+  job_sched.c:264,321        pthread_cond_signal after releasing the mutex -> lost wakeup, delayed
+                             jobs; jos_remove does not remove in-flight recurring jobs;
+                             jos_new_job_block sleeps forever holding the pool mutex on OOM.
+  interface.cpp:144,155      destructor leaks _name/_note (explicit ~stringStore() without delete)
+                             and leaves a dangling pointer in the global interfaces map (erase
+                             commented out); same idiom in logic.cpp:37.
+  interface.cpp:37-50        curl_easy_init() NULL unchecked, curl_easy_perform() result ignored
+                             -> silent empty pages; duplicated in interface_dcmr.cpp:30-60.
+  out.cpp:175                strncpy(vars[i].var, var_descr, VAR_LEN) without NUL-termination ->
+                             OOB read in te_compile.
+  out.cpp:232-254            re-running out_conf leaks old vars/expr and double-registers
+                             callbacks -> valid_ins drifts, out permanently disabled.
+  interface_macp.cpp:50, in_from_dir.cpp:26  filesystem::directory_iterator on a missing dir
+                             throws -> std::terminate at startup.
+  logic_modulator.cpp:45-46  negative time-to-next clamped to 0 -> tight reschedule loop.
+  logic_pi_reg.cpp:112,116   division by I1val==0 -> inf/NaN passed to setOut.
+  webin.cpp:28-30            ~webin does not erase itself from webinmap (dangling pointer).
+  interface_dcmr.cpp:142     scan interval used as curl timeout -> hung connection blocks join().
+  interface_circulac.cpp:110,60-63  unchecked tcgetattr; off-by-one in channel parsing eats a char.
+  interface_host.cpp:316,254  std::string(NULL) crash; div-by-zero on f_blocks==0.
+  interface_mb.cpp:432, interface_S7.cpp:350  NULL type/conntype strings passed to strcmp.
+
+
+LOW - dead code, copy-paste, design smells
+------------------------------------------
+
+  main.cpp:355               while(run){sleep(1000);} sleeps 1000 s, and SA_RESTART means the
+                             signal does not interrupt it -> shutdown can hang ~16 min.
+  main.cpp                   config errors exit(0) instead of non-zero; startup banner still says
+                             "tcFarmControl" (old project name; also in interface.cpp comments).
+  Dead code:
+    main.cpp build_logics    large commented-out modulator block.
+    webserver.cpp            Mongoose-era commented blocks; :1421 dead branch with ")to" typo;
+                             :1095 make_footer() result discarded.
+    logic_sleep.cpp          entire file dead, not in CMakeLists, not compilable.
+    logic_fijnstof.cpp       whole file commented out.
+    logic_km.cpp             make_page commented out; month_str[] unused.
+    interface.cpp            findDoubleAfter commented out.
+    webserver.h make_note, job_sched.h jos_printn  declared, never defined.
+    job_sched.c:40           jos_thread.working never used.
+    interface_fijnstof.cpp   nr_samples never updated -> always logs 0.
+  Leftover debug: #define debug left enabled in out.cpp, webin.cpp, interface_fijnstof.cpp,
+    interface_dcmr_sensor.cpp, interface_circulac.cpp.
+  webserver.cpp:390,638      fprintf(fp, plotline.c_str()) as format string (config-controlled %).
+  webserver.cpp:924-1011     JSON built by string interpolation without escaping names/units ->
+                             broken/injectable JSON.
+  webserver.cpp:148          cyclic-graph milliseconds always print 000 (fmod(a*1000,1)); ctor
+                             threads arg ignored (hardcoded pool of 4).
+  Duplicated helpers: curl get_html_page/http_write (interface.cpp vs interface_dcmr.cpp);
+    exec() vs system_exec() (interface_macp.cpp vs interface_host.cpp); 4 finder functions with
+    by-value string overloads.
+  floatLog.cpp               addDataToFloatLog writes without sorting or updating last (can
+                             produce unsorted files); importFromTextFile deletes the import file
+                             before writing it into the log; getRecords ignores fread results.
+  Misc: in.cpp:47 bogus-hack constructor in(uint8_t,...); interface_mb.cpp:276
+    "! modbus_connect(ctx) == 0" parses wrong; interface_mb.cpp:178 usleep >1 s overflow;
+    interface_ct003.cpp:196 fd <= 0 treats fd 0 as error.
+
+
+SUGGESTED PRIORITY ORDER
+------------------------
+  1. Webserver: command injection, path traversal, uncaught exceptions (network-facing surface).
+  2. floatLog mutex bugs, out::_setout unlock bug, records_in_file uninitialized - these corrupt
+     or crash the core during normal operation.
+  3. Interface thread lifecycle (run_flg race, mb re-setting it, unchecked pthread_create/join)
+     - shutdown hangs.
+  4. float16/filters arithmetic bugs - silent data corruption.
+  5. Dead-code cleanup and leftover tcFarmControl names / debug defines.
