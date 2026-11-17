@@ -41,7 +41,7 @@ float16_t double_to_float16(double f)
         float64_u u = {.v = f};
         float16_t rv;
         rv =  SIGN_TO_FLOAT16(     FLOAT64_TO_SIGN(u.as_uint64) );
-        rv |= EXPONENT_TO_FLOAT16( FLOAT64_TO_EXPONENT(u.as_uint64) + 1023 - 15 );
+        rv |= EXPONENT_TO_FLOAT16( FLOAT64_TO_EXPONENT(u.as_uint64) - 1023 + 15 );
         rv |= FRACTION_TO_FLOAT16( FLOAT64_TO_FRACTION(u.as_uint64) >> (53 - 11) );
         return rv;
 }

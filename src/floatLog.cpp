@@ -92,14 +92,15 @@ record floatLog::read_last_from_file_unlocked()
 			rv.t = 0;
 			rv.v = 0;
 			fclose(fp);
-			pthread_mutex_unlock(&fileMutex);
+			fp = 0;
 			return rv;
 		}
-       	fseek(fp, (pos - 1) * RSIZE, SEEK_SET);
+      	fseek(fp, (pos - 1) * RSIZE, SEEK_SET);
 		// read record
-		fread(&rv.t, sizeof(double), 1, fp);
-		fread(&rv.v, sizeof(float), 1, fp) ;
+		if (!fread(&rv.t, sizeof(double), 1, fp) || !fread(&rv.v, sizeof(float), 1, fp))
+			rv = {0, 0};
 		fclose(fp);
+		fp = 0;
 	}
 	return rv;
 }
@@ -148,10 +149,10 @@ void floatLog::readFromTo(map<double, float> &data, double from, double to)
 bool floatLog::get_value_at(double time, float &value, double &valtime)
 {
 	bool found = false;
-	double _valtime;
+	double _valtime = -DBL_MAX;
 	FOR_ALL( if (t <= time and t > _valtime) { found = true; _valtime = t; value = v; } );
-	pthread_mutex_unlock(&memMutex);
-	valtime = _valtime;
+	if (found)
+		valtime = _valtime;
 	return found;
 }
 
@@ -379,20 +380,58 @@ void floatLog::writeToFile()
 
 void floatLog::addDataToFloatLog(map<double, float> &data)
 {
-	FOR_ALL_IN_MEM( data[t] = v; );
-	pthread_mutex_lock(&fileMutex);
-	FOR_ALL_IN_FILE_UNM( data[t] = v; );
-	openfile_write();
-	if (fp)
+	if (data.empty())
+		return;
+
+	// Merge the in-memory records into the data set and update the last record.
+	pthread_mutex_lock(&memMutex);
+	for (list<record>::iterator i = recordsToFile.begin(); i != recordsToFile.end(); i++)
+		data[i->t] = i->v;
+	if (data.rbegin()->first > last.t)
 	{
-		for (map<double, float>::iterator i = data.begin(); i!= data.end(); ++i)
-		{
-			fwrite(&i->first, sizeof(i->first), 1, fp);
-			fwrite(&i->second, sizeof(i->second), 1, fp);
-		}
-		fclose(fp);
+		last.t = data.rbegin()->first;
+		last.v = data.rbegin()->second;
 	}
-	pthread_mutex_unlock(&fileMutex);
+	bool write_to_file = (mode == to_file);
+	pthread_mutex_unlock(&memMutex);
+
+	if (write_to_file)
+	{
+		// Merge the on-disk records and rewrite the file with the combined, sorted data set.
+		bool written = false;
+		pthread_mutex_lock(&fileMutex);
+		FOR_ALL_IN_FILE_UNM( data[t] = v; );
+		fp = fopen(pathAndName.c_str(), "wb");
+		if (fp)
+		{
+			for (map<double, float>::iterator i = data.begin(); i != data.end(); ++i)
+			{
+				fwrite(&i->first, sizeof(i->first), 1, fp);
+				fwrite(&i->second, sizeof(i->second), 1, fp);
+			}
+			fclose(fp);
+			fp = 0;
+			written = true;
+		}
+		pthread_mutex_unlock(&fileMutex);
+
+		// The memory records are persisted in the file now.
+		if (written)
+		{
+			pthread_mutex_lock(&memMutex);
+			recordsToFile.clear();
+			pthread_mutex_unlock(&memMutex);
+		}
+	}
+	else
+	{
+		// ram_only: keep the merged, sorted data set in memory.
+		pthread_mutex_lock(&memMutex);
+		recordsToFile.clear();
+		for (map<double, float>::iterator i = data.begin(); i != data.end(); ++i)
+			recordsToFile.push_back({i->first, i->second});
+		pthread_mutex_unlock(&memMutex);
+	}
 }
 
 // This function reads a text file with in text a double, and a float per line.
@@ -411,10 +450,9 @@ void floatLog::importFromTextFile(string s)
 		if (sscanf(line.c_str(), "%lf %f", &a, &b) == 2)
 			data[a] = b;
 	file.close();	
-	// clear / delete the to import file
-	remove(s.c_str());	
-	// Read , clear and write own data set.
+	// Read, clear and write own data set. Only delete the import file after it is safely stored.
 	addDataToFloatLog(data);
+	remove(s.c_str());	
 }
 
 // This function reads a bin file with in binary a double and float per record.
@@ -422,32 +460,33 @@ void floatLog::importFromTextFile(string s)
 void floatLog::importFromBinFile(string s)
 {
 	map<double, float> data;
-	record r;
+	double t;
+	float v;
 	// read import file
 
 	pthread_mutex_lock(&fileMutex);
-	openfile_read();
+	fp = fopen(s.c_str(), "rb");	// Read the import file, not our own log file.
 	if (!fp)
 	{
 		pthread_mutex_unlock(&fileMutex);
 		return;
 	}
-	while (fread(&r, sizeof(record), 1, fp))
+	while (fread(&t, sizeof(t), 1, fp) && fread(&v, sizeof(v), 1, fp))
 	{
-		data[r.t] = r.v;
+		data[t] = v;
 	}
 	fclose(fp);
+	fp = 0;
 	pthread_mutex_unlock(&fileMutex);
 	
-	// clear / delete the to import file
-	remove(s.c_str());	
-	// Read , clear and write own data set.
+	// Read, clear and write own data set. Only delete the import file after it is safely stored.
 	addDataToFloatLog(data);
+	remove(s.c_str());	
 }
 
 size_t floatLog::records_in_file()
 {
-	size_t num;
+	size_t num = 0;
 	pthread_mutex_lock(&fileMutex);
 	openfile_read();
 	if(fp)
@@ -491,13 +530,16 @@ void floatLog::getRecords(map<double, float> &m, size_t from_total, size_t len_t
 		openfile_read();
 		if (fp)
 		{
-			fseek(fp, sizeof(record) * from, SEEK_SET);
+			fseek(fp, RSIZE * from, SEEK_SET);
 			while (len --)
 			{
-				fread(&r, sizeof(record), 1, fp);
-				m[r.t] = r.v;
+				if (fread(&r.t, sizeof(r.t), 1, fp) && fread(&r.v, sizeof(r.v), 1, fp))
+					m[r.t] = r.v;
+				else
+					break;
 			}
 			fclose(fp);
+			fp = 0;
 		}
 		pthread_mutex_unlock(&fileMutex);
 	}

@@ -14,6 +14,8 @@ typedef struct blockfilter_t
 
 blockfilter* new_blockfilter(uint32_t len)
 {
+	if (len == 0)
+		return NULL;	// A zero-length block would SIGFPE on the modulo in blockfilter_new_val.
 	size_t size = sizeof(blockfilter) + sizeof(uint32_t) * len;
 	blockfilter *bf = malloc(size);
 	if(bf)
