@@ -56,7 +56,8 @@ void interface_solarlog::makeModbusContext(){
 		//struct timeval response_timeout;
 		//response_timeout.tv_sec = 1;
 		//response_timeout.tv_usec = 0;
-		modbus_set_response_timeout(_ctx, 1, 0);
+		if (_ctx)
+			modbus_set_response_timeout(_ctx, 1, 0);
 		}
 	}
 
@@ -80,16 +81,16 @@ void interface_solarlog::getIns(){
 			}
 		double end = now();
 		double t = (start + end) / 2;
-		uint32_t solarlogTime;
+		uint32_t solarlogTime = 0;
 		if (dataOk)
-			solarlogTime = regs[1] * 65536 + regs[0];
+			solarlogTime = (uint32_t) regs[1] * 65536u + regs[0];	// uint32 math: int-overflow (UB) als high word > 32767
 		dataOk = dataOk and solarlogTime % 300 >= 15 and solarlogTime; // lkkr wat een uitzonderingen. JCE, 27-6-13i
 		//printf("solarlog's time: %u\n", solarlogTime); 
 		//if (!dataOk) printf("the data is not considered valid\n");
 		latency->setValue((end-start)*1000, t);
 		if (dataOk){
-			Pac->setValue(regs[3] * 65536 + regs[2], t);
-			Pdc->setValue(regs[5] * 65536 + regs[4], t);
+			Pac->setValue((double) regs[3] * 65536.0 + regs[2], t);
+			Pdc->setValue((double) regs[5] * 65536.0 + regs[4], t);
 			Uac->setValue(regs[6], t);
 			Udc->setValue(regs[7], t);
 			if(Pdc->getValue() > 0)
