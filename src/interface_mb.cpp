@@ -57,7 +57,7 @@ void interface_mb::setOut(out *o, float v)
 	if (outreg.count(o) == 0)
 		return;
 
-	uint16_t buf[4];
+	uint16_t buf[4] = {0};
 	mb_key key = outreg[o];
 	reg_context *regcon = &reg[key];
 
@@ -75,13 +75,22 @@ void interface_mb::setOut(out *o, float v)
 		modbus_set_response_timeout(ctx, timeout.tv_sec, timeout.tv_usec);
 		modbus_set_byte_timeout(ctx, timeout.tv_sec, timeout.tv_usec);
 
-		modbus_connect(ctx);
+		if (modbus_connect(ctx) != 0)
+		{
+			printf("interface_mb %s: setOut connect failed. Errno %d: %s\n", getDescriptor().c_str(), errno, modbus_strerror(errno));
+			modbus_close(ctx);
+			modbus_free(ctx);
+			return;
+		}
 		modbus_set_slave(ctx, key.id);
 
+		int wrv = -1;
 		if (key.regtype == mb_coil)
-			modbus_write_bit(ctx, key.offset, buf[0]);
+			wrv = modbus_write_bit(ctx, key.offset, buf[0]);
 		if (key.regtype == mb_holding)
-			modbus_write_registers(ctx, key.offset, regcon->len, buf);
+			wrv = modbus_write_registers(ctx, key.offset, regcon->len, buf);
+		if (wrv < 0)
+			printf("interface_mb %s: setOut write failed. Errno %d: %s\n", getDescriptor().c_str(), errno, modbus_strerror(errno));
 
 		modbus_close(ctx);
 		modbus_free(ctx);
@@ -115,7 +124,7 @@ void interface_mb::start()
 
 modbus_t* interface_mb::new_context()
 {
-	modbus_t *ctx;
+	modbus_t *ctx = NULL;
 	if (comtype == mbc_tcp)
 	{
 		ctx = modbus_new_tcp(_ipstr.c_str(), port);
@@ -143,6 +152,11 @@ void interface_mb::run()
 	reg_context *start, *end, *reg;	// first item this fetch, last item this fetch, some loop temp value.
 	int rv;
 	modbus_t *ctx = new_context();
+	if (!ctx)
+	{
+		printf("interface_mb %s: could not create modbus context.\n", getDescriptor().c_str());
+		return;
+	}
 
 	modbus_set_response_timeout(ctx, 1, 0);
 	bool conmem = 1;	// To display errors only once.
@@ -175,8 +189,15 @@ void interface_mb::run()
 
 		if (t < schedule->time)
 		{
-			//printf("sleeping %f\n", schedule->time - t);
-			usleep((schedule->time - t) * 1000000);
+			// usleep() is only defined for arguments < 1e6 and useconds_t wraps
+			// past ~4295 s, so sleep in chunks and stay responsive to run_flg.
+			double wait_us = (schedule->time - t) * 1000000;
+			while (run_flg && wait_us > 0)
+			{
+				useconds_t chunk = wait_us > 900000 ? 900000 : (useconds_t) wait_us;
+				usleep(chunk);
+				wait_us -= chunk;
+			}
 		}
 
 		key = schedule->key;
@@ -274,7 +295,7 @@ void interface_mb::run()
 		if (conmem == 0 /*&& comtype == mbc_rtu*/)
 		{
 			modbus_close(ctx);
-			while (run_flg && ! modbus_connect(ctx) == 0 )
+			while (run_flg && modbus_connect(ctx) != 0)
 			{
 				modbus_close(ctx);
 				sleep(1);
@@ -374,25 +395,28 @@ double read_uint32(uint16_t *m)			{ uint32_t x = (((uint32_t) (*m)) << 16) + (* 
 double read_int32(uint16_t *m)			{ uint32_t x = (((uint32_t) (*m)) << 16) + (* (m+1)); return * (int32_t*) &x; };
 double read_uint32r(uint16_t *m)		{ uint32_t x = (((uint32_t) (*(m+1))) << 16) + (* m); return x; };
 double read_int32r(uint16_t *m)			{ uint32_t x = (((uint32_t) (*(m+1))) << 16) + (* m); return * (int32_t*) &x; };
-double read_uint64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return x; };
-double read_int64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return * (int64_t*) x; };
+double read_uint64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (*(m+1)) << 32) + ((uint32_t) (*(m+2)) << 16) + (*(m+3)); return x; };
+double read_int64(uint16_t *m)			{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (*(m+1)) << 32) + ((uint32_t) (*(m+2)) << 16) + (*(m+3)); return (double) * (int64_t*) &x; };
 double read_float16(uint16_t *m)		{ return float16_to_double(*m); }; 
-double read_float32(uint16_t *m)		{ uint32_t x = ((uint32_t) (*m) << 16) + (* m+1); return * (float*) &x; };
-double read_float64(uint16_t *m)		{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (* m+1) << 32) + ((uint32_t) (* m+2) << 16) + (* m+3); return * (double*) x; };
+double read_float32(uint16_t *m)		{ uint32_t x = ((uint32_t) (*m) << 16) + (* (m+1)); return * (float*) &x; };
+double read_float64(uint16_t *m)		{ uint64_t x = ((uint64_t) (*m) << 48) + ((uint64_t) (*(m+1)) << 32) + ((uint32_t) (*(m+2)) << 16) + (*(m+3)); return * (double*) &x; };
 
-// Todo: big endian translation should be left to the modbus library. To be removed. JCE, 9-1-2020
+// libmodbus expects register values in host byte order in the tab array and does
+// the big-endian translation to the wire itself. The old htobeXX calls here were a
+// double swap and, worse, truncated 32/64-bit values into a single uint16_t while
+// m[1..] were never written (uninitialized buffer on the wire).
 void write_none(double, uint16_t*)			{ return; }
-void write_uint16(double d, uint16_t *m)	{ *m = htobe16(d); };
-void write_int16(double d, uint16_t *m)		{ int16_t x = d; *m = htobe16(* (uint16_t*) &x ); };
-void write_uint32(double d, uint16_t *m)	{ *m = htobe32(d); };
-void write_int32(double d, uint16_t *m)		{ int32_t x = d; *m = htobe32(* (uint32_t*) &x); };
-void write_uint32r(double d, uint16_t *m)	{ *m = htobe32(d); }; //todo
-void write_int32r(double d, uint16_t *m)	{ int32_t x = d; *m = htobe32(* (uint32_t*) &x); }; // todo
-void write_uint64(double d, uint16_t *m)	{ *m = htobe64(d); };
-void write_int64(double d, uint16_t *m)		{ int64_t x = d; *m = htobe64(* (uint64_t*) &x); };
-void write_float16(double d, uint16_t *m)	{ *m = htobe16( double_to_float16(d) ); }
-void write_float32(double d, uint16_t *m)	{ uint32_t x = * (uint32_t*) &d; * (uint32_t*) m = htobe32(x); };
-void write_float64(double d, uint16_t *m)	{ uint64_t x = * (uint64_t*) &d; * (uint64_t*) m = htobe64(x); };
+void write_uint16(double d, uint16_t *m)	{ *m = (uint16_t) d; };
+void write_int16(double d, uint16_t *m)		{ *m = (uint16_t) (int16_t) d; };
+void write_uint32(double d, uint16_t *m)	{ uint32_t x = (uint32_t) d;           m[0] = x >> 16;      m[1] = x & 0xFFFF; };
+void write_int32(double d, uint16_t *m)		{ uint32_t x = (uint32_t) (int32_t) d; m[0] = x >> 16;      m[1] = x & 0xFFFF; };
+void write_uint32r(double d, uint16_t *m)	{ uint32_t x = (uint32_t) d;           m[0] = x & 0xFFFF;  m[1] = x >> 16; };
+void write_int32r(double d, uint16_t *m)	{ uint32_t x = (uint32_t) (int32_t) d; m[0] = x & 0xFFFF;  m[1] = x >> 16; };
+void write_uint64(double d, uint16_t *m)	{ uint64_t x = (uint64_t) d;           m[0] = x >> 48; m[1] = (x >> 32) & 0xFFFF; m[2] = (x >> 16) & 0xFFFF; m[3] = x & 0xFFFF; };
+void write_int64(double d, uint16_t *m)		{ uint64_t x = (uint64_t) (int64_t) d; m[0] = x >> 48; m[1] = (x >> 32) & 0xFFFF; m[2] = (x >> 16) & 0xFFFF; m[3] = x & 0xFFFF; };
+void write_float16(double d, uint16_t *m)	{ *m = double_to_float16(d); }
+void write_float32(double d, uint16_t *m)	{ float f = d; uint32_t x; memcpy(&x, &f, 4); m[0] = x >> 16; m[1] = x & 0xFFFF; };
+void write_float64(double d, uint16_t *m)	{ uint64_t x; memcpy(&x, &d, 8); m[0] = x >> 48; m[1] = (x >> 32) & 0xFFFF; m[2] = (x >> 16) & 0xFFFF; m[3] = x & 0xFFFF; };
 
 // Factory for interface_mb.
 void interface_mb_from_json(json_t *json)
@@ -430,7 +454,7 @@ void interface_mb_from_json(json_t *json)
 		ifname = ifid;
 	
 	// TCP
-	if ((strcmp(typestr, "mb_tcp") == 0) || (ipstr && !fstr) )
+	if ((typestr && strcmp(typestr, "mb_tcp") == 0) || (ipstr && !fstr) )
 	{
 		if (!ipstr)
 		{
@@ -446,7 +470,7 @@ void interface_mb_from_json(json_t *json)
 		mb = new interface_mb(ifid, ifname, ipstr, port);
 	}
 	// RTU
-	else if ((strcmp(typestr, "mb_rtu") == 0) || (!ipstr && fstr) )
+	else if ((typestr && strcmp(typestr, "mb_rtu") == 0) || (!ipstr && fstr) )
 	{
 		if (!fstr)
 		{
