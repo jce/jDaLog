@@ -24,6 +24,7 @@ typedef struct jos_job
 	double interval;
 	void (*fnc)(void*);
 	void* arg;
+	int cancelled;		// Set by jos_remove() on in-flight jobs; checked before rescheduling.
 } jos_job;
 
 // Block of scheduled job items, mainly for free.
@@ -47,6 +48,7 @@ typedef struct jos_pool
 	pthread_cond_t new_job;
 	jos_job *first;
 	jos_job *free;
+	jos_job *running;		// Jobs currently being executed (not in the queue).
 	jos_job_block *block;
 	uint32_t num_queue;
 	unsigned int num_threads;
@@ -61,13 +63,13 @@ static void insert_job(jos_pool*, jos_job*);
 // Expands the number of available job items by addint new free items.
 static void jos_new_job_block(jos_pool *pool, uint32_t jobs)
 {
-	// Just wait untill allocation succeeds.
-	jos_job_block *block = NULL;
-	while (!block)
+	// Callers hold the pool mutex, so never sleep/retry here on OOM (that would
+	// deadlock the whole scheduler): fail fast and let the caller drop the job.
+	jos_job_block *block = (jos_job_block*) malloc(sizeof(jos_job_block) + sizeof(jos_job) * jobs);
+	if (!block)
 	{
-		block = (jos_job_block*) malloc(sizeof(jos_job_block) + sizeof(jos_job) * jobs);
-		if (!block)
-			sleep(1);
+		fprintf(stderr, "jos: out of memory allocating %u job items; job dropped\n", jobs);
+		return;
 	}
 
 	// Add this block to the free list
@@ -96,6 +98,7 @@ jos_pool* jos_new_pool(unsigned int num_threads)
 		pthread_cond_init(& pool->new_job, &attr);
 		pool->first = NULL;
 		pool->free = NULL;
+		pool->running = NULL;
 		pool->block = NULL;
 		jos_new_job_block(pool,JOS_BLOCK_SIZE);
 		pthread_mutex_lock(&pool->mutex);
@@ -197,18 +200,29 @@ static void* jos_thread_func(void* p)
 		}
 		pool->first = job->next;
 
+		// Track as in-flight so jos_remove() can cancel it while it runs.
+		job->next = pool->running;
+		pool->running = job;
+
 		// To be able to process the next scheduled item while this job is not yet finished,
 		// push one other thread in the timedwait.
 		if (pool->first)
 			pthread_cond_signal(&pool->new_job);
-		
+
 		// Perform the job
 		pthread_mutex_unlock(&pool->mutex);
 		job->fnc(job->arg);
 		pthread_mutex_lock(&pool->mutex);
 
-		// If the job is a regular job, reschedule it.
-		if (job->interval)
+		// Untrack from the in-flight list.
+		jos_job **ri = & pool->running;
+		while (*ri && *ri != job)
+			ri = & (*ri)->next;
+		if (*ri)
+			*ri = job->next;
+
+		// If the job is a regular job and was not cancelled while running, reschedule it.
+		if (job->interval && !job->cancelled)
 		{
 			// Take the current time (so after running of the job) to prevent multiple jobs running
 			// at the same time, or programming errors to fill up the whole thread pool.
@@ -235,6 +249,9 @@ static jos_job* get_empty_job(jos_pool *pool)
 	if (! pool->free)
 		jos_new_job_block(pool, JOS_BLOCK_SIZE);
 	jos_job *job = pool->free;
+	if (!job)
+		return NULL;	// OOM
+	job->cancelled = 0;
 	pool->free = job->next;
 	return job;
 }
@@ -254,14 +271,19 @@ void jos_run_at_ts(jos_pool* pool, const struct timespec *ts, void (*fnc)(void*)
 {
 	pthread_mutex_lock(&pool->mutex);
 	jos_job* job = get_empty_job(pool);
+	if (!job)
+	{
+		pthread_mutex_unlock(&pool->mutex);
+		return;	// OOM: job dropped
+	}
 	job->at = *ts;
 	job->interval = 0;
 	job->fnc = fnc;
 	job->arg = arg;
 	insert_job(pool, job);
-	pthread_mutex_unlock(&pool->mutex);
-		
+	// Signal while still holding the mutex; signaling after unlock can delay/lose the wakeup.
 	pthread_cond_signal(&pool->new_job);
+	pthread_mutex_unlock(&pool->mutex);
 }
 
 void jos_run(jos_pool *pool, void (*fnc)(void*), void* arg)
@@ -311,14 +333,19 @@ void jos_run_every(jos_pool* pool, double interval, void (*fnc)(void*), void* ar
 
 	pthread_mutex_lock(&pool->mutex);
 	jos_job* job = get_empty_job(pool);
+	if (!job)
+	{
+		pthread_mutex_unlock(&pool->mutex);
+		return;	// OOM: job dropped
+	}
 	job->at = ts;
 	job->interval = interval;
 	job->fnc = fnc;
 	job->arg = arg;
 	insert_job(pool, job);
-	pthread_mutex_unlock(&pool->mutex);
-		
+	// Signal while still holding the mutex; signaling after unlock can delay/lose the wakeup.
 	pthread_cond_signal(&pool->new_job);
+	pthread_mutex_unlock(&pool->mutex);
 }
 
 // Remove all scheduled actions for a function with parameter
@@ -345,6 +372,12 @@ void jos_remove(jos_pool *pool, void (*fnc)(void*), void *arg)
 		else
 			i = & (*i) -> next;
 	}
+
+	// In-flight (recurring) jobs are not in the queue; mark them cancelled so the
+	// worker does not reschedule them after fnc returns.
+	for (jos_job *r = pool->running; r; r = r->next)
+		if (r->fnc == fnc && r->arg == arg)
+			r->cancelled = 1;
 
 	pthread_mutex_unlock(&pool->mutex);
 }
