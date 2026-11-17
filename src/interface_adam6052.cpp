@@ -43,7 +43,8 @@ void interface_adam6052::makeModbusContext(){
 		//response_timeout.tv_sec = 1;
 		//response_timeout.tv_usec = 0;
 		//modbus_set_response_timeout(_ctx, &response_timeout);
-		modbus_set_response_timeout(_ctx, 1, 0);
+		if (_ctx)
+			modbus_set_response_timeout(_ctx, 1, 0);
 		}
 	}
 
@@ -59,6 +60,7 @@ interface_adam6052::~interface_adam6052(){
 	}
 
 void interface_adam6052::getIns(){
+	pthread_mutex_lock(&_ctx_mutex);
 	makeModbusContext();
 
 	bool dataOk = false;
@@ -89,24 +91,29 @@ void interface_adam6052::getIns(){
 			for (uint16_t i = 0; i<8; i++){
 				DI[i]->setValue(incoils[i], t);
 				DO[i]->setValue(outcoils[i], t);;
-				CI[i]->setValue(regs[2*i] + 65535 * regs[2*i + 1], t);
+				CI[i]->setValue((double) regs[2*i] + 65536.0 * regs[2*i + 1], t);
 				}
 			}
 		}
-	}
+	pthread_mutex_unlock(&_ctx_mutex);
+}
 
 // out setter, JCE, 23-7-13
 void interface_adam6052::setOut(out* o, float v){
-	makeModbusContext();
 	bool newState = true;
 	if (v < 0.5) newState = false;
+	// Serialize with getIns() on the shared context. Do not call getIns() from
+	// here: that would re-enter the same modbus context from the web thread.
+	pthread_mutex_lock(&_ctx_mutex);
+	makeModbusContext();
 	if(_ctx)
 		for (uint16_t i = 0; i<8; i++)
 			if (o == DO[i] and newState != DO[i]->getValue())
 				if(modbus_connect(_ctx) != -1)
 					{
-					modbus_write_bit(_ctx, 16+i, newState);
-					modbus_close(_ctx); 
-					getIns();
+					if (modbus_write_bit(_ctx, 16+i, newState) >= 0)
+						DO[i]->setValue(newState, now());
+					modbus_close(_ctx);
 					}
-	}
+	pthread_mutex_unlock(&_ctx_mutex);
+}

@@ -6,6 +6,7 @@
 #include "in.h"
 #include "stringStore.h"
 #include "modbus/modbus.h"
+#include "pthread.h"
 
 using namespace std;
 
@@ -24,6 +25,9 @@ class interface_adam6052 : public interface{
 	private:
 		const string _ipstr;
 		modbus_t *_ctx;
+		// _ctx is used by both getIns() (interface thread) and setOut() (web thread);
+		// libmodbus contexts are not thread-safe, so all use is serialized with this mutex.
+		pthread_mutex_t _ctx_mutex = PTHREAD_MUTEX_INITIALIZER;
 		double _lastValidDateTime;
 	};
 
