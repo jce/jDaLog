@@ -148,10 +148,13 @@ void interface_S7::run()
 				(*sp)->start < first + MSG_SIZE_MAX
 			  )
 		{
-			if ((*sp)->end < first + MSG_SIZE_MAX)
+			if ((*sp)->start >= first and (*sp)->end < first + MSG_SIZE_MAX)
 			{
 				// moves item from sp to transaction, the next schedule item
 				// gets its place in schedule. sp temains the same.
+				// Items with start < first are skipped here: they stay in the
+				// schedule and are read when they become the head (first == their
+				// start), otherwise msg + byte - first would read before the buffer.
 
 				// Calculate the new last byte / end / length.
 				if (last < (*sp)->end)
