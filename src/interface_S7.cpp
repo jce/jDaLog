@@ -218,8 +218,8 @@ void interface_S7::run()
 					case S7_int16:	val = (int16_t) be16toh( *(uint16_t*) p ); break;
 					case S7_uint32:	val = (uint32_t) be32toh( *(uint32_t*) p ); break;
 					case S7_int32:	val = (int32_t) be32toh( *(uint32_t*) p ); break;
-					case S7_uint64:	val = (uint64_t) be16toh( *(uint64_t*) p ); break;
-					case S7_int64:	val = (int64_t) be16toh( *(uint64_t*) p ); break;
+					case S7_uint64:	val = (uint64_t) be64toh( *(uint64_t*) p ); break;
+					case S7_int64:	val = (int64_t) be64toh( *(uint64_t*) p ); break;
 					case S7_float32:{uint32_t x; x = be32toh ( *(int32_t*) p); val = * (float*) &x;} break;
 					case S7_float64:{uint64_t x; x = be64toh ( *(int64_t*) p); val = * (double*) &x;} break;
 					default: break;
