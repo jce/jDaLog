@@ -2,6 +2,7 @@
 #define HAVE_INTERFACE_H
 
 #include "stdio.h"
+#include <atomic>
 #include <string>
 #include "stringStore.h"
 #include "in.h"
@@ -46,7 +47,7 @@ class interface: public outhost{
 		virtual void join();	// Joins the thread (waits untill it is really stopped). JCE, 28-10-2020
 		virtual void run();		// Override in derived class.
 	protected:
-		bool run_flg;
+		std::atomic<bool> run_flg{false};	// Written by stop() (main thread), read in run() (interface thread).
 		float interval; // [s] time between getIns calls.
 		std::map<std::string, in*> ins;	// JCE, 23-2-2023
 	private:

@@ -113,8 +113,7 @@ void interface_S7::start()
 {
 	init_schedule();
 	connect();	
-	run_flg = true;
-	interface::start();
+	interface::start();	// sets run_flg before spawning the thread
 }
 
 void interface_S7::run()

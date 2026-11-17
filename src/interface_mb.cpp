@@ -146,8 +146,9 @@ void interface_mb::run()
 
 	modbus_set_response_timeout(ctx, 1, 0);
 	bool conmem = 1;	// To display errors only once.
-	run_flg = true;
-	
+	// run_flg is already set by interface::start() before this thread was spawned;
+	// re-setting it here could undo a stop() that ran first and hang join().
+
 	// Initial connection loop. Try every second.
 	while (run_flg && modbus_connect(ctx) != 0)
 	{

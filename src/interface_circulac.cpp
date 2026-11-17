@@ -73,8 +73,7 @@ void interface_circulac::interpret(string &s)
 
 void interface_circulac::start()
 {
-	run_flg = true;
-	interface::start();
+	interface::start();	// sets run_flg before spawning the thread
 }
 
 #define RECONNECTTIME	4
