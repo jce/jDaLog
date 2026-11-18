@@ -13,6 +13,11 @@ typedef struct s_callback_list
 // Add a callback to the list
 void cb_add(callback_list **cbl, void (*func)(void*), void *par)
 {
+	// Skip duplicates: registering the same function with the same argument twice
+	// would make it fire twice (e.g. when out_conf is re-run).
+	for (callback_list *i = *cbl; i; i = i->next)
+		if (i->func == func && i->par == par)
+			return;
 	callback_list *item = malloc(sizeof(callback_list));
 	if (!item)
 		return;

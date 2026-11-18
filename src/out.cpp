@@ -14,8 +14,6 @@
 
 using namespace std;
 
-#define debug
-
 // Class out. The out is an in, that can be setted with setOut. Doing this should result in immediate setting of the output in the field. The onely thing in the software knowing how to set the out is its interface, thus out should call its interface to do the work.
 
 map<string, out*> outmap;
@@ -39,6 +37,7 @@ void out::_setout()
 {
 	//setValue(getValue()); // outputs are discrete. Untill now the value is known and now it will be changed. JCE, 25-7-13
 	// should be printed in a custom graph? stepping graph, or maybe a singleline graph and still use this line? JCE, 25-7-13
+	// Caller must hold _mutex; it is unlocked here because setOut can be slow (network I/O).
 	float o = _out;
 	if (_man)
 		o = _manOut;
@@ -172,13 +171,15 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 						printf("Configuring out \"%s\": Cannot find in \"%s\" for variable \"%s\".\n", out_descr, in_descr, var_descr);
 						ok = false;
 					}
-					strncpy(vars[i].var, var_descr, VAR_LEN);
+					strncpy(vars[i].var, var_descr, VAR_LEN - 1);	// keep room for NUL: te_compile reads past VAR_LEN otherwise
+					vars[i].var[VAR_LEN - 1] = 0;
 					vars[i].i = in_p;
 					vars[i].d = 0;
 				}
 				else if (json_is_number(var_j))
 				{
-					strncpy(vars[i].var, var_descr, VAR_LEN);
+					strncpy(vars[i].var, var_descr, VAR_LEN - 1);	// keep room for NUL: te_compile reads past VAR_LEN otherwise
+					vars[i].var[VAR_LEN - 1] = 0;
 					vars[i].i = NULL;
 					vars[i].d = json_number_value(var_j);
 				}
@@ -227,7 +228,13 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 				continue;
 			}
 
-			// Program the out.
+			// Program the out. Under the out's mutex: eval_expr() reads these members
+			// from the in-callback threads. Free the previous config first (re-run).
+			pthread_mutex_lock(&o->_mutex);
+			if (o->vars)
+				free(o->vars);
+			if (o->expr)
+				te_free(o->expr);
 			o->expression = s_expr;
 			o->vars = vars;
 			free(te_vars);
@@ -240,9 +247,10 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 			o->valid_ins = 0;
 			for (int i = 0; i < nr_vars; i++)
 				if(vars[i].i)
-					o->valid_ins += vars[i].i->isValid(); 
+					o->valid_ins += vars[i].i->isValid();
 			o->have_default_val = have_default_val;
 			o->default_val = default_val;
+			pthread_mutex_unlock(&o->_mutex);
 
 			// Register callbacks on the in's to this out.
 			for (int i = 0; i < nr_vars; i++)
@@ -262,6 +270,9 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 void out_cb_in_updated(void *p)
 {
 	out *o = (out*) p;
+	// _setout() unlocks _mutex, so it must be called with the lock held,
+	// otherwise this is an unlock-of-unowned-mutex (UB / double unlock).
+	pthread_mutex_lock(&o->_mutex);
 	o->_setout();
 }
 
