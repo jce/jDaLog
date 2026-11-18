@@ -68,6 +68,7 @@ logic_pi_reg::logic_pi_reg(const string d, const string n, in *_meas, out *_act,
 
 logic_pi_reg::~logic_pi_reg()
 {
+	meas->unregister_callback_on_update(cc_logic_pi_reg_run, this);
 	if(myP)			delete P;
 	if(myI1)		delete I1;
 	if(myImin)		delete Imin;
@@ -107,13 +108,17 @@ void logic_pi_reg::run()
 		esumval = esummax;
 	esum->setValue(esumval);
 
+	double iact = 0;
+	if (I1val != 0)
+		iact = esumval / I1val;
+
 	if (dir_is_increment)
 	{
-		act->setOut(-eval * P->getValue() + -esumval / I1val);
+		act->setOut(-eval * P->getValue() - iact);
 	}
 	else
 	{
-		act->setOut(eval * P->getValue() + esumval / I1val);
+		act->setOut(eval * P->getValue() + iact);
 	}
 	runmutex.unlock();
 }

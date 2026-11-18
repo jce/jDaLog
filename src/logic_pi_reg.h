@@ -14,7 +14,7 @@ class logic_pi_reg: public logic
 		in *meas, *sp, *P, *I1, *Imin, *Imax, *Iratelim, *e, *esum;
 		out *act;
 		bool dir_is_increment;
-		bool mysp = false, myP = false, myI1 = false, myImin = false, myImax = false, myIratelim;
+		bool mysp = false, myP = false, myI1 = false, myImin = false, myImax = false, myIratelim = false;
 		double tprev = 0;
 		std::mutex runmutex;
 	};
