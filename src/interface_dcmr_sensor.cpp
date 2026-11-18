@@ -12,8 +12,6 @@
 #include "out.h"
 #include <unistd.h>
 
-#define debug
-
 using namespace std;
 
 interface_dcmr_sensor::interface_dcmr_sensor(const string d, const string n, float interval, const string ipstr):interface(d, n, interval), _ipstr(ipstr)
@@ -45,7 +43,12 @@ void interface_dcmr_sensor::run()
 		double start = now();
 		if (next > start)
 		{
-			sleep(0.2);
+			// sleep() takes whole seconds: sleep(0.2) truncates to sleep(0) and
+			// busy-spins at 100% CPU. Use usleep for the sub-second wait.
+			double wait = next - start;
+			if (wait > 0.2)
+				wait = 0.2;
+			usleep((useconds_t) (wait * 1000000));
 			continue;
 		}
 
@@ -56,8 +59,8 @@ void interface_dcmr_sensor::run()
 		latency->setValue((end-start)*1000, t);
 	
 		double since_last_measurement = 4;
-		findFloatAfter(page, "Current data</h4><b>", f);
-		since_last_measurement = f;
+		if (findFloatAfter(page, "Current data</h4><b>", f))
+			since_last_measurement = f;	// keep default 4 if not found (f would be uninitialized)
 		
 		// This data is min, average, max for a timesection of 10 seconds that ended
 		// at since_last_measurement. Lets use the data production time as measurement
