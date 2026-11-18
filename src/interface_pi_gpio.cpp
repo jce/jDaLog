@@ -54,6 +54,7 @@ using namespace std;
 
 interface_pi_gpio::interface_pi_gpio(const string d, const string n, float i):interface(d, n, i)
 {
+	gpioReg = NULL;
 	gpioInitialise();
 }
 
@@ -150,6 +151,7 @@ int interface_pi_gpio::gpioInitialise(void)
 
 void interface_pi_gpio::gpioSetMode(unsigned gpio, unsigned mode)
 {
+   if (!gpioReg) return;
    int reg, shift;
    reg   =  gpio/10;
    shift = (gpio%10) * 3;
@@ -158,6 +160,7 @@ void interface_pi_gpio::gpioSetMode(unsigned gpio, unsigned mode)
 
 int interface_pi_gpio::gpioGetMode(unsigned gpio)
 {
+   if (!gpioReg) return 0;
    int reg, shift;
    reg   =  gpio/10;
    shift = (gpio%10) * 3;
@@ -166,6 +169,7 @@ int interface_pi_gpio::gpioGetMode(unsigned gpio)
 
 void interface_pi_gpio::gpioSetPullUpDown(unsigned gpio, pull_state pud)
 {
+   if (!gpioReg) return;
    *(gpioReg + GPPUD) = pud;
    usleep(20);
    *(gpioReg + GPPUDCLK0 + PI_BANK) = PI_BIT;
@@ -176,12 +180,14 @@ void interface_pi_gpio::gpioSetPullUpDown(unsigned gpio, pull_state pud)
 
 int interface_pi_gpio::gpioRead(unsigned gpio)
 {
+   if (!gpioReg) return 0;
    if ((*(gpioReg + GPLEV0 + PI_BANK) & PI_BIT) != 0) return 1;
    else                                         return 0;
 }
 
 void interface_pi_gpio::gpioWrite(unsigned gpio, unsigned level)
 {
+   if (!gpioReg) return;
    if (level == 0) *(gpioReg + GPCLR0 + PI_BANK) = PI_BIT;
    else            *(gpioReg + GPSET0 + PI_BANK) = PI_BIT;
 }
@@ -243,12 +249,12 @@ interface_pi_gpio* interface_pi_gpio_from_json(const json_t *json )
 	if (not name)
 		name = id;
 	float scan = JNR(scan);					
-	if (not (id and name and JIN(scan))
+	if (not (id and name and JIN(scan)))
 	{
 		printf("could not build interface_pi_gpio(%s, %s, %f)\n", id, name, scan);
 		return NULL;
 	}
-	interface_macp *rpi = new interface_pi_gpio(id, name, scan);
+	interface_pi_gpio *rpi = new interface_pi_gpio(id, name, scan);
 	read_gpios_from_json(rpi, json_object_get(json, "gpio"));
 	return rpi;
 }

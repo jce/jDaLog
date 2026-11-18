@@ -23,7 +23,7 @@ extern bool prune_input;
 #endif // HAVE_S7
 
 #ifdef HAVE_RPI
-#define RPI_INTERFACE INTERFACE(pi_gpio, interface_rpi_gpio_from_json)
+#define RPI_INTERFACE INTERFACE(pi_gpio, interface_pi_gpio_from_json)
 #else // HAVE_RPI
 #define RPI_INTERFACE
 #endif // HAVE_RPI
