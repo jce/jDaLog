@@ -62,6 +62,10 @@ class in{
 		void register_callback_on_change(void (*)(void*), void*);
 		void register_callback_on_turn_invalid(void (*)(void*), void*);
 		void register_callback_on_turn_valid(void (*)(void*), void*);
+		void unregister_callback_on_update(void (*)(void*), void*);
+		void unregister_callback_on_change(void (*)(void*), void*);
+		void unregister_callback_on_turn_invalid(void (*)(void*), void*);
+		void unregister_callback_on_turn_valid(void (*)(void*), void*);
 		
 	protected:
 		const unsigned int _decimals;

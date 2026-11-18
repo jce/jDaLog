@@ -13,11 +13,24 @@ equation::equation()
 
 equation::~equation()
 {
+	// Unregister from the source ins first: they hold callbacks pointing to
+	// this equation and would dangle after the delete.
 	for (int i = 0; i < nr_vars; i++)
-		free ((vars+i)->var);
+	{
+		if (vars && vars[i].i)
+		{
+			vars[i].i->unregister_callback_on_update(cc_equation_in_updates, this);
+			vars[i].i->unregister_callback_on_change(cc_equation_in_changes, this);
+			vars[i].i->unregister_callback_on_turn_invalid(cc_equation_in_turns_invalid, this);
+			vars[i].i->unregister_callback_on_turn_valid(cc_equation_in_turns_valid, this);
+		}
+		if (vars)
+			free ((vars+i)->var);
+	}
 	free(vars);
 	free(expression);
-	te_free(expr);
+	if (expr)
+		te_free(expr);
 	cb_free(&on_update);
 	cb_free(&on_change);
 	cb_free(&on_turn_invalid);
@@ -173,7 +186,14 @@ equation* equation_from_json(json_t *json)
 	equation *eq = new equation();
     te_variable *te_vars = NULL;
 	bool ok = true;
-	eq->expression = strdup(json_string_value(json_object_get(json, "expr")));
+	const char *expr_str = json_string_value(json_object_get(json, "expr"));
+	if (!expr_str)
+	{
+		printf("equation_from_json: no \"expr\" given.\n");
+		delete eq;	// ~equation guards NULL members
+		return NULL;
+	}
+	eq->expression = strdup(expr_str);
 	json_t *default_j = json_object_get(json, "default");
 	eq->have_default_value = json_number_value(default_j);
 	if (eq->have_default_value)
@@ -192,6 +212,7 @@ equation* equation_from_json(json_t *json)
 			delete (eq);
 			return NULL;
 		}
+		memset(eq->vars, 0, sizeof(var_in_double) * eq->nr_vars);	// dtor frees var[] per entry: never free garbage on a partial parse
 	
     	te_vars = (te_variable*) malloc(sizeof(te_variable) * eq->nr_vars);
 		if (!te_vars)
@@ -254,6 +275,8 @@ equation* equation_from_json(json_t *json)
     int err;
     te_expr *expr = te_compile(eq->expression, te_vars, eq->nr_vars, &err);
 	free (te_vars);
+	if (expr)
+		eq->expr = expr;	// was never assigned: te_eval(NULL) -> NaN results
 
     if (!expr)
     {
@@ -264,18 +287,29 @@ equation* equation_from_json(json_t *json)
 
 	if (!ok)
 	{
-		// TODO: cleanup of both equation as var_in_double
-		delete eq;
-		eq = NULL;
+		delete eq;	// do not touch eq after this: it would be a NULL deref
+		return NULL;
 	}
+
+	// Count the ins and currently valid ins, for the validity flow.
+	eq->nr_ins = 0;
+	eq->nr_ins_valid = 0;
+	for (int i = 0; i < eq->nr_vars; i++)
+		if (eq->vars[i].i)
+		{
+			eq->nr_ins++;
+			eq->nr_ins_valid += eq->vars[i].i->isValid();
+		}
 
 	// The equation needs callbacks from the source ins.
 	for (int i = 0; i < eq->nr_vars; i++)
 	{
-		eq->vars[i].i -> register_callback_on_update(equation::cc_equation_in_updates, eq); 
-		eq->vars[i].i -> register_callback_on_change(equation::cc_equation_in_changes, eq);
-		eq->vars[i].i -> register_callback_on_turn_invalid(equation::cc_equation_in_turns_invalid, eq);
-		eq->vars[i].i -> register_callback_on_turn_valid(equation::cc_equation_in_turns_valid, eq);
+		if (!eq->vars[i].i)
+			continue;
+		eq->vars[i].i->register_callback_on_update(equation::cc_equation_in_updates, eq);
+		eq->vars[i].i->register_callback_on_change(equation::cc_equation_in_changes, eq);
+		eq->vars[i].i->register_callback_on_turn_invalid(equation::cc_equation_in_turns_invalid, eq);
+		eq->vars[i].i->register_callback_on_turn_valid(equation::cc_equation_in_turns_valid, eq);
 	}
 	return eq;
 }

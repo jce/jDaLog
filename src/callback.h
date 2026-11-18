@@ -17,6 +17,10 @@ typedef struct callback_list callback_list;
 // void* par = void pointer parameter given to the callback function on execution.
 void cb_add(callback_list **cbl, void (*func)(void*), void *par);
 
+// Remove all callbacks matching func and par from the list (e.g. on destruction
+// of the subscriber, so the list never holds a dangling pointer).
+void cb_remove(callback_list **cblp, void (*func)(void*), void *par);
+
 // Free the whole callback list from memory
 void cb_free(callback_list **cbl);
 

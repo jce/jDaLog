@@ -27,6 +27,23 @@ void cb_add(callback_list **cbl, void (*func)(void*), void *par)
 	*cbl = item;
 }
 
+// Remove all callbacks matching func and par from the list
+void cb_remove(callback_list **cblp, void (*func)(void*), void *par)
+{
+	callback_list **i = cblp;
+	while (*i)
+	{
+		if ((*i)->func == func && (*i)->par == par)
+		{
+			callback_list *del = *i;
+			*i = del->next;
+			free(del);
+		}
+		else
+			i = & (*i)->next;
+	}
+}
+
 // Free the whole callback list from memory
 void cb_free(callback_list **cblp)
 {

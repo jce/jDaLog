@@ -56,7 +56,7 @@ private:
 	void eval();
 
 	pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-	char *expression;         		// for reference
+	char *expression = NULL;		// for reference
 	var_in_double *vars = NULL;     // Source data for the vars table
 	te_expr *expr = NULL;           // Tinyexpr equation
 	//callback_list *on_eval, *on_invalid, *on_valid;

@@ -266,3 +266,7 @@ void in::register_callback_on_update(void (*f)(void*), void *p)			{cb_add(&on_up
 void in::register_callback_on_change(void (*f)(void*), void *p)			{cb_add(&on_change, f, p);}
 void in::register_callback_on_turn_invalid(void (*f)(void*), void *p)	{cb_add(&on_turn_invalid, f, p);}
 void in::register_callback_on_turn_valid(void (*f)(void*), void *p)		{cb_add(&on_turn_valid, f, p);}
+void in::unregister_callback_on_update(void (*f)(void*), void *p)		{cb_remove(&on_update, f, p);}
+void in::unregister_callback_on_change(void (*f)(void*), void *p)		{cb_remove(&on_change, f, p);}
+void in::unregister_callback_on_turn_invalid(void (*f)(void*), void *p)	{cb_remove(&on_turn_invalid, f, p);}
+void in::unregister_callback_on_turn_valid(void (*f)(void*), void *p)	{cb_remove(&on_turn_valid, f, p);}

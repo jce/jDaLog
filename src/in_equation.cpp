@@ -12,8 +12,8 @@
 
 using namespace std;
 
-#define DBG(...) printf(__VA_ARGS__);
-//#define DBG(...)
+//#define DBG(...) printf(__VA_ARGS__);
+#define DBG(...)
 
 // In version that derives its value from an equation. Equations use only constants and ins.
 
@@ -37,14 +37,18 @@ void in_equation::getDataSummary(vector<flStat> &stats, unsigned int len, double
 
 void in_equation::call_on_equation_result_update()
 {
+	// Propagate the equation result into this in.
+	setValue(eq->get_value().value, now());
 }
 
 void in_equation::call_on_equation_result_change()
 {
+	setValue(eq->get_value().value, now());
 }
 
 void in_equation::call_on_turn_valid()
 {
+	setValue(eq->get_value().value, now());
 }
 
 
