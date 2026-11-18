@@ -109,7 +109,7 @@ ssize_t interface_hs110::send_receive(char* p, size_t size)
 	ssize_t ans_len = 0;
 
 	int sock = socket(AF_INET, SOCK_STREAM, 0);
-	if (!sock)
+	if (sock < 0)	// socket() geeft -1 bij fout; fd 0 is gewoon geldig
 		return 0;
 
 	FD_ZERO(&set);
@@ -139,7 +139,7 @@ ssize_t interface_hs110::send_receive(char* p, size_t size)
 	write(sock, p, req_len);
 	rv = select(sock+1, &set, NULL, NULL, &timeout);
 	if (rv > 0)
-		ans_len = read(sock, p, size);
+		ans_len = read(sock, p, size - 1);	// 1 byte reserve voor de NUL-terminator in de caller
 	close(sock);
 
 	if (ans_len > 4)
@@ -153,7 +153,7 @@ void interface_hs110::getIns()
 	char buf[HS110_BUFSIZE];
 	strcpy(buf, "{\"system\":{\"get_sysinfo\":{}},\"emeter\":{\"get_realtime\":{}}}");
 	double start = now();
-	size_t ans_len = send_receive(buf, HS110_BUFSIZE);
+	ssize_t ans_len = send_receive(buf, HS110_BUFSIZE);	// ssize_t: -1 (fout) moet hier niet als huge size_t landen
 	double end = now();
 	double t = (start + end) / 2;
 
