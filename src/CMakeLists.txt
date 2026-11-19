@@ -81,6 +81,7 @@ target_sources(jDaLog PUBLIC
 	webserver.cpp
 	webin.cpp
     interface_ct003.cpp
+    eq.cpp
 	${EXTRA_SRC}
 )
 

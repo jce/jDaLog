@@ -12,8 +12,8 @@
 
 using namespace std;
 
-//#define DBG(...) printf(__VA_ARGS__);
-#define DBG(...)
+#define DBG(...) printf(__VA_ARGS__);printf("\n");
+//#define DBG(...)
 
 // In version that derives its value from an equation. Equations use only constants and ins.
 
@@ -29,6 +29,7 @@ in_equation::in_equation(string d, equation *_eq, string n, string u, const unsi
 in_equation::~in_equation()
 {
 	delete eq;
+    delete eqN;
 }
 
 void in_equation::getDataSummary(vector<flStat> &stats, unsigned int len, double from, double to)
@@ -54,7 +55,7 @@ void in_equation::call_on_turn_valid()
 
 list<in_equation*> in_eq_list;
 
-void build_in_equations(json_t *input_data)
+void buildInEquations(json_t *input_data)
 {
 	if (! json_is_object(input_data))
 		return;
@@ -63,14 +64,14 @@ void build_in_equations(json_t *input_data)
 	const char *name;
 	const char *unit;
 	int decimals;
-	equation *eq;
+	equation *equation;
 
 	json_object_foreach(input_data, id, json)
 	{
 		name = NULL;
 		unit = NULL;
 		decimals = 0;
-		eq = NULL;
+		equation = NULL;
 
 		if (json_is_object(json))
 		{
@@ -85,12 +86,27 @@ void build_in_equations(json_t *input_data)
 				decimals = json_number_value(jdecimals);
 			else
 				decimals = 0;
-			eq = equation_from_json(json);
-			
-			if (id and eq)
-				new in_equation(id, eq, name, unit, decimals);
-			else
+			equation = equation_from_json(json);
+            if (!equation)
 				printf("Could not build in_equation for %s\n", id);
+
+            json_t *jeq = json_object_get(json, "eq");
+            if (!jeq)
+            {
+                printf("Could not build in_equation %s: No eq field\n", id);
+                continue;
+            }
+            vector<eqVarDescr> vardes;
+            eqNode *node = eqFromJson(jeq, vardes);
+            if (node == nullptr)
+            {
+                printf("Could not build equation.\n");
+                continue;
+            }
+			
+			in_equation *i = new in_equation(id, equation, name, unit, decimals);
+            i->vardes = vardes;
+            i->eqN = node;
 		}
 	}
 }

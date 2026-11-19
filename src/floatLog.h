@@ -91,9 +91,12 @@ class floatLog
 		record read_last_from_file_unlocked();
 		record last = {0, 0};
         
-        void start_iteration(double, double);   // Start an iteration range. Only call once at a time. Starts one record before from.
-        bool next_iteration(double &, float &);   // Next iteration step, agnostic to source (disk/ram) Must be called untill returns false.
-        void stop_iteration();  // Instead of waiting for next_iteration to turn false, call this!
+        // Start an iteration range. Only call once at a time. If requested, starts one record before from.
+        void start_iteration(double from, double to, bool preamble = true);   
+        // Next iteration step, agnostic to source (disk/ram) Must be called untill returns false.
+        bool next_iteration(double &t, float &v);   
+        // Instead of waiting for next_iteration to turn false, call this!
+        void stop_iteration();  
 
         void switch_to_mem();
         pthread_mutex_t iterationMutex = PTHREAD_MUTEX_INITIALIZER;

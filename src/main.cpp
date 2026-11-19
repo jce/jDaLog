@@ -332,7 +332,7 @@ int main()
 	build_webins(json_object_get(json, "webin"));
 	build_dir_to_ins(json_object_get(json, "dir_to_ins"));
 	build_logics(json_object_get(json, "logic"));
-	build_in_equations(json_object_get(json, "in_equation"));
+	buildInEquations(json_object_get(json, "in_equation"));
 	out_conf(json_object_get(json, "out"));
 	bool check_files = json_is_true(json_object_get(json, "check_files"));
 	bool prune_files = json_is_true(json_object_get(json, "prune_files"));

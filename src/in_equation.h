@@ -3,6 +3,7 @@
 
 #include "equation.h"
 #include "in.h"
+#include "eq.h"
 
 #include <list>
 
@@ -25,10 +26,14 @@ class in_equation: public in{
 		void call_on_equation_result_update(); 	CC(in_equation, call_on_equation_result_update); 
 		void call_on_equation_result_change(); 	CC(in_equation, call_on_equation_result_change); 
 		void call_on_turn_valid();			 	CC(in_equation, call_on_turn_valid); 
+    private:
+        std::vector<eqVarDescr> vardes;
+        eqNode *eqN;        
+    friend void buildInEquations(json_t *json);
 	};
 
 // Feed this the part of the config.json that contains the array with in_equation descriptions.
-void build_in_equations(json_t *json);
+void buildInEquations(json_t *json);
 
 // List of in_equations in the order of constructing. Usefull for cleanup.
 extern std::list<in_equation*> in_eq_list;

@@ -178,7 +178,7 @@ void floatLog::switch_to_mem()
     }
 
 // Starts one record before from.
-void floatLog::start_iteration(double from, double to)
+void floatLog::start_iteration(double from, double to, bool preamble)
 {
     pthread_mutex_lock(&iterationMutex);
     ifrom = from;
@@ -188,7 +188,7 @@ void floatLog::start_iteration(double from, double to)
     if(fp)
     {
         istart = from_index(from);
-        if (istart)
+        if (preamble && istart)
             istart--;                       // Start from one record before first, if possible
         istop = from_index(to);             // End time does not have such a peculiarity.
         fseek(fp, istart * RSIZE, SEEK_SET);
