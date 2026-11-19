@@ -10,11 +10,14 @@
 #include "sys/time.h" // gettimeofday(()
 #include "stringStore.h"
 #include <cmath>
+#include <deque>
 
 using namespace std;
 
 //#define DBG(...) printf(__VA_ARGS__);printf("\n");
 #define DBG(...)
+
+const unsigned int BLKSIZE = 4096;
 
 // In version that derives its value from an equation. Equations use only constants and ins.
 
@@ -34,7 +37,55 @@ in_equation::~in_equation()
 }
 
 void in_equation::getDataSummary(vector<flStat>&, unsigned int, double, double)
+{}
+
+void in_equation::getDataOrNaN(deque<record> &records, double from, double to, unsigned num)
 {
+    // vector<eqVarDescr> vardes = {descr, i, idx}
+    int nrIns = vardes.size();              // Number of ins
+    vector<deque<record>> cache(nrIns);     // Intermediate cache
+    vector<float> var(nrIns, NAN);          // Parameter for eval()
+    unsigned count = 0;
+
+    // Zip loop
+    double t = from;
+    double lastEmit = -1e300;
+    while (t < to and count < num)
+    {
+        // First, get new data if cache is low
+        for (int i = 0; i < nrIns; i++)
+            if (cache[i].size() == 0)
+                vardes[i].i->getDataOrNaN(cache[i], t, to, BLKSIZE);
+        // Find the time of the first next change. Can be t.
+        double tnext = to;
+        bool any = false;
+        for (int i = 0; i < nrIns; i++)
+            if (cache[i].size() > 0)
+            {
+                any = true;
+                if (cache[i][0].t < tnext)
+                    tnext = cache[i][0].t;
+            }
+        if (!any) return;
+
+        // Fill var, only the changed
+        for (int i = 0; i < nrIns; i++)
+            while (cache[i].size() > 0 and cache[i][0].t == tnext)
+            {
+                var[i] = cache[i][0].v;
+                cache[i].pop_front();
+            }
+
+        // Dont emit if this is not a later value
+        if (tnext < from or tnext <= lastEmit)
+            continue;
+
+        // Calculate the equation for this inputs
+        records.push_back({tnext, eq->eval(var)}); 
+        count++;
+        lastEmit = tnext;
+        t = tnext;
+    }
 }
 
 //void in_equation::call_on_equation_result_update(){ updateValue(); }
