@@ -42,8 +42,8 @@ double logic_modulator::time_to_next(double sp, double out, double e)
 	if (sp == out)
 		return 60.0;
 	double rv = e / (sp - out);
-	if (rv < 0.0)
-		rv = 0.0;
+	if (rv <= 0.0)
+		rv = 1.0;	// Projected transition in the past/now: rescheduling at t+0 would busy-loop the scheduler; recheck after 1 s. Small positive rv is kept as-is.
 	if (sp > out) // Approaching an on transition
 		if (bid_value(time_off_min))
 			if (rv < time_off_min.d)
