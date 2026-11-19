@@ -13,7 +13,7 @@
 
 class in_equation: public in{
 	public:
-		in_equation(const std::string, equation *_eq, const std::string name = "", const std::string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
+		in_equation(const std::string, const std::string name = "", const std::string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
 		~in_equation();		
 
 		in_equation(const in_equation& obj_temp) = delete;
@@ -21,14 +21,15 @@ class in_equation: public in{
 
 		void getDataSummary(vector<flStat>&, unsigned int size, double from, double to);
 
-		equation *eq;
-
-		void call_on_equation_result_update(); 	CC(in_equation, call_on_equation_result_update); 
-		void call_on_equation_result_change(); 	CC(in_equation, call_on_equation_result_change); 
-		void call_on_turn_valid();			 	CC(in_equation, call_on_turn_valid); 
+		//void call_on_equation_result_update(); 	CC(in_equation, call_on_equation_result_update); 
+		//void call_on_equation_result_change(); 	CC(in_equation, call_on_equation_result_change); 
+		//void call_on_turn_valid();			 	CC(in_equation, call_on_turn_valid); 
+		//void call_on_turn_invalid();			CC(in_equation, call_on_turn_invalid); 
+        void updateValue();                     CC(in_equation, updateValue);
     private:
+        void registerCallbacks();
         std::vector<eqVarDescr> vardes;
-        eqNode *eqN;        
+        eqNode *eq;        
     friend void buildInEquations(json_t *json);
 	};
 

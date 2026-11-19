@@ -51,7 +51,6 @@ target_sources(jDaLog PUBLIC
 	tcmath.c
 	timefunc.c
 	tinyexpr.c
-	equation.cpp
 	floatLog.cpp
 	in.cpp
 	in_from_dir.cpp

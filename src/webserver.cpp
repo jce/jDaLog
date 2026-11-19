@@ -1,5 +1,4 @@
 
-#include "equation.h"
 #include "floatLog.h"
 #include "git_header.h"
 #include "in.h"
@@ -897,7 +896,7 @@ string make_in_remove_reply(size_t removed)
 	return make_header() + "Removed " + to_string(removed) +  " records." + make_footer();
 }
 
-string make_equation_section(equation *eq)
+/*string make_equation_section(equation *eq)
 {
 	string rv = "Equation: " + string(eq->get_expression())  + " <br>\n";
 	rv += "<table><tr><th>Variable</th><th>Value</th><th>Source</th></tr>\n";
@@ -910,7 +909,7 @@ string make_equation_section(equation *eq)
 	}	
 	rv += "</table>\n";
 	return rv;
-}
+}*/
 
 string webserver::make_in_page(in *i)
 {
@@ -928,11 +927,11 @@ string webserver::make_in_page(in *i)
 	else
 		rv += "this in is invalid<br>\n";
 
-	in_equation *ie = dynamic_cast<in_equation*>(i);
-	if (ie)
-	{
-		rv += make_equation_section(ie->eq);
-	}
+	//in_equation *ie = dynamic_cast<in_equation*>(i);
+	//if (ie)
+	//{
+	//	rv += make_equation_section(ie->eq);
+	//}
 
 	rv += make_image_line(i, now() - 3600, now(), def_w, def_h);
 	rv += make_image_line(i, now() - 24*3600, now(), def_w, def_h);
@@ -1295,11 +1294,11 @@ string webserver::make_out_page(string outName, const map<string, string> &postd
 
 	rv += "</form>\n";
 
-	in_equation *ie = dynamic_cast<in_equation*>(o);
-	if (ie)
-	{
-		rv += make_equation_section(ie->eq);
-	}
+	//in_equation *ie = dynamic_cast<in_equation*>(o);
+	//if (ie)
+	//{
+	//	rv += make_equation_section(ie->eq);
+	//}
 
 	rv += make_image_line(o, now() - 3600, now(), def_w, def_h);
 	rv += make_image_line(o, now() - 24*3600, now(), def_w, def_h);

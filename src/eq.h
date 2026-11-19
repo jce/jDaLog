@@ -14,7 +14,7 @@ typedef struct s_eqVarDescr
 {
     std::string descr;
     in* i;
-    int slot;
+    int idx;
 } eqVarDescr;
 
 class eqNode;
