@@ -139,7 +139,6 @@ interface::interface(const string d, const string n, float _interval):
 	_name = new stringStore(path + "/name.txt");
 	//if (_name->getString() != n and n != "") _name->setString(n); // Commented. JCE, 11-7-13, build 481
 	_name->setString(n);
-	_note = new stringStore(path + "/note.txt");
 	//printf("eind init floatlog\n");
 	interfaces[_descr] = this ;}
 	//printf("eind in initializer\n");}
@@ -148,12 +147,11 @@ interface::~interface(){
 	#ifdef debug
 		printf("Deleting interface %s...\n", _descr.c_str());
 	#endif
-	//interfaces.erase(_descr);
+	interfaces.erase(_descr);
 	for(auto i = ins.begin(); i != ins.end(); i++)
 		delete(i->second);
 
-	_name->~stringStore();
-	_note->~stringStore();
+	delete _name;
 	#ifdef debug
 		printf("Interface %s is deleted\n", _descr.c_str());
 	#endif
@@ -175,8 +173,6 @@ const string interface::getDescriptor(){
 const string interface::getName(){
 	return _name->getString();}
 
-const string interface::getNote(){
-	return _note->getString();}
 
 // Thread per interface
 static void* interface_run_cc(void*);

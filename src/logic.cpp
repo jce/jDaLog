@@ -24,7 +24,6 @@ logic::logic(const string d, const string n) : _descr(d)
 	_name = new stringStore(path + "/name.txt");
 	//if (_name->getString() != n and n != "") _name->setString(n); // Commented. JCE, 11-7-13, build 481
 	_name->setString(n);
-	_note = new stringStore(path + "/note.txt");
 	logics[_descr] = this ;
 }
 
@@ -34,8 +33,7 @@ logic::~logic()
 		printf("Deleting logic %s...\n", _descr.c_str());
 	#endif
 	logics.erase(_descr);
-	_name->~stringStore();
-	_note->~stringStore();
+	delete _name;
 	#ifdef debug
 		printf("Logic %s is deleted\n", _descr.c_str());
 	#endif
@@ -50,13 +48,7 @@ const string logic::getDescriptor(){
 const string logic::getName(){
 	return _name->getString();}
 
-const string logic::getNote(){
-	return _note->getString();}
-
 void logic::run(){}	// JCE, 28-8-13
-
-void logic::setNote(string newNote){
-	_note->setString(newNote);}
 
 string logic::make_page(struct webserver_ctx*)
 {
