@@ -251,7 +251,7 @@ void interface_host::getIns()
 			freeBytes = (double) s.f_frsize * s.f_bfree;
 			i->free->setValue(freeBytes, thisT);
 			i->used->setValue(totalBytes - freeBytes, thisT);
-			i->usedp->setValue( ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100, thisT);
+			i->usedp->setValue( s.f_blocks ? ((double) s.f_blocks - s.f_bfree) / s.f_blocks * 100 : 0, thisT);
 		}
 	}
 	if (_prevT){
@@ -312,7 +312,13 @@ interface_host* interface_host_from_json(const json_t *json )
 	{
 		const char *did = json_string_value(json_object_get(disk_j, "id"));
 		const char *dname = json_string_value(json_object_get(disk_j, "name"));
-		
+		if (!did)
+		{
+			printf("disk %s has no id, skipped\n", path);
+			continue;
+		}
+		if (!dname)
+			dname = path;
 		h->add_disk(path, did, h->getName() + "_" + dname);
 	}
 	return h;

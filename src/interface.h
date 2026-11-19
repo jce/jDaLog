@@ -41,7 +41,6 @@ class interface: public outhost{
 		virtual void setOut(out*, float);	// Intended for being called by out instances. JCE, 16-7-13
 		const std::string getDescriptor();
 		const std::string getName();		// JCE, 20-6-13
-		const std::string getNote();		// JCE, 20-6-13
 		virtual void start();	// Start the thread.  JCE, 28-10-2020
 		virtual void stop();	// Signals the thread(s) to stop. JCE, 28-10-2020
 		virtual void join();	// Joins the thread (waits untill it is really stopped). JCE, 28-10-2020
@@ -52,7 +51,7 @@ class interface: public outhost{
 		std::map<std::string, in*> ins;	// JCE, 23-2-2023
 	private:
 		const std::string _descr;
-		stringStore *_name, *_note; // JCE, 20-6-13
+		stringStore *_name; // JCE, 20-6-13
 		pthread_t thread = 0;
 	};
 

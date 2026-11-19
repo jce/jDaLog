@@ -45,7 +45,7 @@ class logic_modulator: public logic {
 		double last_transition = 0;
 		pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
-		bool d_ttn, d_run, d_so;
+		bool d_ttn = false, d_run = false, d_so = false;
 	friend void logic_modulator_from_json(const char*, const char*, json_t*);
 	};
 

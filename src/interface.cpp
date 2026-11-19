@@ -35,6 +35,11 @@ static size_t http_write(void* buf, size_t size, size_t nmemb, void* userp)
 string get_html_page(const string& url, long timeout)
 {
 	CURL* curl = curl_easy_init();
+	if (!curl)
+	{
+		fprintf(stderr, "get_html_page(%s): curl_easy_init failed\n", url.c_str());
+		return "";
+	}
 
 	string s;
 
@@ -46,7 +51,12 @@ string get_html_page(const string& url, long timeout)
 	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L); // Necessary, for multithreaded applications. Expect SIGPIPE... https://curl.haxx.se/libcurl/c/threadsafe.html JCE, 25-9-2018
 
-	curl_easy_perform(curl);
+	CURLcode res = curl_easy_perform(curl);
+	if (res != CURLE_OK)
+	{
+		fprintf(stderr, "get_html_page(%s): %s\n", url.c_str(), curl_easy_strerror(res));
+		s.clear();
+	}
 	curl_easy_cleanup(curl);
 
 	return s;
@@ -139,7 +149,6 @@ interface::interface(const string d, const string n, float _interval):
 	_name = new stringStore(path + "/name.txt");
 	//if (_name->getString() != n and n != "") _name->setString(n); // Commented. JCE, 11-7-13, build 481
 	_name->setString(n);
-	_note = new stringStore(path + "/note.txt");
 	//printf("eind init floatlog\n");
 	interfaces[_descr] = this ;}
 	//printf("eind in initializer\n");}
@@ -148,12 +157,11 @@ interface::~interface(){
 	#ifdef debug
 		printf("Deleting interface %s...\n", _descr.c_str());
 	#endif
-	//interfaces.erase(_descr);
+	interfaces.erase(_descr);
 	for(auto i = ins.begin(); i != ins.end(); i++)
 		delete(i->second);
 
-	_name->~stringStore();
-	_note->~stringStore();
+	delete _name;
 	#ifdef debug
 		printf("Interface %s is deleted\n", _descr.c_str());
 	#endif
@@ -175,8 +183,6 @@ const string interface::getDescriptor(){
 const string interface::getName(){
 	return _name->getString();}
 
-const string interface::getNote(){
-	return _note->getString();}
 
 // Thread per interface
 static void* interface_run_cc(void*);

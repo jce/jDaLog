@@ -383,9 +383,8 @@ int main()
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		delete i->second;
 	
-    // Remove manual / webin inputs.
-	for (auto wi = webinmap.begin(); wi != webinmap.end(); wi++)
-		delete(wi->second);
+	while (!webinmap.empty())
+		delete webinmap.begin()->second;	// ~webin erases itself from webinmap
 
 #ifdef HAVE_MARIA
 	mysql_library_end();

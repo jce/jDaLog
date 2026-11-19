@@ -27,6 +27,9 @@ webin::webin(const string d, const string n, const string u, const unsigned int 
 
 webin::~webin()
 {
+	webinmap_mutex.lock();
+	webinmap.erase(getDescriptor());
+	webinmap_mutex.unlock();
 }
 
 void webin::setValue(float v, double t)
