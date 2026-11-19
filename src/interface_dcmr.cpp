@@ -44,6 +44,11 @@ static size_t writeCallback(void* buf, size_t size, size_t nmemb, void* userp)
 string get_https_page(const string& url, long timeout) // Make sure https is in the url. JCE, 19-9-2018
 {
 	CURL* curl = curl_easy_init();
+	if (!curl)
+	{
+		fprintf(stderr, "get_https_page(%s): curl_easy_init failed\n", url.c_str());
+		return "";
+	}
 
 	string s;
 
@@ -55,7 +60,12 @@ string get_https_page(const string& url, long timeout) // Make sure https is in 
 	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 	// curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L); // Do not verify the host
 	// curl_easy_setopt(curl, CURLOPT_SSL_VERIFYHOST, 0L); // Do not verify hostname on certificate
-	curl_easy_perform(curl);
+	CURLcode res = curl_easy_perform(curl);
+	if (res != CURLE_OK)
+	{
+		fprintf(stderr, "get_https_page(%s): %s\n", url.c_str(), curl_easy_strerror(res));
+		s.clear();
+	}
 	curl_easy_cleanup(curl);
 
 	return s;
@@ -139,7 +149,10 @@ void interface_dcmr::run()
 		double urlfrom = 1000 * head, urlto = 1000 * (head + dt);
 		string url = "https://rtm.flighttracking.casper.aero/?/timeline&urls[0]=%2Fnmt%2Fupdates%2F&from=" + to_string(urlfrom) + "&upto=" + to_string(urlto);
 		DBG("%s", url.c_str());
-		string page = get_https_page(url, interval);
+		long curl_timeout = (long) interval;
+		if (curl_timeout > 30) curl_timeout = 30;	// cap: a hung connection must not block the thread (and join()) for a whole scan interval
+		if (curl_timeout < 1) curl_timeout = 1;
+		string page = get_https_page(url, curl_timeout);
 		//DBG("Page size: %ld", page.size());
 		json_t *json = json_loads(page.c_str(), 0, NULL);
 

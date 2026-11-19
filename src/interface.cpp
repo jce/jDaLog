@@ -35,6 +35,11 @@ static size_t http_write(void* buf, size_t size, size_t nmemb, void* userp)
 string get_html_page(const string& url, long timeout)
 {
 	CURL* curl = curl_easy_init();
+	if (!curl)
+	{
+		fprintf(stderr, "get_html_page(%s): curl_easy_init failed\n", url.c_str());
+		return "";
+	}
 
 	string s;
 
@@ -46,7 +51,12 @@ string get_html_page(const string& url, long timeout)
 	curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 	curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L); // Necessary, for multithreaded applications. Expect SIGPIPE... https://curl.haxx.se/libcurl/c/threadsafe.html JCE, 25-9-2018
 
-	curl_easy_perform(curl);
+	CURLcode res = curl_easy_perform(curl);
+	if (res != CURLE_OK)
+	{
+		fprintf(stderr, "get_html_page(%s): %s\n", url.c_str(), curl_easy_strerror(res));
+		s.clear();
+	}
 	curl_easy_cleanup(curl);
 
 	return s;
