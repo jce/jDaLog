@@ -19,6 +19,7 @@ using namespace std;
 
 in_equation::in_equation(string d, equation *_eq, string n, string u, const unsigned int de) : in(d, n, u, de), eq(_eq) 
 {
+    in_eq_list.push_back(this);
 	eq->register_callback_on_update( cc_in_equation_call_on_equation_result_update, this );
 	eq->register_callback_on_change( cc_in_equation_call_on_equation_result_change, this );
 	eq->register_callback_on_turn_invalid( cc_in_turn_invalid, this );
@@ -51,6 +52,7 @@ void in_equation::call_on_turn_valid()
 	setValue(eq->get_value().value, now());
 }
 
+list<in_equation*> in_eq_list;
 
 void build_in_equations(json_t *input_data)
 {

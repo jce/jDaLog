@@ -7,6 +7,7 @@
 #include "sys/time.h" // gettimeofday(()
 #include "stringStore.h"
 #include <map>
+#include <cmath>
 
 using namespace std;
 
@@ -59,48 +60,18 @@ in::~in()
 	cb_free(&on_turn_invalid);
 	cb_free(&on_turn_valid);
 
-	#ifdef debug
-		printf("Destroying %s ...remove self from inmap: %s\nInmap contains: ", _descr.c_str(), _descr.c_str());
-		fflush(stdout);
-		for (map<string,in*>::iterator i=inmap.begin(); i!=inmap.end(); ++i){
-			printf("%s ", i->first.c_str());
-			fflush(stdout);
-			}
-		printf("\n");
-		fflush(stdout);
-	#endif
 	inmap_mutex.lock();	
 	inmap.erase(_descr);
 	inmap_mutex.unlock();	
-	#ifdef debug
-		printf("Destroying %s ...destroying floatLog\n", _descr.c_str());
-		fflush(stdout);
-	#endif
 	//_logger->~floatLog();
 	delete _logger; // JCE, 30-12-13
-	#ifdef debug
-		printf("Destroying %s ...destroying stringStore\n", _descr.c_str());
-		fflush(stdout);
-	#endif
 	//_units->~stringStore();
 	delete _units;
-	#ifdef debug
-		printf("Destroying %s ...destroying another stringStore\n", _descr.c_str());
-		fflush(stdout);
-	#endif
 	//_name->~stringStore();
 	delete _name;
-	#ifdef debug
-		printf("Destroying %s ...destroying a third stringStore\n", _descr.c_str());
-		fflush(stdout);
-	#endif
 	//_note->~stringStore();
 	delete _note;
-	#ifdef debug
-		printf("In %s destroyed\n", _descr.c_str());
-		fflush(stdout);
-	#endif
-	}
+}
 
 void in::setValue(float v, double t)
 {
@@ -270,3 +241,65 @@ void in::unregister_callback_on_update(void (*f)(void*), void *p)		{cb_remove(&o
 void in::unregister_callback_on_change(void (*f)(void*), void *p)		{cb_remove(&on_change, f, p);}
 void in::unregister_callback_on_turn_invalid(void (*f)(void*), void *p)	{cb_remove(&on_turn_invalid, f, p);}
 void in::unregister_callback_on_turn_valid(void (*f)(void*), void *p)	{cb_remove(&on_turn_valid, f, p);}
+
+
+// Get a number of records from the in, invalid records are encoded as NaNs. Delimited by either to or num.
+void in::getDataOrNaN(deque<record>& rv, double from, double to, unsigned len)
+{
+    vector<record> data;
+    _logger->readFromToLen(data, from, to, len+1); // +1 for we get a free preamble.
+
+    // Catch empty data
+    if (data.size() < 1) { rv.push_back({from, NAN}); return; }
+
+    // data[0] is the one datapoint before from, we got for free from readFromToLen.
+    // Well, no promise its from before from.
+    double prevt = data[0].t;
+    for (const auto& r : data)
+    {
+        // Test if previously a data invalidation occurred
+        if (prevt + valid_time < r.t)
+            rv.push_back({prevt+valid_time, NAN});
+        rv.push_back(r);
+
+        // Store the previous time
+        prevt = r.t;
+    }
+
+    // Catch no preamble case
+    if (rv[0].t > from)
+        rv.push_front({from, NAN});
+
+    // Limit the preamble to from
+    record first = rv[0];
+    while (rv.size())
+    {
+        if (rv[0].t <= from)
+        {
+            first = rv[0];
+            rv.pop_front();
+        }
+        else    // r > from
+        {
+            first.t = from;
+            rv.push_front(first);
+            break;
+        }    
+    }
+
+    // The records can be exhausted
+    if (rv.empty())
+    {
+        first.t = from;
+        rv.push_back(first);
+    }
+
+    // Limit the number of records. All NAN records are introduced, can push out data records.
+    while (rv.size() > len)
+        rv.pop_back();
+}
+
+
+
+
+

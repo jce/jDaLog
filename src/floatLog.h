@@ -40,6 +40,7 @@ class floatLog
 
 		// Read series
 		void readFromTo(std::map<double, float> &, double, double);		 // return map, first record time, last record time
+		void readFromToLen(std::vector<record>&, double from, double to, unsigned maxlen);
 		void getRecords(std::map<double, float> &m, size_t s, size_t l); // return map, first record number, last record number
 
 		// Read all
@@ -90,8 +91,10 @@ class floatLog
 		record read_last_from_file_unlocked();
 		record last = {0, 0};
         
-        void start_iteration(double, double);   // Start an iteration range. Only call once at a time.
+        void start_iteration(double, double);   // Start an iteration range. Only call once at a time. Starts one record before from.
         bool next_iteration(double &, float &);   // Next iteration step, agnostic to source (disk/ram) Must be called untill returns false.
+        void stop_iteration();  // Instead of waiting for next_iteration to turn false, call this!
+
         void switch_to_mem();
         pthread_mutex_t iterationMutex = PTHREAD_MUTEX_INITIALIZER;
         size_t istop, istart, iremain;

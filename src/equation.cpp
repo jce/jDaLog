@@ -125,7 +125,7 @@ void equation::eval()
 
 void equation::in_updates()
 {
-	eval();	// An source mighe emit an on_update before on_change. A receiver can already use the value on on_update.
+	eval();	// An source might emit an on_update before on_change. A receiver can already use the value on on_update.
 	DBG("Calling on_update callbacks");
 	cb_call(on_update);
 }

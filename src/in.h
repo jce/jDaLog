@@ -5,6 +5,7 @@
 #include <mutex>
 #include "stdio.h"
 #include <string>
+#include <deque>
 
 #include "callback.h"
 #include "floatLog.h"
@@ -44,6 +45,9 @@ class in{
 		void getRecords(map<double, float> &, size_t, size_t);	// JCE, 5-7-13 
 		// getDataSummary is a semi-draconic function to get a data summary (min, avg, max, samples-in-bin) without creating a list or map with every intermediate value. Should result in saving of memory and processor time. double 1 is the start-time, double 2 the end-time. 
 		virtual void getDataSummary(vector<flStat>&, unsigned, double, double);
+
+        // Get a number of records from the in, invalid records are encoded as NaNs. Delimited by either to or num.
+        void getDataOrNaN(std::deque<record>&, double from, double to, unsigned num);
 		void importData();		// JCE, 18-7-13, JCE, should kick the floatLogger into importing data from some configured filenames.
 		void touch();			// JCE, 28-8-13, makes a new measurement point, equal to the previous value.
 		void set_valid_time(float);	// Sets the time for what the measurement remains valid.

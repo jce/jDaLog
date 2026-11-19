@@ -273,7 +273,11 @@ void prune_all_in_files()
 	printf("Binary data file pruning complete.\n");
 }
 
-int main(){
+int main()
+{
+    // Output buffering
+    setvbuf(stdout, nullptr, _IOLBF, 0); // Or _IONBF for per character.
+    
 	// Signal handler
 	struct sigaction sa;
 	sa.sa_handler = &handle_signal;
@@ -366,12 +370,20 @@ int main(){
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		i->second->join();
 
+
+    // Remove all virtual ins
+    for (auto ie = in_eq_list.rbegin(); ie != in_eq_list.rend(); ie++)
+        delete *ie;
+    in_eq_list.clear();
+
 	// Stops all jobs, including those from interfaces.
 	jos_delete_pool(pool);
 
+    // Remove all interfaces. These will remove their respective in/outs.
 	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
 		delete i->second;
 	
+    // Remove manual / webin inputs.
 	for (auto wi = webinmap.begin(); wi != webinmap.end(); wi++)
 		delete(wi->second);
 

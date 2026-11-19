@@ -145,6 +145,19 @@ void floatLog::readFromTo(map<double, float> &data, double from, double to)
 	FOR_ALL( if (t >= from and t <= to) data[t] = v; );
 }	
 
+void floatLog::readFromToLen(std::vector<record> &data, double from, double to, unsigned maxlen)
+{
+    start_iteration(from, to);
+    unsigned len = 0;
+    double t;
+    float v;
+    bool rv;
+    while ( len < maxlen and (rv = next_iteration(t, v)) )
+        data.push_back({t,v});
+    if (rv)
+        stop_iteration();
+}
+
 // Read one value at a specific time. Take the last previous for this value. JCE, 19-6-2019
 bool floatLog::get_value_at(double time, float &value, double &valtime)
 {
@@ -164,6 +177,7 @@ void floatLog::switch_to_mem()
         rtf = recordsToFile.begin();
     }
 
+// Starts one record before from.
 void floatLog::start_iteration(double from, double to)
 {
     pthread_mutex_lock(&iterationMutex);
@@ -219,6 +233,19 @@ bool floatLog::next_iteration(double &t, float &v)   // Next iteration step, agn
     return false;
 }
 
+// Instead of waiting for next_iteration to turn false, call this!
+void floatLog::stop_iteration()
+{
+    if (fp)
+    {
+        fclose(fp);
+        fp = 0;
+        pthread_mutex_unlock(&fileMutex);
+    }
+    else
+        pthread_mutex_unlock(&memMutex);
+    pthread_mutex_unlock(&iterationMutex);
+}
 
 // function to make a summary of the measurement data without using overhead memory and time to 
 // create a list or map with all measurement values.

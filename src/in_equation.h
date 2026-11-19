@@ -4,13 +4,14 @@
 #include "equation.h"
 #include "in.h"
 
+#include <list>
+
 // This is an calculated in. Typically a top level object. It is constructed after interface ins.
 // JCE, 6-3-2022
 
 
 class in_equation: public in{
 	public:
-		//in(const string); // descr
 		in_equation(const std::string, equation *_eq, const std::string name = "", const std::string units = "", const unsigned int decimals = 0); // descr, name, units, decimals in floating point representation.
 		~in_equation();		
 
@@ -28,5 +29,8 @@ class in_equation: public in{
 
 // Feed this the part of the config.json that contains the array with in_equation descriptions.
 void build_in_equations(json_t *json);
+
+// List of in_equations in the order of constructing. Usefull for cleanup.
+extern std::list<in_equation*> in_eq_list;
 
 #endif // HAVE_IN_EQUATION_H

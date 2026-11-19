@@ -1121,6 +1121,32 @@ string make_in_list_page()
 	return rv;
 }
 
+string make_eqin_list_page()
+{
+	string rv = make_header(10);
+	rv += "<h2>List of virtual in's</h2>";
+	map<string, in*> nameSortedMap;
+	for(auto i = in_eq_list.begin(); i != in_eq_list.end(); i++)
+		nameSortedMap[(*i)->getName()] = *i;
+	for(auto i = nameSortedMap.begin(); i != nameSortedMap.end(); i++)
+	{
+		if (i->second->hidden)
+			continue;
+		string link = "/in/" + i->second->getDescriptor();
+		string linkhtml = make_link(link, i->second->getName());
+		if (not i->second->isValid()) 
+			rv += "<span style=\"background-color:red\">";
+		char buf[32];
+		snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+		rv += linkhtml + ": " + buf + " " + i->second->getUnits();
+		if (not i->second->isValid()) 
+			rv += "</span>";
+		rv += "<br>\n";	
+	}
+	rv += make_footer();
+	return rv;
+}
+
 string webserver::make_webin_page(string webinName, const map<string, string> &postdata)
 {
     webin *i = get_webin(webinName);
@@ -1409,6 +1435,7 @@ string make_root_page()
 	string rv = make_header();
 	rv += make_link("/in", "inputs") + "<br>";
 	rv += make_link("/webin", "web inputs") + "<br>";
+	rv += make_link("/eqin", "virtual inputs") + "<br>";
 	rv += make_link("/out", "outputs") + "<br>";
 	rv += make_link("/manout", "outputs in manual mode") + "<br>";
 	rv += make_link("/logic", "logics") + "<br>";
@@ -1517,6 +1544,15 @@ enum MHD_Result webserver::handle_request
 		s = make_webin_list_page();
 	if (!strncmp(url, "/webin/", 7))
         s = make_webin_page(url+7, postdata);
+
+	if (!strcmp(url, "/eqin") or !strcmp(url, "/eqin/"))
+		s = make_eqin_list_page();
+	if (!strncmp(url, "/eqin/", 6))
+    {
+        in *i = get_in(string(url+6));
+        if (i)
+            s = make_in_page(i);
+    }
 
 	if (!strcmp(url, "/out") or !strcmp(url, "/out/"))
 		s = make_out_list_page();

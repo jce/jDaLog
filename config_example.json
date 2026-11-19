@@ -108,7 +108,7 @@
 			"type":"host",
 			"id":"host",
 			"name":"Host",
-			"scan":1
+			"scan":1,
 			"disks":
 			{
 				"/mnt/sam":	{"id":"sam","name":"sam"	},
@@ -228,6 +228,11 @@
 			"decimals":2
 		}
 	],	
+    "in_equation":
+    {
+        "soc":{"name":"Marstek SOC", "expr":"a + b + c", "var":{"a":"mt1_1_soc", "b":"mt2_1_soc", "c":"mt3_1_soc"}},
+        "tk":{"name":"Temperature ketel", "expr":"(a + b) / 2", "var":{"a":"2B_kbt", "b":"2B_kmt"}}
+    },
 	"logic":
 	[
 		{
