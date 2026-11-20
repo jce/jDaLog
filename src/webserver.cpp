@@ -28,8 +28,8 @@
 #include <vector>
 #include <charconv>
 
-//#define DBG(...) {printf(__VA_ARGS__); printf("\n");}
-#define DBG(...)
+#define DBG(...) {printf(__VA_ARGS__); printf("\n");}
+//#define DBG(...)
 
 using namespace std;
 
@@ -41,7 +41,7 @@ static bool is_safe_url_name(const string &s)
 	if (s.empty() or s.size() > 500)
 		return false;
 	for (char c : s)
-		if (! (isalnum((unsigned char) c) or c == '.' or c == '_' or c == '-' or c == '+' or c == '/'))
+		if (! (isalnum((unsigned char) c) or c == '.' or c == '_' or c == '-' or c == '+' or c == '/' or c == ' ' or c == ':'))
 			return false;
 	size_t start = 0;
 	while (start < s.size())
