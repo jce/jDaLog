@@ -15,10 +15,10 @@
 
 using namespace std;
 
-//#define DBG(...) printf(__VA_ARGS__);printf("\n");
+//#define DBG(...) {printf(__VA_ARGS__);printf("\n");}
 #define DBG(...)
 
-const unsigned int BLKSIZE = 4096;
+const unsigned int BLKSIZE = 262144;
 
 // In version that derives its value from an equation. Equations use only constants and ins.
 
@@ -59,7 +59,11 @@ void in_equation::getDataSummary(vector<flStat> &stats, unsigned int bins, doubl
         if (records.size() == 0)
         {
             if (more)
+            {
                 more = getDataOrNaN(records, t, to, BLKSIZE);
+                for (unsigned i = 0; i < records.size(); i++)
+                    DBG("Rec %d: t=%f, v=%f", i, records[i].t, records[i].v);
+            }     
             else // 0 records, not more
                 lastrun = true;
         }
@@ -137,9 +141,8 @@ void in_equation::getDataSummary(vector<flStat> &stats, unsigned int bins, doubl
 		if (stats[i].t)
         {
 			stats[i].avg = stats[i].avg / stats[i].t;
-            DBG("bin: %i, samples: %i, min: %f, avg: %f, max: %f\n", i, stats[i].nr, stats[i].min, stats[i].avg, stats[i].max);
+            DBG("bin: %i, samples: %i, min: %f, avg: %f, max: %f", i, stats[i].nr, stats[i].min, stats[i].avg, stats[i].max);
         }
-
 }
 
 bool in_equation::getDataOrNaN(deque<record> &records, double from, double to, unsigned num)
@@ -163,7 +166,11 @@ bool in_equation::getDataOrNaN(deque<record> &records, double from, double to, u
         {
             
             if (cache[i].size() == 0 and more[i])
+            {
                 more[i] = vardes[i].i->getDataOrNaN(cache[i], t, to, BLKSIZE);
+                for (unsigned j = 0; j < cache[i].size(); j++)
+                    DBG("Rec %d: t=%f, v=%f", j, cache[i][j].t, cache[i][j].v);
+            }
             DBG("%s cache[%u].size() = %lu more = %i", _descr.c_str(), i, cache[i].size(), (int) more[i]);
         }
         

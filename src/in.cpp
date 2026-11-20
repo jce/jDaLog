@@ -11,7 +11,7 @@
 
 using namespace std;
 
-//#define DBG(...) printf(__VA_ARGS__);printf("\n");
+//#define DBG(...) {printf(__VA_ARGS__);printf("\n");}
 #define DBG(...)
 
 // Implementation of class in. In should give an uniform representation of inputs for tcFarmControl. I assume to use it later for both visualisation and as generic origin of information for internal logics. The in should also allow for "simple" enumeration and finding of any of the inputs. To be done by an in-map or list with search function. JCE, 19-6-13
@@ -259,6 +259,7 @@ bool in::getDataOrNaN(deque<record>& rv, double from, double to, unsigned len)
         return more; 
     }
 
+    // Translate all input (data) to outputs (rv), injecting NANs for timeouts.
     // data[0] is the one datapoint before from, we got for free from readFromToLen.
     // Well, no promise its from before from.
     double prevt = data[0].t;
@@ -277,6 +278,12 @@ bool in::getDataOrNaN(deque<record>& rv, double from, double to, unsigned len)
     if (rv[0].t > from)
         rv.push_front({from, NAN});
 
+    // Catch case where the data series would end with a NAN, but dont.
+    double t = rv[rv.size()-1].t;
+    float v = rv[rv.size()-1].v;
+    if (not more and t+valid_time < to and not isnan(v))
+        rv.push_back({t+valid_time, NAN});
+
     // Limit the preamble to from
     record first = rv[0];
     while (rv.size())
@@ -294,18 +301,25 @@ bool in::getDataOrNaN(deque<record>& rv, double from, double to, unsigned len)
             break;
         }    
     }
-
-    // The records can be exhausted
+        
+    // The records can be exhausted  
     if (rv.empty())
     {
-        first.t = from;
-        rv.push_back(first);
+        if (first.t + valid_time >= from and not isnan(first.v))
+        {    
+            rv.push_back({from, first.v});   // verse hold: waarde geldt nog
+            if (first.t + valid_time < to)
+                rv.push_back({first.t + valid_time, NAN});
+        }
+        else
+            rv.push_back({from, NAN});       // verlopen of onbekend
     }
+
 
     // Limit the number of records. All NAN records are introduced, can push out data records.
     while (rv.size() > len)
         rv.pop_back();
-    DBG("len: %u, size: %lu", len, rv.size());
+    DBG("len requested: %u, size delivered: %lu", len, rv.size());
     return more;
 }
 
