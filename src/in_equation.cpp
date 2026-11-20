@@ -11,6 +11,7 @@
 #include "stringStore.h"
 #include <cmath>
 #include <deque>
+#include <climits>
 
 using namespace std;
 
@@ -199,6 +200,14 @@ bool in_equation::getDataOrNaN(deque<record> &records, double from, double to, u
     return true;
 }
 
+void in_equation::getData(map<double, float>& data, double from, double to)
+{
+    deque<record> records;
+    getDataOrNaN(records, from, to, INT_MAX);
+    for (auto r : records)
+        if (!isnan(r.v))
+            data[r.t] = r.v;
+}    
 //void in_equation::call_on_equation_result_update(){ updateValue(); }
 //void in_equation::call_on_equation_result_change(){ updateValue(); }
 //void in_equation::call_on_turn_valid(){             updateValue(); }

@@ -21,7 +21,8 @@ class in_equation: public in{
 
         bool getDataOrNaN(std::deque<record>&, double from, double to, unsigned num);
 		void getDataSummary(vector<flStat>&, unsigned int size, double from, double to);
-
+        void getData(map<double, float>& data, double from, double to);
+    
 		//void call_on_equation_result_update(); 	CC(in_equation, call_on_equation_result_update); 
 		//void call_on_equation_result_change(); 	CC(in_equation, call_on_equation_result_change); 
 		//void call_on_turn_valid();			 	CC(in_equation, call_on_turn_valid); 
