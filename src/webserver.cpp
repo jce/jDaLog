@@ -353,19 +353,22 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					if (iwdli->stats[i].t > 0) // Changed from ".nr". JCE, 7-11-2026
 					{
 						iwdli->haveData = true;
-						if (yi->haveData == false)
-						{
-							yi->ymin = iwdli->stats[i].min;
-							yi->ymax = iwdli->stats[i].max;
-							yi->haveData = true;
-						}
-						else
-						{
-							if (yi->ymin > iwdli->stats[i].min)
-								yi->ymin = iwdli->stats[i].min;
-							if (yi->ymax < iwdli->stats[i].max)
-								yi->ymax = iwdli->stats[i].max;
-						}									
+                        if (!isnan(iwdli->stats[i].min) and !isnan(iwdli->stats[i].max))
+                        {
+						    if (yi->haveData == false)
+						    {
+							    yi->ymin = iwdli->stats[i].min;
+							    yi->ymax = iwdli->stats[i].max;
+							    yi->haveData = true;
+						    }
+						    else
+						    {
+							    if (yi->ymin > iwdli->stats[i].min)
+								    yi->ymin = iwdli->stats[i].min;
+							    if (yi->ymax < iwdli->stats[i].max)
+								    yi->ymax = iwdli->stats[i].max;
+						    }
+                        }									
 					}
 				}
 			}
@@ -592,19 +595,22 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 					if (iwdli->stats[i].t > 0)
 					{
 						iwdli->haveData = true;
-						if (yi->haveData == false)
+                        if (!isnan(iwdli->stats[i].min) and !isnan(iwdli->stats[i].max))
 						{
-							yi->ymin = iwdli->stats[i].min;
-							yi->ymax = iwdli->stats[i].max;
-							yi->haveData = true;
-						}
-						else
-						{
-							if (yi->ymin > iwdli->stats[i].min)
-								yi->ymin = iwdli->stats[i].min;
-							if (yi->ymax < iwdli->stats[i].max)
-								yi->ymax = iwdli->stats[i].max;
-						}									
+                            if (yi->haveData == false)
+						    {
+							    yi->ymin = iwdli->stats[i].min;
+							    yi->ymax = iwdli->stats[i].max;
+							    yi->haveData = true;
+						    }
+						    else
+						    {
+							    if (yi->ymin > iwdli->stats[i].min)
+								    yi->ymin = iwdli->stats[i].min;
+							    if (yi->ymax < iwdli->stats[i].max)
+								    yi->ymax = iwdli->stats[i].max;
+						    }
+                        }									
 					}
 				}
 			}

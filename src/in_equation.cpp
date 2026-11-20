@@ -23,7 +23,7 @@ const unsigned int BLKSIZE = 4096;
 
 in_equation::in_equation(string d, string n, string u, const unsigned int de) : in(d, n, u, de) 
 {
-    //in_eq_list.push_back(this);
+    in_eq_list.push_back(this);
 	//eq->register_callback_on_update( cc_in_equation_call_on_equation_result_update, this );
 	//eq->register_callback_on_change( cc_in_equation_call_on_equation_result_change, this );
 	//eq->register_callback_on_turn_invalid( cc_in_turn_invalid, this );
@@ -36,14 +36,115 @@ in_equation::~in_equation()
 	delete eq;
 }
 
-void in_equation::getDataSummary(vector<flStat>&, unsigned int, double, double)
-{}
-
-void in_equation::getDataOrNaN(deque<record> &records, double from, double to, unsigned num)
+void in_equation::getDataSummary(vector<flStat> &stats, unsigned int bins, double from, double to)
 {
+    // As a major sin against the gods of OO, i have copied this from floatLog.cpp.
+    // the in_equation is supposed to not have a floatlog and still needs a summary so
+    // the logic is copied here. JCE, 20-11-2026
+
+    DBG("%s getDataSummary(stats, %u, %f, %f)", _descr.c_str(), bins, from, to);
+    int b;
+	double interval =(( double) to - from) / bins;
+    double t, t1, dur, tcur, tend, binedge, dt;
+    float v, v1, v2, slope, va, vb, lo, hi;
+    bool havetv1 = false, havev2 = false, lastrun = false, more = true;
+    deque<record> records;
+    t = from;
+
+    while (true)
+    {
+        if (lastrun)
+            break;
+        if (records.size() == 0)
+        {
+            if (more)
+                more = getDataOrNaN(records, t, to, BLKSIZE);
+            else // 0 records, not more
+                lastrun = true;
+        }
+        DBG("records.size() = %lu, more = %d", records.size(), more);
+        if (lastrun)
+        {
+            t = to;
+            v = v1;
+        }
+        else // Not lastrun
+        {
+            t = records[0].t;
+            v = records[0].v;
+            records.pop_front();
+        }
+ 
+        if (havetv1) // Only upon reading sample x, do we know the duration for sample x-1.
+        {
+            dur = t-t1;                  // Duration that v1 is valid.
+            tcur = fmax(t1, from);       // Start from within the binrange.
+            tend = fmin(t1+dur, to);     // End at most at the last bin edge.
+            slope = (v - v1) / (t - t1); // Slope of the line
+
+            while (tcur < tend)          // Deposit in all intermediate bins.
+            {
+                b = (int) (( tcur - from ) / interval );
+                if (from + interval * (b+1) <= tcur)
+                    b++;                    // Prevents getting locked on the edge.
+                binedge = from + interval * ( b + 1);
+                dt = fmin(tend, binedge) - tcur;
+                va = v1 + slope * (tcur - t1);
+                vb = v1 + slope * (fmin(tend, binedge) - t1);
+                lo = fmin(va, vb);
+                hi = fmax(va, vb);
+    
+                if (stats[b].t == 0.0)
+                {
+                    stats[b].min = lo;
+                    stats[b].max = hi;
+                }
+                else
+                {
+                    stats[b].min = fmin(stats[b].min, lo);
+                    stats[b].max = fmax(stats[b].max, hi);
+                }
+                    
+                stats[b].avg += 0.5 * (va+vb) *dt;
+                stats[b].t += dt;
+                tcur += dt;
+            }
+
+            if (t1 >= from and t1 < to)
+            {
+                b = (int) ((t1 - from) / interval);
+                stats[b].nr++;      // Count the amount of samples
+                if (havev2)
+                {   
+                    stats[b].pedge += v1 > v2;
+                    stats[b].nedge += v1 < v2;
+                }
+            }
+            v2 = v1;
+            havev2 = true;
+        }
+        v1 = v;
+        t1 = t;
+        havetv1 = true;
+    }
+
+	// Calculate the average
+	for(unsigned i = 0; i<bins; i++)
+		if (stats[i].t)
+        {
+			stats[i].avg = stats[i].avg / stats[i].t;
+            DBG("bin: %i, samples: %i, min: %f, avg: %f, max: %f\n", i, stats[i].nr, stats[i].min, stats[i].avg, stats[i].max);
+        }
+
+}
+
+bool in_equation::getDataOrNaN(deque<record> &records, double from, double to, unsigned num)
+{
+    DBG("%s getDataOrNaN(records, %f, %f, %u)", _descr.c_str(), from, to, num);
     // vector<eqVarDescr> vardes = {descr, i, idx}
     int nrIns = vardes.size();              // Number of ins
     vector<deque<record>> cache(nrIns);     // Intermediate cache
+    vector<bool> more(nrIns, true);         // Is there more for these ins?
     vector<float> var(nrIns, NAN);          // Parameter for eval()
     unsigned count = 0;
 
@@ -52,10 +153,16 @@ void in_equation::getDataOrNaN(deque<record> &records, double from, double to, u
     double lastEmit = -1e300;
     while (t < to and count < num)
     {
+        DBG("t = %f, count = %u", t, count);
         // First, get new data if cache is low
         for (int i = 0; i < nrIns; i++)
-            if (cache[i].size() == 0)
-                vardes[i].i->getDataOrNaN(cache[i], t, to, BLKSIZE);
+        {
+            
+            if (cache[i].size() == 0 and more[i])
+                more[i] = vardes[i].i->getDataOrNaN(cache[i], t, to, BLKSIZE);
+            DBG("%s cache[%u].size() = %lu more = %i", _descr.c_str(), i, cache[i].size(), (int) more[i]);
+        }
+        
         // Find the time of the first next change. Can be t.
         double tnext = to;
         bool any = false;
@@ -66,7 +173,7 @@ void in_equation::getDataOrNaN(deque<record> &records, double from, double to, u
                 if (cache[i][0].t < tnext)
                     tnext = cache[i][0].t;
             }
-        if (!any) return;
+        if (!any) return false;
 
         // Fill var, only the changed
         for (int i = 0; i < nrIns; i++)
@@ -86,6 +193,7 @@ void in_equation::getDataOrNaN(deque<record> &records, double from, double to, u
         lastEmit = tnext;
         t = tnext;
     }
+    return true;
 }
 
 //void in_equation::call_on_equation_result_update(){ updateValue(); }
@@ -102,11 +210,11 @@ bool valueDifferent(float a, float b)
 
 void in_equation::updateValue()
 {
-    DBG("%s.updateValue() called.", _descr.c_str());
+    //DBG("%s.updateValue() called.", _descr.c_str());
     vector<float> var;
     for (auto v: vardes)
     {
-        DBG("%s: %p", v.descr.c_str(), v.i);
+        //DBG("%s: %p", v.descr.c_str(), v.i);
         if (v.i->isValid())
             var.push_back( v.i->getValue() );
         else
@@ -116,7 +224,7 @@ void in_equation::updateValue()
     _value = eq->eval(var);
     _isValid = not isnan(_value);
     _time = now();
-    DBG("%s: val %f, time %f", _descr.c_str(), _value, _time);
+    //DBG("%s: val %f, time %f", _descr.c_str(), _value, _time);
 
 	cb_call(on_update);
 	if (valueDifferent(prev, _value))

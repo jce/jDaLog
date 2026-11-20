@@ -11,7 +11,7 @@
 
 using namespace std;
 
-//#define DBG(...) printf(__VA_ARGS__);
+//#define DBG(...) printf(__VA_ARGS__);printf("\n");
 #define DBG(...)
 
 // Implementation of class in. In should give an uniform representation of inputs for tcFarmControl. I assume to use it later for both visualisation and as generic origin of information for internal logics. The in should also allow for "simple" enumeration and finding of any of the inputs. To be done by an in-map or list with search function. JCE, 19-6-13
@@ -244,13 +244,20 @@ void in::unregister_callback_on_turn_valid(void (*f)(void*), void *p)	{cb_remove
 
 
 // Get a number of records from the in, invalid records are encoded as NaNs. Delimited by either to or num.
-void in::getDataOrNaN(deque<record>& rv, double from, double to, unsigned len)
+bool in::getDataOrNaN(deque<record>& rv, double from, double to, unsigned len)
 {
+    DBG("%s getDataOrNaN(records, %f, %f, %u)", _descr.c_str(), from, to, len);
     vector<record> data;
     _logger->readFromToLen(data, from, to, len+1); // +1 for we get a free preamble.
+    bool more = data.size() == (len+1);
 
     // Catch empty data
-    if (data.size() < 1) { rv.push_back({from, NAN}); return; }
+    if (data.size() < 1) 
+    {
+        DBG("Found empty data"); 
+        rv.push_back({from, NAN}); 
+        return more; 
+    }
 
     // data[0] is the one datapoint before from, we got for free from readFromToLen.
     // Well, no promise its from before from.
@@ -283,6 +290,7 @@ void in::getDataOrNaN(deque<record>& rv, double from, double to, unsigned len)
         {
             first.t = from;
             rv.push_front(first);
+            DBG("Break");
             break;
         }    
     }
@@ -297,9 +305,7 @@ void in::getDataOrNaN(deque<record>& rv, double from, double to, unsigned len)
     // Limit the number of records. All NAN records are introduced, can push out data records.
     while (rv.size() > len)
         rv.pop_back();
+    DBG("len: %u, size: %lu", len, rv.size());
+    return more;
 }
-
-
-
-
 

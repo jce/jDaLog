@@ -19,7 +19,7 @@ class in_equation: public in{
 		in_equation(const in_equation& obj_temp) = delete;
 		in_equation& operator=(const in_equation& temp_obj) = delete;
 
-        void getDataOrNaN(std::deque<record>&, double from, double to, unsigned num);
+        bool getDataOrNaN(std::deque<record>&, double from, double to, unsigned num);
 		void getDataSummary(vector<flStat>&, unsigned int size, double from, double to);
 
 		//void call_on_equation_result_update(); 	CC(in_equation, call_on_equation_result_update); 
