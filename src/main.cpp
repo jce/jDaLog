@@ -380,8 +380,8 @@ int main()
 	jos_delete_pool(pool);
 
     // Remove all interfaces. These will remove their respective in/outs.
-	for(map<string, interface*>::iterator i = interfaces.begin(); i != interfaces.end(); i++)
-		delete i->second;
+	while (!interfaces.empty())
+		delete interfaces.begin()->second;	// ~interface erases itself from interfaces
 	
 	while (!webinmap.empty())
 		delete webinmap.begin()->second;	// ~webin erases itself from webinmap
