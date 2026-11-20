@@ -104,9 +104,12 @@ void in_equation::getDataSummary(vector<flStat> &stats, unsigned int bins, doubl
                     stats[b].min = fmin(stats[b].min, lo);
                     stats[b].max = fmax(stats[b].max, hi);
                 }
-                    
-                stats[b].avg += 0.5 * (va+vb) *dt;
-                stats[b].t += dt;
+                
+                if (!isnan(va) and !isnan(vb))
+                {
+                    stats[b].avg += 0.5 * (va+vb) *dt;
+                    stats[b].t += dt;
+                }
                 tcur += dt;
             }
 
