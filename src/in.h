@@ -47,7 +47,7 @@ class in{
 		virtual void getDataSummary(vector<flStat>&, unsigned, double, double);
 
         // Get a number of records from the in, invalid records are encoded as NaNs. Delimited by either to or num.
-        bool getDataOrNaN(std::deque<record>&, double from, double to, unsigned num);
+        virtual bool getDataOrNaN(std::deque<record>&, double from, double to, unsigned num);
 		void importData();		// JCE, 18-7-13, JCE, should kick the floatLogger into importing data from some configured filenames.
 		void touch();			// JCE, 28-8-13, makes a new measurement point, equal to the previous value.
 		void set_valid_time(float);	// Sets the time for what the measurement remains valid.
