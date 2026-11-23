@@ -8,7 +8,7 @@
 
 #include "in.h"
 
-enum eqOp { INIT, CONST, IN, ADD, SUB, MUL, DIV, IF, MIN, MAX, AVG };
+enum eqOp { INIT, CONST, IN, ADD, SUB, MUL, DIV, IF, MIN, MAX, AVG, AND, OR, XOR, NOT, ME, EQ, LE, NE, MORE, LESS };
 
 typedef struct s_eqVarDescr
 {

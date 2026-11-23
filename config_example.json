@@ -230,10 +230,11 @@
 	],	
     "in_equation":
     {
-      "soc": { "name":"Marstek SOC", "decimals":1, "eq":["avg", "mt1_1_soc", "mt2_1_soc", "mt3_1_soc"]},
-      "tk": {  "name":"Temperature ketel", "decimals":2, "unit":"degC", "eq":["div", ["add", "2B_kbt", "2B_kmt"], 2 ]},
-      "tb": {  "name":"Temperature buiten", "decimals":2, "unit":"degC", "eq":["div", ["add", "2B_abRa", ["mul", "2B_bt", 2]], 3 ]},
-      "tbmb": {"name":"Temp binnen - buiten", "decimals":2, "unit":"degC", "eq":["sub", "2B_tl", "tb"]}
+        "_operators in equations can be": ["add/sum", "sub", "mul", "div", "if", "min", "max", "avg", "and", "or", "xor", "not/!", "me/>=", "eq/==", "le/<=", "ne/!=/<>", "more/>", "less/<"],
+        "soc": { "name":"Marstek SOC", "decimals":1, "eq":["avg", "mt1_1_soc", "mt2_1_soc", "mt3_1_soc"]},
+        "tk": {  "name":"Temperature ketel", "decimals":2, "unit":"degC", "eq":["div", ["add", "2B_kbt", "2B_kmt"], 2 ]},
+        "tb": {  "name":"Temperature buiten", "decimals":2, "unit":"degC", "eq":["div", ["add", "2B_abRa", ["mul", "2B_bt", 2]], 3 ]},
+        "tbmb": {"name":"Temp binnen - buiten", "decimals":2, "unit":"degC", "eq":["sub", "2B_tl", "tb"]}
     },
 	"logic":
 	[

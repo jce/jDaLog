@@ -19,8 +19,10 @@ float eqNode::eval(const vector<float> &var)
 {
     bool first = true;
     bool condition = false;
+    bool rv = false;
     float tot = 0.0;
     float v = 0.0;
+    float v2 = 0.0;
     switch(op)
     {
     case INIT:
@@ -116,6 +118,64 @@ float eqNode::eval(const vector<float> &var)
         for (auto c: children)
             tot += c->eval(var);
         return tot/children.size();
+    case AND:
+        for (auto c: children)
+        {
+            v = c->eval(var);
+            if (isnan(v)) return NAN;
+            rv |= (v < 0.5);
+        }
+        return float(!rv);
+    case OR:
+        for (auto c: children)
+        {
+            v = c->eval(var);
+            if (isnan(v)) return NAN;
+            rv |= (v >= 0.5);
+        }
+        return float(rv);
+    case XOR:
+        for (auto c: children)
+        {
+            v = c->eval(var);
+            if (isnan(v)) return NAN;
+            rv ^= (v >= 0.5);
+        }
+        return float(rv);
+    case NOT:
+        v = children[0]->eval(var);
+        if (isnan(v)) return NAN;
+        return float(v < 0.5);
+    case ME:
+        v =  children[0]->eval(var);
+        v2 = children[1]->eval(var);
+        if (isnan(v) or isnan(v2)) return NAN;
+        return float(v >= v2);
+    case EQ:
+        v =  children[0]->eval(var);
+        v2 = children[1]->eval(var);
+        if (isnan(v) or isnan(v2)) return NAN;
+        return float(v == v2);
+    case LE:
+        v =  children[0]->eval(var);
+        v2 = children[1]->eval(var);
+        if (isnan(v) or isnan(v2)) return NAN;
+        return float(v <= v2);
+    case NE:
+        v =  children[0]->eval(var);
+        v2 = children[1]->eval(var);
+        if (isnan(v) or isnan(v2)) return NAN;
+        return float(v != v2);
+    case MORE:
+        v =  children[0]->eval(var);
+        v2 = children[1]->eval(var);
+        if (isnan(v) or isnan(v2)) return NAN;
+        return float(v > v2);
+    case LESS:
+        v =  children[0]->eval(var);
+        v2 = children[1]->eval(var);
+        if (isnan(v) or isnan(v2)) return NAN;
+        return float(v < v2);     
     }
     return NAN;
 }
@@ -124,6 +184,20 @@ eqNode* eqFromJson(json_t *json, std::vector<eqVarDescr>& vardes)
 {
     eqNode *node;
     DBG("eqFromJson(...) called.");
+    if (json_is_true(json))
+    {
+        node = new eqNode();
+        node->op = CONST;
+        node->cval = 1.0;
+        return node;
+    }
+    if (json_is_false(json))
+    {
+        node = new eqNode();
+        node->op = CONST;
+        node->cval = 0.0;
+        return node;
+    }         
     if (json_is_number(json))
     {
         node = new eqNode();
@@ -171,7 +245,7 @@ eqNode* eqFromJson(json_t *json, std::vector<eqVarDescr>& vardes)
                     return nullptr;
                 }
                 str = json_string_value(value);
-                if (string(str) == "add")   op = ADD;    
+                if (string(str) == "add" || string(str) == "sum")   op = ADD;    
                 if (string(str) == "sub")   op = SUB;    
                 if (string(str) == "mul")   op = MUL;    
                 if (string(str) == "div")   op = DIV;    
@@ -179,11 +253,31 @@ eqNode* eqFromJson(json_t *json, std::vector<eqVarDescr>& vardes)
                 if (string(str) == "min")   op = MIN;    
                 if (string(str) == "max")   op = MAX;    
                 if (string(str) == "avg")   op = AVG;
+                if (string(str) == "and")   op = AND;
+                if (string(str) == "or")   op = OR;
+                if (string(str) == "xor")   op = XOR;
+                if (string(str) == "not"|| string(str) == "!")   op = NOT;
+                if (string(str) == "me"|| string(str) == ">=")   op = ME;
+                if (string(str) == "eq"|| string(str) == "==")   op = EQ;
+                if (string(str) == "le"|| string(str) == "<=")   op = LE;
+                if (string(str) == "ne"|| string(str) == "!="|| string(str) == "<>")   op = NE;
+                if (string(str) == "more"|| string(str) == ">")   op = MORE;
+                if (string(str) == "less"|| string(str) == "<")   op = LESS;
                 if (op == INIT)
                 {
                     fprintf(stderr, "Equation: could not determine function: %s\n", str);
                     return nullptr;
-                }        
+                }
+                if (op == NOT && size != 2)
+                {
+                    fprintf(stderr, "not operator can only have one operand\n");
+                    return nullptr;                   
+                }
+                if (((op == ME) || (op == EQ) || (op == LE) || (op == NE) || (op == MORE) || (op == LESS)) && size != 3)
+                {
+                    fprintf(stderr, ">=, ==, <=, !=, >, < operators require exactly two operands\n");
+                    return nullptr;                   
+                }                
             }
             else
             {
