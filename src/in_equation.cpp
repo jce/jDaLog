@@ -49,7 +49,7 @@ void in_equation::getDataSummary(vector<flStat> &stats, unsigned int bins, doubl
     int b;
 	double interval =(( double) to - from) / bins;
     double t, t1, dur, tcur, tend, binedge, dt;
-    float v, v1, v2, slope, va, vb, lo, hi;
+    float v = NAN, v1 = NAN, v2, slope, va, vb, lo, hi;
     bool havetv1 = false, havev2 = false, lastrun = false, more = true;
     deque<record> records;
     t = from;
@@ -77,9 +77,12 @@ void in_equation::getDataSummary(vector<flStat> &stats, unsigned int bins, doubl
         }
         else // Not lastrun
         {
-            t = records[0].t;
-            v = records[0].v;
-            records.pop_front();
+            if (records.size())
+            {
+                t = records[0].t;
+                v = records[0].v;
+                records.pop_front();
+            }
         }
  
         if (havetv1) // Only upon reading sample x, do we know the duration for sample x-1.
@@ -112,7 +115,7 @@ void in_equation::getDataSummary(vector<flStat> &stats, unsigned int bins, doubl
                     stats[b].max = fmax(stats[b].max, hi);
                 }
                 
-                if (!isnan(va) and !isnan(vb))
+                if (!isnan(va) && !isnan(vb))
                 {
                     stats[b].avg += 0.5 * (va+vb) *dt;
                     stats[b].t += dt;
@@ -120,7 +123,7 @@ void in_equation::getDataSummary(vector<flStat> &stats, unsigned int bins, doubl
                 tcur += dt;
             }
 
-            if (t1 >= from and t1 < to)
+            if (t1 >= from && t1 < to)
             {
                 b = (int) ((t1 - from) / interval);
                 stats[b].nr++;      // Count the amount of samples
