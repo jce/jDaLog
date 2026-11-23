@@ -3,6 +3,7 @@
 #include "git_header.h"
 #include "in.h"
 #include "in_equation.h"
+#include "eq.h"
 #include "logic.h"
 #include "main.h"
 #include "out.h"
@@ -875,6 +876,7 @@ string make_link(string url, string text )
 
 string make_in_link(in* i, const string text) 	{ 	return make_link("/in/" + i->getDescriptor(), text);			}
 string make_in_link(in* i)					 	{	return make_link("/in/" + i->getDescriptor(), i->getName());	}
+string make_eqin_link(in* i)				 	{	return make_link("/eqin/" + i->getDescriptor(), i->getName());	}
 string make_webin_link(in* i, const string text){	return make_link("/webin/" + i->getDescriptor(), text);			}
 string make_out_link(out* o)					{	return make_link("/out/" + o->getDescriptor(), o->getName());	}
 string make_in_link_or_constant(in* i)			{	if (!i)	return "constant";	return make_in_link(i);				}
@@ -932,6 +934,201 @@ string webserver::make_in_page(in *i)
 		rv += "this in is valid<br>\n";
 	else
 		rv += "this in is invalid<br>\n";
+
+	//in_equation *ie = dynamic_cast<in_equation*>(i);
+	//if (ie)
+	//{
+	//	rv += make_equation_section(ie->eq);
+	//}
+
+	rv += make_image_line(i, now() - 3600, now(), def_w, def_h);
+	rv += make_image_line(i, now() - 24*3600, now(), def_w, def_h);
+	rv += make_image_line(i, now() - 7*243600, now(), def_w, def_h);
+	rv += make_image_line(i, now() - 4*7*243600, now(), def_w, def_h);
+
+	char from[32], to[32];
+	double tnow = now();
+	write_human_time(from, tnow-24*3600);
+	write_human_time(to, tnow);
+	rv += make_link(string("/graphs/cyclic+hour+") + i->getDescriptor() + "+" + from + "+" + to + "+2000+600", "cyclic graph last day per hour");
+	rv += "<br>\n";
+
+	write_human_time(from, tnow-7*24*3600);
+	rv += make_link(string("/graphs/cyclic+day+") + i->getDescriptor() + "+" + from + "+" + to + "+2000+600", "cyclic graph last week per day");
+	rv += "<br>\n";
+
+	write_human_time(from, tnow-4*7*24*3600);
+	rv += make_link(string("/graphs/cyclic+day+") + i->getDescriptor() + "+" + from + "+" + to + "+2000+600", "cyclic graph last month per day");
+	rv += "<br>\n";
+	
+	write_human_time(from, tnow-4*7*24*3600);
+	rv += make_link(string("/graphs/cyclic+week+") + i->getDescriptor() + "+" + from + "+" + to + "+2000+600", "cyclic graph last month per week");
+	rv += "<br>\n";	
+	
+	rv += "A section of log data can be viewed as a list. Append /table/ or /table_h/(from)/(to) to the url. The times can be unix timestamps or human readable date/time: dd-mm-yyyy hh:mm:ss.<br>";
+	rv += "A graph of a section of log data can be generated. Append /graph/(from)/(to)[/w/h] to the url. From and to can be unix timestamps or human readable time/date.<br>";
+	rv += "Data can be removed from the dataset (takes some time) with /remove_(time_from, time_to, time_from_to, value_over, value_under, value_between)/(number or human readable datetime[/number or human readable datetime]. Removes data including the given limit(s)<br>";
+
+	// footer
+	rv += make_footer();
+	return rv;
+}
+
+string eq_to_string(const eqNode *n, const vector<eqVarDescr> &vardes)
+{
+    string rv;
+    bool first = true;
+    const vector<const eqNode*> children = n->getChildren();
+    switch(n->getOp())
+    {
+        case INIT:
+            break;
+        case CONST:
+            {
+                char buf[32];
+                snprintf(buf, sizeof(buf), "%g", n->getCval());
+                return buf;
+            }
+        case IN:
+            {
+                bool found;
+                in *i = vardes[n->getIdx()].i;
+                ineqmap_mutex.lock();
+                found = in_eq_map.count(i->getDescriptor());
+                ineqmap_mutex.unlock();
+                if (found)
+                    return make_eqin_link(i);
+                return make_in_link(i);
+            }
+        case ADD:
+            rv += "( ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first)  rv += " + ";
+                rv += eq_to_string((*i), vardes);
+                if (first)   first = false;
+            }
+            return rv + " )";
+        case SUB:
+            rv += "( ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first)  rv += " - ";
+                rv += eq_to_string((*i), vardes);
+                if (first)   first = false;
+            }
+            return rv + " )";
+        case MUL:
+            rv += "( ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first)  rv += " * ";
+                rv += eq_to_string((*i), vardes);
+                if (first)   first = false;
+            }
+            return rv + " )";
+        case DIV:
+            rv += "( ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first)  rv += " / ";
+                rv += eq_to_string((*i), vardes);
+                if (first)   first = false;
+            }
+            return rv + " )";
+        case IF:
+            rv += "if " + eq_to_string(children[0], vardes) + " then " + eq_to_string(children[1], vardes);
+            if (children.size() >= 3) rv += " else " + eq_to_string(children[2], vardes);
+            return rv;
+        case MIN:
+            rv += "(min ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first) rv += ", ";
+                rv += eq_to_string((*i), vardes);
+                if (first)  first = false;
+            }
+            return rv + " )";
+        case MAX:
+            rv += "(max ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first) rv += ", ";
+                rv += eq_to_string((*i), vardes);
+                if (first)  first = false;
+            }
+            return rv + " )";
+        case AVG:
+            rv += "(avg ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first) rv += ", ";
+                rv += eq_to_string((*i), vardes);
+                if (first)  first = false;
+            }
+            return rv + " )";
+        case AND:
+            rv += "( ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first)  rv += " and ";
+                rv += eq_to_string((*i), vardes);
+                if (first)   first = false;
+            }
+            return rv + " )";
+        case OR:
+            rv += "( ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first)  rv += " or ";
+                rv += eq_to_string((*i), vardes);
+                if (first)   first = false;
+            }
+            return rv + " )";
+        case XOR:
+            rv += "( ";
+            for (auto i = children.begin(); i != children.end(); i++)
+            {
+                if (!first)  rv += " xor ";
+                rv += eq_to_string((*i), vardes);
+                if (first)   first = false;
+            }
+            return rv + " )";
+        case NOT:
+            return "not " + eq_to_string(children[0], vardes);
+        case ME:
+            return "( " + eq_to_string(children[0], vardes) + " >= " + eq_to_string(children[1], vardes) + " )";
+        case EQ:
+            return "( " + eq_to_string(children[0], vardes) + " == " + eq_to_string(children[1], vardes) + " )";
+        case LE:
+            return "( " + eq_to_string(children[0], vardes) + " <= " + eq_to_string(children[1], vardes) + " )";
+        case NE:
+            return "( " + eq_to_string(children[0], vardes) + " != " + eq_to_string(children[1], vardes) + " )";
+        case MORE:
+            return "( " + eq_to_string(children[0], vardes) + " > " + eq_to_string(children[1], vardes) + " )";
+        case LESS:
+            return "( " + eq_to_string(children[0], vardes) + " < " + eq_to_string(children[1], vardes) + " )";
+        case ABS:
+            return "(abs " + eq_to_string(children[0], vardes) + " )";
+    }
+    return "!Error displaying the equation!";
+}
+
+string webserver::make_ineq_page(in_equation *i)
+{
+	string rv = make_header(60);
+	rv += "<h2>In page: " + i->getName() + "</h2>\n";
+	rv += "short name: " + i->getDescriptor() + "<br>\n";
+	char buf[32];
+	snprintf(buf, 32, "%.*f", i->getDecimals(), i->getValue());
+	rv += string("last value: ") + buf + " " + i->getUnits() + "<br>\n";
+	// The validity of this measurement
+	if (i->isValid())
+		rv += "this in is valid<br>\n";
+	else
+		rv += "this in is invalid<br>\n";
+
+    rv += eq_to_string(i->getEq(), i->getVardes()) + "<br>\n";
 
 	//in_equation *ie = dynamic_cast<in_equation*>(i);
 	//if (ie)
@@ -1130,14 +1327,16 @@ string make_eqin_list_page()
 {
 	string rv = make_header(10);
 	rv += "<h2>List of virtual in's</h2>";
-	map<string, in*> nameSortedMap;
-	for(auto i = in_eq_list.begin(); i != in_eq_list.end(); i++)
-		nameSortedMap[(*i)->getName()] = *i;
+	map<string, in_equation*> nameSortedMap;
+    ineqmap_mutex.lock();
+    for (auto i = in_eq_map.begin(); i != in_eq_map.end(); i++)
+		nameSortedMap[i->second->getName()] = i->second;
+    ineqmap_mutex.unlock(); 
 	for(auto i = nameSortedMap.begin(); i != nameSortedMap.end(); i++)
 	{
 		if (i->second->hidden)
 			continue;
-		string link = "/in/" + i->second->getDescriptor();
+		string link = "/eqin/" + i->second->getDescriptor();
 		string linkhtml = make_link(link, i->second->getName());
 		if (not i->second->isValid()) 
 			rv += "<span style=\"background-color:red\">";
@@ -1554,9 +1753,9 @@ enum MHD_Result webserver::handle_request
 		s = make_eqin_list_page();
 	if (!strncmp(url, "/eqin/", 6))
     {
-        in *i = get_in(string(url+6));
+        in_equation *i = getInEq(string(url+6));
         if (i)
-            s = make_in_page(i);
+            s = make_ineq_page(i);
     }
 
 	if (!strcmp(url, "/out") or !strcmp(url, "/out/"))

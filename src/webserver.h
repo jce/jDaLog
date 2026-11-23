@@ -3,6 +3,7 @@
 
 #include <microhttpd.h>
 #include <pthread.h>
+#include "in_equation.h"
 
 class webserver
 {
@@ -23,6 +24,7 @@ class webserver
 		pthread_mutex_t request_counter_mutex = PTHREAD_MUTEX_INITIALIZER;
 		std::string webroot = "http";
 		std::string make_in_page(in*);
+		std::string make_ineq_page(in_equation*);
 		std::string make_webin_page(std::string, const map<string, string> &);
 		std::string make_logic_page(std::string);
 		std::string make_out_page(std::string, const map<string, string> &);

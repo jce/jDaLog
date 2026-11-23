@@ -8,7 +8,7 @@
 
 #include "in.h"
 
-enum eqOp { INIT, CONST, IN, ADD, SUB, MUL, DIV, IF, MIN, MAX, AVG, AND, OR, XOR, NOT, ME, EQ, LE, NE, MORE, LESS };
+enum eqOp { INIT, CONST, IN, ADD, SUB, MUL, DIV, IF, MIN, MAX, AVG, AND, OR, XOR, NOT, ME, EQ, LE, NE, MORE, LESS, ABS };
 
 typedef struct s_eqVarDescr
 {
@@ -27,6 +27,10 @@ public:
 	eqNode();
 	~eqNode();
     float eval(const std::vector<float>&);
+    eqOp getOp() const;
+    float getCval() const;
+    unsigned getIdx() const;
+    std::vector<const eqNode*> getChildren() const;
 private:
     eqOp op = CONST;
     float cval = 0.0;   // Constant for CONST op

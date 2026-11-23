@@ -28,10 +28,13 @@ class in_equation: public in{
 		//void call_on_turn_valid();			 	CC(in_equation, call_on_turn_valid); 
 		//void call_on_turn_invalid();			CC(in_equation, call_on_turn_invalid); 
         void updateValue();                     CC(in_equation, updateValue);
+
+        const std::vector<eqVarDescr> getVardes();
+        const eqNode* getEq();
     private:
-        void registerCallbacks();
         std::vector<eqVarDescr> vardes;
-        eqNode *eq;        
+        eqNode *eq;  
+        void registerCallbacks();
     friend void buildInEquations(json_t *json);
 	};
 
@@ -39,6 +42,8 @@ class in_equation: public in{
 void buildInEquations(json_t *json);
 
 // List of in_equations in the order of constructing. Usefull for cleanup.
-extern std::list<in_equation*> in_eq_list;
+extern mutex ineqmap_mutex;
+extern std::map<std::string, in_equation*> in_eq_map;
+in_equation* getInEq(std::string);
 
 #endif // HAVE_IN_EQUATION_H

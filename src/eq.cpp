@@ -175,10 +175,20 @@ float eqNode::eval(const vector<float> &var)
         v =  children[0]->eval(var);
         v2 = children[1]->eval(var);
         if (isnan(v) or isnan(v2)) return NAN;
-        return float(v < v2);     
+        return float(v < v2);   
+    case ABS:
+        v =  children[0]->eval(var);
+        if (v < 0)
+            return -v;
+        return v;
     }
     return NAN;
 }
+
+eqOp eqNode::getOp() const { return op; }
+float eqNode::getCval() const { return cval; }
+unsigned eqNode::getIdx() const { return idx; }
+vector<const eqNode*> eqNode::getChildren() const { return {children.begin(), children.end()}; }
 
 eqNode* eqFromJson(json_t *json, std::vector<eqVarDescr>& vardes)
 {
@@ -257,20 +267,21 @@ eqNode* eqFromJson(json_t *json, std::vector<eqVarDescr>& vardes)
                 if (string(str) == "or")   op = OR;
                 if (string(str) == "xor")   op = XOR;
                 if (string(str) == "not"|| string(str) == "!")   op = NOT;
-                if (string(str) == "me"|| string(str) == ">=")   op = ME;
+                if (string(str) == "ge"|| string(str) == ">=")   op = ME;
                 if (string(str) == "eq"|| string(str) == "==")   op = EQ;
                 if (string(str) == "le"|| string(str) == "<=")   op = LE;
                 if (string(str) == "ne"|| string(str) == "!="|| string(str) == "<>")   op = NE;
-                if (string(str) == "more"|| string(str) == ">")   op = MORE;
-                if (string(str) == "less"|| string(str) == "<")   op = LESS;
+                if (string(str) == "more"|| string(str) == "gt" || string(str) == ">")   op = MORE;
+                if (string(str) == "less"|| string(str) == "lt" || string(str) == ">")   op = LESS;
+                if (string(str) == "abs")   op = ABS;
                 if (op == INIT)
                 {
                     fprintf(stderr, "Equation: could not determine function: %s\n", str);
                     return nullptr;
                 }
-                if (op == NOT && size != 2)
+                if (((op == NOT) or (op == ABS)) && size != 2)
                 {
-                    fprintf(stderr, "not operator can only have one operand\n");
+                    fprintf(stderr, "not and abs operator can only have one operand\n");
                     return nullptr;                   
                 }
                 if (((op == ME) || (op == EQ) || (op == LE) || (op == NE) || (op == MORE) || (op == LESS)) && size != 3)

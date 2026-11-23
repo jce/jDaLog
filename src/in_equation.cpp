@@ -24,7 +24,9 @@ const unsigned int BLKSIZE = 262144;
 
 in_equation::in_equation(string d, string n, string u, const unsigned int de) : in(d, n, u, de) 
 {
-    in_eq_list.push_back(this);
+    ineqmap_mutex.lock();
+    in_eq_map[d] = this;
+    ineqmap_mutex.unlock();
 	//eq->register_callback_on_update( cc_in_equation_call_on_equation_result_update, this );
 	//eq->register_callback_on_change( cc_in_equation_call_on_equation_result_change, this );
 	//eq->register_callback_on_turn_invalid( cc_in_turn_invalid, this );
@@ -265,7 +267,22 @@ void in_equation::registerCallbacks()
     }
 }
 
-list<in_equation*> in_eq_list;
+const vector<eqVarDescr> in_equation::getVardes() { return vardes; }
+const eqNode* in_equation::getEq() { return eq; }
+
+mutex ineqmap_mutex;
+map<string, in_equation*> in_eq_map;
+
+in_equation* getInEq(string name)
+{   
+    in_equation* rv = 0;
+    ineqmap_mutex.lock();
+    if(in_eq_map.count(name) == 1)
+        rv = in_eq_map[name];
+    ineqmap_mutex.unlock();
+    return rv;
+}
+
 
 void buildInEquations(json_t *input_data)
 {

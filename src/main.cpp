@@ -372,9 +372,10 @@ int main()
 
 
     // Remove all virtual ins
-    for (auto ie = in_eq_list.rbegin(); ie != in_eq_list.rend(); ie++)
-        delete *ie;
-    in_eq_list.clear();
+    for (auto i = in_eq_map.begin(); i != in_eq_map.end(); i++)
+    {
+        delete i->second;
+    }
 
 	// Stops all jobs, including those from interfaces.
 	jos_delete_pool(pool);
