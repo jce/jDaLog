@@ -1268,13 +1268,20 @@ string json_summary(in *i, unsigned bins, double from, double to)
 // In list as json
 string make_in_list_json()
 {
+    float v;
     string rv = "{\n";
     for (auto i = inmap.begin(); i != inmap.end(); i++)
     {
         rv += "\"" + i->second->getDescriptor() + "\":{\"name\":\"" + i->second->getName() + "\", \"value\":";
         char buf[32];
-        snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
-        rv += buf;
+        v = i->second->getValue();
+        if (isnan(v))
+            rv += "0";
+        else
+        {
+            snprintf(buf, 32, "%.*f", i->second->getDecimals(), v);
+            rv += buf;
+        }
         rv += ", \"time\":";
         snprintf(buf, 32, "%.3f", i->second->getTime());
         rv += buf;
