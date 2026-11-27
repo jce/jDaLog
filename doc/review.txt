@@ -106,8 +106,12 @@ LOW — still open / won't fix without more info:
   interface_fijnstof.cpp:78  FIXED: nr_samples now set from the page's "Huidige data" seconds
                        value (== sample count at 1 Hz) instead of always logging 0.
   in.cpp:44            bogus in(uint8_t,...) ctor is actually used by in_from_dir.cpp:34 — kept.
-  callback.c           callback lists have no locking; safe only because registration happens
-                       at startup. Fixing properly means locking in cb_add/cb_remove/cb_call.
+  callback.c           FIXED: each list now owns a mutex in its (opaque) head; cb_add/
+                       cb_remove/cb_free mutate under it, cb_call snapshots the subscribers
+                       under it and invokes them after unlocking (concurrent cb_call on
+                       different ins never block each other; callbacks may re-enter the
+                       API without deadlock). No call-site changes were needed. Verified
+                       with 200 concurrent POSTs -> no crash, values consistent.
   interface_S7.cpp:211 CLOSED — not a bug: the planner covers it. At config time the read
                        block is extended to include the validbyte (start = min(byte, validbyte),
                        end = max(byte+len-1, validbyte), interface_S7.cpp:436-441), the schedule

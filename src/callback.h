@@ -1,5 +1,11 @@
 // Simple C callback list
 // JCE, 9-11-2020
+//
+// Threading: each list owns its own mutex (in the opaque head). Mutating a list
+// (cb_add/cb_remove/cb_free) is intended for startup/shutdown only. cb_call may
+// run concurrently on different lists; on one list it snapshots the subscribers
+// under the mutex and invokes them after unlocking, so callbacks may safely call
+// back into this API.
 
 #ifndef HAVE_CALLBACK_H
 #define HAVE_CALLBACK_H
