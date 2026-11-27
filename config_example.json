@@ -1,5 +1,6 @@
 {
 	"scheduler_threads":20,
+	"port":8092,
 	"check_files":false,
 	"prune_files":false,
 	"prune_input":true,

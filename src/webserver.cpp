@@ -87,6 +87,20 @@ static void run_execvp(const vector<string> &args)
 }
 
 
+// Parse a float from user-supplied (POST) data without throwing.
+// stof() throws invalid_argument / out_of_range on bad input; uncaught in the
+// MHD callback that is std::terminate, so validate with strtof instead.
+static bool safe_stof(const string &s, float &out)
+{
+	char *end = nullptr;
+	errno = 0;
+	float v = strtof(s.c_str(), &end);
+	if (end == s.c_str() or errno == ERANGE)
+		return false;
+	out = v;
+	return true;
+}
+
 webserver::webserver(string n, uint16_t t, uint16_t p): name(n), threads(t), port(p)
 {
 	daemon = NULL;
@@ -469,7 +483,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 			}
 		}
 		plotline += "\n";
-		fprintf(fp, plotline.c_str());
+		fputs(plotline.c_str(), fp);	// not fprintf(fp, plotline...): plotline may contain '%'
 
 		for(yi=y_axes.begin(); yi!=y_axes.end(); yi++)
 		{
@@ -718,7 +732,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 			}
 		}
 		plotline += "\n";
-		fprintf(fp, plotline.c_str());
+		fputs(plotline.c_str(), fp);	// not fprintf(fp, plotline...): plotline may contain '%'
 
 		// Data content
 		for(auto yi=y_axes.begin(); yi!=y_axes.end(); yi++)
@@ -1365,8 +1379,12 @@ string webserver::make_webin_page(string webinName, const map<string, string> &p
 		return "No webin with that name.";
 	
 	if (postdata.find("value") != postdata.end())
-		i->setValue(stof(postdata.at("value")));
-	
+	{
+		float v;
+		if (safe_stof(postdata.at("value"), v))
+			i->setValue(v);
+	}
+
     string rv = make_header(60);
 	rv += "<h2>Web in page: " + i->getName() + "</h2>\n";
 	rv += "short name: " + i->getDescriptor() + "<br>\n";
@@ -1461,7 +1479,11 @@ string webserver::make_out_page(string outName, const map<string, string> &postd
 			if (postdata.at("set") == "manual: 1")
 				o->setManOut(1);
 			if (postdata.at("set") == "manual:" and (postdata.find("setv") != postdata.end()))
-				o->setManOut(stof(postdata.at("setv")));
+			{
+				float v;
+				if (safe_stof(postdata.at("setv"), v))
+					o->setManOut(v);
+			}
 		}
 	}
     
@@ -1706,10 +1728,14 @@ enum MHD_Result webserver::handle_request
                 if (strncmp(slash2, "/year.json", 10) == 0)
                     s = json_fromto(i, now() - 3600*24*365, now());
                 
-                long unsigned from, to;
-                unsigned bins;
-                if (sscanf(slash2, "/summary_%ld_%ld_%d.json", &from, &to, &bins) == 3)
-                    s = json_summary(i, bins, from, to);
+                long long fromll = 0, toll = 0;
+                long binsl = 0;
+                // Parse into signed temporaries and range-check: "%d" into an unsigned
+                // with a negative value in the URL would become a huge vector in
+                // json_summary -> uncaught bad_alloc -> std::terminate in the MHD callback.
+                if (sscanf(slash2, "/summary_%lld_%lld_%ld.json", &fromll, &toll, &binsl) == 3
+                    and binsl >= 1 and binsl <= 100000 and fromll >= 0 and toll >= fromll)
+                    s = json_summary(i, (unsigned) binsl, (double) fromll, (double) toll);
             }
 		
 			// http://a.b.c.d/in/in-name/table/ *end*

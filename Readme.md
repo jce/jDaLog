@@ -65,7 +65,7 @@ Copy the config_example.json to config.json, modify as required
 
 Start with ./start.sh
 
-Open the url "http://localhost:8092"
+Open the url "http://localhost:8092" (or the port set with `"port"` in config.json; default 8092)
 
 ## Recommended Postbuild steps:
 

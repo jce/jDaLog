@@ -49,7 +49,7 @@ using namespace std;
 
 // The main.cpp file. This file serves as incubator for new additions / components. JCE, 17-6-13
 
-bool run(true);
+volatile sig_atomic_t run = true;	// written by the signal handler, polled by the main loop
 bool prune_input = false;
 jos_pool *pool;
 
@@ -338,7 +338,21 @@ int main()
 	bool prune_files = json_is_true(json_object_get(json, "prune_files"));
 	prune_input = json_is_true(json_object_get(json, "prune_input"));
 
-	webserver *ws = new webserver("gui", 2, 8092);
+	// Server port; default 8092, override with "port" in config.json (useful to run
+	// a second, test instance next to a production one).
+	int webserver_port = 8092;
+	json_t *port_j = json_object_get(json, "port");
+	if (json_is_integer(port_j))
+	{
+		int p = json_integer_value(port_j);
+		if (p >= 1 and p <= 65535)
+			webserver_port = p;
+		else
+			printf("config.json: \"port\" %d out of range 1..65535, using %d\n", p, webserver_port);
+	}
+
+	webserver *ws = new webserver("gui", 2, webserver_port);
+	printf("Webserver gui will listen on port %d\n", webserver_port);
 	
 	ws->start();
 	
@@ -356,7 +370,7 @@ int main()
 
 	usleep(100000);
 	printf("running... (press control+C to stop)\n");
-	while(run){sleep(1000);}
+	while(run){sleep(1);}	// sleep(1000) + SA_RESTART could hang shutdown for ~16 minutes
 	printf("shutting down...\n");
 	run = false;
 	ws->stop();

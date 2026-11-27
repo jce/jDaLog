@@ -47,7 +47,8 @@ interface_macp::interface_macp(const string d, const string n, float i, const st
 		logic_mac = new logic_mac_c(getDescriptor(), getName(), found_new_mac, macs_auto);
 		// Data is stored in #define tcDataDir + /in/ then in a dir.
 		// Try and reconstruct any mac_ to in's 
-		for( auto& p: filesystem::directory_iterator(dataDir "in/"))
+		std::error_code ec;	// A missing dataDir"in/" must not throw at startup.
+		for( auto& p: filesystem::directory_iterator(dataDir "in/", ec))
 			if (p.is_directory())
 			{
 				string stem = p.path().stem().string();

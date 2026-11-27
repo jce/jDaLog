@@ -22,8 +22,9 @@ using namespace std;
 void read_ins_from_dir(const char* dir, const char* prefix)
 {
 	// Data is stored in dir/descriptor/floatlog.bin
-	// Try and reconstruct any descriptors 
-	for( auto& p: filesystem::directory_iterator(dir))
+	// Try and reconstruct any descriptors
+	std::error_code ec;	// A missing dir must not throw (uncaught -> std::terminate at startup).
+	for( auto& p: filesystem::directory_iterator(dir, ec))
 		if (p.is_directory())
 		{
 			string descr = p.path().stem().string();
