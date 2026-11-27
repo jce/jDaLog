@@ -103,8 +103,8 @@ LOW — FIXED in the uncommitted WT round:
                        circulac tcgetattr return now checked (close+retry on failure).
   webserver.h, job_sched.h  dead declarations make_note / jos_printn removed.
 LOW — still open / won't fix without more info:
-  interface_fijnstof.cpp:78  nr_samples always logs 0; the parse target (new_nr_samples) does
-                       not exist in the code — needs the real device page format to fix.
+  interface_fijnstof.cpp:78  FIXED: nr_samples now set from the page's "Huidige data" seconds
+                       value (== sample count at 1 Hz) instead of always logging 0.
   in.cpp:44            bogus in(uint8_t,...) ctor is actually used by in_from_dir.cpp:34 — kept.
   callback.c           callback lists have no locking; safe only because registration happens
                        at startup. Fixing properly means locking in cb_add/cb_remove/cb_call.

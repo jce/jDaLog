@@ -75,9 +75,10 @@ void interface_fijnstof::getIns()
 	if (findIntAfter(page, "Huidige data</h4><b>", time_since_last_measurement))
 		if (t - time_since_last_measurement > time_at_last_measurement + 10.0 )
 		{
-			//nr_samples = new_nr_samples;
-			//int time_since_last_measurement;
-			//if (findIntAfter(page, "Huidige data</h4><b>", time_since_last_measurement))
+			// The page's "Huidige data" value is the seconds since the current
+			// measurement started; at the sensor's 1 Hz sample rate that equals
+			// the number of samples in the current average.
+			nr_samples = time_since_last_measurement;
 			{
 				t -= time_since_last_measurement;
 
