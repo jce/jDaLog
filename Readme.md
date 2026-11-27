@@ -53,8 +53,12 @@ cd jDaLog
 mkdir build
 cd build
 cmake ../src
-make -j4
+make
 cd ..
+```
+It is possible to build without Snap7. Use this cmake option:
+```
+cmake ../src -DHAVE_S7=OFF
 ```
 
 Copy the config_example.json to config.json, modify as required
