@@ -17,7 +17,7 @@
 #include <regex>
 #include <filesystem>	// C++17, directory iterator
 
-#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+#define DBG(...)
 //#define DBG(...)
 
 using namespace std;

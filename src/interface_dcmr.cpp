@@ -23,7 +23,7 @@
 #include <curl/curl.h>
 
 //#define DBG(...)
-#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+#define DBG(...)
 
 using namespace std;
 

@@ -24,8 +24,8 @@ CH(Yb) \
 CH(Xc) \
 CH(Yc) 
 
-//#define DBG(...)
-#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }
+#define DBG(...)
+//#define DBG(...) { printf(__VA_ARGS__); printf("\n"); }	// leftover debug define, disabled
 
 using namespace std;
 
@@ -94,7 +94,7 @@ void interface_circulac::run()
     	// O_RDWR read/write, O_RDONLY read only
     	// O_NOCTTY we do not want to be the "controlling terminal"
     	// O_NDELAY we do not care for the DCD (data carrier detect) signal line
-		if (fd <= 0)
+		if (fd < 0)	// fd 0 is a valid descriptor
 		{
 			DBG("opening serial port %s gives error %d: %s", devstr.c_str(), errno, strerror(errno));
 			sleep(RECONNECTTIME);
@@ -106,7 +106,13 @@ void interface_circulac::run()
 			DBG("opening serial port %s opened.", devstr.c_str());
 		}
     	struct termios fd_options;
-    	tcgetattr(fd, &fd_options);
+    	if (tcgetattr(fd, &fd_options) != 0)	// unchecked before: garbage termios on failure
+    	{
+    		fprintf(stderr, "circulac %s: tcgetattr failed: %s\n", devstr.c_str(), strerror(errno));
+    		close(fd);
+    		sleep(RECONNECTTIME);
+    		continue;
+    	}
 
     	// 115200 baud
     	cfsetispeed(&fd_options, B115200);

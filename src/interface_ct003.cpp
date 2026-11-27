@@ -193,7 +193,7 @@ void interface_ct003::ct003_parse_body(const string &body)
 void interface_ct003::getIns()
 {
     int fd = socket(AF_INET, SOCK_DGRAM, 0);
-    if (fd <= 0)
+    if (fd < 0)	// fd 0 is a valid descriptor
     {
         DBG("Opening socket failed.");
         return;

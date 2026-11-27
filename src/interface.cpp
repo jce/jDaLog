@@ -127,7 +127,7 @@ double now_mt()
 	gettimeofday(&tv, NULL);
 	return tv.tv_sec + (double) tv.tv_usec / 1000000;}*/
 
-// Implementation of class in. In should give an uniform representation of inputs for tcFarmControl. I assume to use it later for both visualisation and as generic origin of information for internal logics. The in should also allow for "simple" enumeration and finding of any of the inputs. To be done by an in-map or list with search function. JCE, 19-6-13
+// Implementation of class in. In should give an uniform representation of inputs for jDaLog. I assume to use it later for both visualisation and as generic origin of information for internal logics. The in should also allow for "simple" enumeration and finding of any of the inputs. To be done by an in-map or list with search function. JCE, 19-6-13
 
 
 map<string, interface*> interfaces;

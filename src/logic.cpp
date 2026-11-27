@@ -12,6 +12,7 @@
 using namespace std;
 
 map<string, logic*> logics;
+mutex logics_mutex;
 
 logic::logic(const string d, const string n) : _descr(d) 
 {
@@ -24,7 +25,9 @@ logic::logic(const string d, const string n) : _descr(d)
 	_name = new stringStore(path + "/name.txt");
 	//if (_name->getString() != n and n != "") _name->setString(n); // Commented. JCE, 11-7-13, build 481
 	_name->setString(n);
+	logics_mutex.lock();
 	logics[_descr] = this ;
+	logics_mutex.unlock();
 }
 
 logic::~logic()
@@ -32,7 +35,9 @@ logic::~logic()
 	#ifdef debug
 		printf("Deleting logic %s...\n", _descr.c_str());
 	#endif
+	logics_mutex.lock();
 	logics.erase(_descr);
+	logics_mutex.unlock();
 	delete _name;
 	#ifdef debug
 		printf("Logic %s is deleted\n", _descr.c_str());

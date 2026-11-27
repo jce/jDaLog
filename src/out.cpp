@@ -231,6 +231,17 @@ void out_conf(json_t* json)	// Modifies existing outs by given json.
 			// Program the out. Under the out's mutex: eval_expr() reads these members
 			// from the in-callback threads. Free the previous config first (re-run).
 			pthread_mutex_lock(&o->_mutex);
+			// Unregister the previous config's callbacks first: a re-run would
+			// otherwise register duplicates on the same ins.
+			if (o->vars)
+				for (int i = 0; i < o->nr_vars; i++)
+					if (o->vars[i].i)
+					{
+						o->vars[i].i->unregister_callback_on_update(		out_cb_in_updated, (void*) o);
+						o->vars[i].i->unregister_callback_on_change(		out_cb_in_changed, (void*) o);
+						o->vars[i].i->unregister_callback_on_turn_invalid(	out_cb_in_invalid, (void*) o);
+						o->vars[i].i->unregister_callback_on_turn_valid(		out_cb_in_valid, (void*) o);
+					}
 			if (o->vars)
 				free(o->vars);
 			if (o->expr)

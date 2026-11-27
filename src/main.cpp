@@ -296,7 +296,7 @@ int main()
 #endif // HAVE_MARIA
 
 	// Startup
-	printf("welcome to tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED " (" GIT_SHORT_HASH ")\n");
+	printf("welcome to jDaLog " GIT_SHORT_WORDHASH_WITH_MODIFIED " (" GIT_SHORT_HASH ")\n");
 
 	// Read configuration
     json_t *json;
@@ -306,14 +306,14 @@ int main()
     if (!fp)
     {
         printf("config.json missing.\n");
-        exit(0);
+        exit(1);	// config error must exit non-zero so service managers notice
     }
     json = json_loadf(fp, 0, &error);
     fclose(fp);
     if (not json)
     {
         printf("interpreting config.json failed: %s at position %i (line %i, column %i)\n", error.text, error.position, error.line, error.column);
-        return(0);
+        return 1;
     }
 
 	// Build scheduler pool
@@ -404,7 +404,7 @@ int main()
 	mysql_library_end();
 #endif // HAVE_MARIA
 
-	printf("tcFarmControl " GIT_SHORT_WORDHASH_WITH_MODIFIED " (" GIT_SHORT_HASH ") has shutdown. byebye.\n");
+	printf("jDaLog " GIT_SHORT_WORDHASH_WITH_MODIFIED " (" GIT_SHORT_HASH ") has shutdown. byebye.\n");
 	return 0;
 	}
 

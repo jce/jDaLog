@@ -11,7 +11,7 @@
 #include "math.h" // pow()
 #include "out.h"
 
-#define debug
+//#define debug	// leftover debug define, disabled
 
 using namespace std;
 

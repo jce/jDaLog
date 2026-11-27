@@ -39,7 +39,6 @@ typedef struct webserver_ctx webserver_ctx;
 
 void deleteOldFiles();
 
-std::string make_note(std::string &note);
 std::string make_link(std::string url, std::string text );
 std::string make_in_link(in* i, const std::string text);
 std::string make_in_link(in* i);

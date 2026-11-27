@@ -2,6 +2,7 @@
 #define HAVE_LOGIC_H
 
 #include "stdio.h"
+#include <mutex>
 #include <string>
 #include "stringStore.h"
 #include "out.h"
@@ -26,5 +27,6 @@ class logic: public outhost{
 	};
 
 extern map<string, logic*> logics;
+extern mutex logics_mutex;
 
 #endif // HAVE_LOGIC_H

@@ -1,10 +1,10 @@
 // template file for cmake to make config.h
 
-#define version_major @tcFarmControl_VERSION_MAJOR@
-#define version_minor @tcFarmControl_VERSION_MINOR@
-#define version_patch @tcFarmControl_VERSION_PATCH@
+#define version_major @jDaLog_VERSION_MAJOR@
+#define version_minor @jDaLog_VERSION_MINOR@
+#define version_patch @jDaLog_VERSION_PATCH@
 
-#define version_str "@tcFarmControl_VERSION_MAJOR@.@tcFarmControl_VERSION_MINOR@.@tcFarmControl_VERSION_PATCH@"
+#define version_str "@jDaLog_VERSION_MAJOR@.@jDaLog_VERSION_MINOR@.@jDaLog_VERSION_PATCH@"
 
 #cmakedefine HAVE_S7
 #cmakedefine HAVE_RPI

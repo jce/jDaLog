@@ -29,7 +29,7 @@
 #include <vector>
 #include <charconv>
 
-#define DBG(...) {printf(__VA_ARGS__); printf("\n");}
+#define DBG(...)
 //#define DBG(...)
 
 using namespace std;
@@ -249,7 +249,7 @@ enum MHD_Result dh
 
 void webserver::start()
 {
-	daemon= MHD_start_daemon (MHD_USE_AUTO_INTERNAL_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_THREAD_POOL_SIZE, 4, MHD_OPTION_NOTIFY_COMPLETED, &connection_completed_cb, NULL, MHD_OPTION_END);
+	daemon= MHD_start_daemon (MHD_USE_AUTO_INTERNAL_THREAD, port, NULL, NULL, &dh, this, MHD_OPTION_THREAD_POOL_SIZE, threads, MHD_OPTION_NOTIFY_COMPLETED, &connection_completed_cb, NULL, MHD_OPTION_END);	// use ctor arg, not hardcoded 4
 	DBG("Webserver %s started on port %i", name.c_str(), port);
 }
 
@@ -284,7 +284,7 @@ void fprintt(FILE *fp, double a, float cycle = 0)
 	}
 	else // Cyclic time
 	{
-		int msec = fmod(a * 1000, 1);
+		int msec = (a - floor(a)) * 1000;	// was fmod(a*1000, 1), which is always 0 -> ms always printed 000
 		a = a/ 1;
 		int sec = fmod(a, 60);
 		a = a / 60;
@@ -1330,6 +1330,7 @@ string make_in_list_json()
 {
     float v;
     string rv = "{\n";
+    inmap_mutex.lock();
     for (auto i = inmap.begin(); i != inmap.end(); i++)
     {
         rv += "\"" + json_escape(i->second->getDescriptor()) + "\":{\"name\":\"" + json_escape(i->second->getName()) + "\", \"value\":";
@@ -1357,6 +1358,7 @@ string make_in_list_json()
         rv += i->second->isValid() ? "true" : "false";
         rv += "},\n";
     }
+    inmap_mutex.unlock();
     rv.erase(rv.size() - 2);
     rv += "\n}";
     return rv;
@@ -1369,8 +1371,10 @@ string make_in_list_page()
 	map<string, in*>::iterator i;
 	// Print them sorted on their long, or human readable names. JCE, 16-7-13
 	map<string, in*> nameSortedMap;
+	inmap_mutex.lock();
 	for(i = inmap.begin(); i != inmap.end(); i++)
 		nameSortedMap[i->second->getName()] = i->second;
+	inmap_mutex.unlock();
 	for(i = nameSortedMap.begin(); i != nameSortedMap.end(); i++)
 	{
 		if (i->second->hidden)
@@ -1459,8 +1463,10 @@ string make_webin_list_page()
 	string rv = make_header(10);
 	rv += "<h2>List of webin's</h2>";
 	map<string, webin*> nameSortedMap;
+	webinmap_mutex.lock();
 	for(auto i = webinmap.begin(); i != webinmap.end(); i++)
 		nameSortedMap[i->second->getName()] = i->second;
+	webinmap_mutex.unlock();
 	for(auto i = nameSortedMap.begin(); i != nameSortedMap.end(); i++)
 	{
 		string link = "/webin/" + i->second->getDescriptor();
@@ -1670,9 +1676,11 @@ int make_man_out_list_page(struct mg_connection *conn){
 string webserver::make_logic_page(string logicName)
 {
 	map<string, logic*>:: iterator i;
+	logics_mutex.lock();
 	i = logics.find(logicName);
-	if (i == logics.end()) return "";
-	logic* myLogic = i->second;
+	logic* myLogic = (i == logics.end()) ? NULL : i->second;
+	logics_mutex.unlock();
+	if (!myLogic) return "";
 
 	string rv = make_header(60);
 	rv += "<h2>Logic page: " + myLogic->getName()  + "</h2>\n";
@@ -1697,8 +1705,10 @@ string make_logic_list_page()
 	map<string, logic*>::iterator i;
 	// Print them sorted on their long, or human readable names. JCE, 16-7-13
 	map<string, logic*> nameSortedMap;
+	logics_mutex.lock();
 	for(i = logics.begin(); i != logics.end(); i++)
 		nameSortedMap[i->second->getName()] = i->second;
+	logics_mutex.unlock();
 	for(i = nameSortedMap.begin(); i != nameSortedMap.end(); i++)
 	{
 		string link = "/logic/" + i->second->getDescriptor();

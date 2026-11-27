@@ -57,7 +57,7 @@ void jos_remove(jos_pool*, void (*)(void*), void*);
 
 // Debug
 void jos_print(jos_pool*);
-size_t jos_printn(jos_pool*, char*, size_t);
+// jos_printn declared but never defined - removed
 
 #ifdef __cplusplus
 

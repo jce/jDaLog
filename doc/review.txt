@@ -86,40 +86,42 @@ quoted/backslash names correctly escaped; in_equation computes (wi1=7.25 ->
 eq1=9.25); negative/huge bins and reversed range rejected (no terminate);
 path traversal 403; graphs render valid PNGs; SIGTERM shutdown clean in ~0.02 s
 with an in_equation registered (cleanup loop OK).
-LOW:
-  webserver.cpp:1412,1654  webinmap / logics iterated without their mutexes (only mutated at
-                       startup/shutdown today, so dormant).
-  out.cpp:259          out_conf re-run registers callbacks again without unregistering first
-                       -> duplicate callbacks. Dormant: out_conf is called once at startup.
-  main.cpp:309         config.json missing / parse error exits with exit(0) (should be != 0).
-  main.cpp:299,394     startup/shutdown banner still says "tcFarmControl" (old project name;
-                       also in comments webin.cpp:15, interface.cpp:130, in.cpp:17).
-  webin.cpp:13, interface_fijnstof.cpp:14  "#define debug" left enabled; interface_circulac.cpp:28
-                       DBG(...) enabled — noisy debug output in production.
-  webserver.cpp:241    cyclic-graph milliseconds always print 000 (fmod(a*1000, 1)).
-  webserver.cpp:206    MHD thread pool hardcoded to 4; webserver ctor threads arg ignored.
-  interface_ct003.cpp:196  fd <= 0 treats fd 0 (valid) as error.
-  interface_circulac.cpp:109  tcgetattr return unchecked.
-  interface_fijnstof.cpp:78   nr_samples update commented out -> always logs 0.
-  in.cpp:44            bogus-hack constructor in(uint8_t, ...).
-  webserver.h:42, job_sched.h:60  make_note / jos_printn declared but never defined (only
-                       referenced in a comment).
+LOW — FIXED in the uncommitted WT round:
+  main.cpp             config errors now exit(1)/return 1 (were exit(0)); banner and comments
+                       tcFarmControl -> jDaLog; config.h.in cmake vars fixed (@jDaLog_VERSION_*),
+                       version_str was empty ("..") because project() is jDaLog.
+  webin.cpp, interface_fijnstof.cpp, interface_circulac.cpp, interface_dcmr.cpp,
+  interface_macp.cpp, webserver.cpp  leftover #define debug / printing DBG(...) disabled
+                       (empty define kept where DBG is used) — no more debug spam in logs.
+  webserver.cpp        cyclic-graph ms was fmod(a*1000,1) (always 000) -> (a-floor(a))*1000;
+                       MHD thread pool now uses the ctor threads arg (was hardcoded 4).
+  webserver.cpp        inmap/webinmap/logics iterations in list pages and lookups now take
+                       inmap_mutex/webinmap_mutex/logics_mutex (new mutex in logic.h/.cpp).
+  out.cpp              out_conf re-run unregisters the previous config's callbacks before
+                       freeing vars and re-registering (no duplicate callbacks).
+  interface_ct003.cpp, interface_circulac.cpp  fd <= 0 -> fd < 0 (fd 0 is valid);
+                       circulac tcgetattr return now checked (close+retry on failure).
+  webserver.h, job_sched.h  dead declarations make_note / jos_printn removed.
+LOW — still open / won't fix without more info:
+  interface_fijnstof.cpp:78  nr_samples always logs 0; the parse target (new_nr_samples) does
+                       not exist in the code — needs the real device page format to fix.
+  in.cpp:44            bogus in(uint8_t,...) ctor is actually used by in_from_dir.cpp:34 — kept.
   callback.c           callback lists have no locking; safe only because registration happens
-                       at startup.
+                       at startup. Fixing properly means locking in cb_add/cb_remove/cb_call.
   interface_S7.cpp:211 residual: validbyte assumed within [first, first+MSG_SIZE_MAX) —
                        a config with validbit before the read window would read OOB.
-  Dead code / duplication (informational): logic_sleep.cpp (not built), logic_fijnstof.cpp body
-                       commented out, main.cpp commented modulator block, webserver.cpp
-                       Mongoose-era comments and dead ")to" branch, interface.cpp
-                       findDoubleAfter, job_sched.c jos_thread.working; duplicated helpers
-                       get_html_page (interface.cpp vs interface_dcmr.cpp), exec/system_exec
-                       (interface_macp.cpp vs interface_host.cpp), 4 finder functions.
+  Dead code / duplication (informational, not touched): logic_sleep.cpp (not built),
+                       logic_fijnstof.cpp body commented out, main.cpp commented modulator
+                       block, webserver.cpp Mongoose-era comments and dead ")to" branch,
+                       interface.cpp findDoubleAfter, job_sched.c jos_thread.working;
+                       duplicated helpers get_html_page (interface.cpp vs interface_dcmr.cpp),
+                       exec/system_exec (interface_macp.cpp vs interface_host.cpp),
+                       4 finder functions.
 
 
 SUGGESTED PRIORITY ORDER for the remaining work
 -----------------------------------------------
-  1. Commit the WT rounds (port option + robustness fixes; setValue locking; S7 conntype
-     guard; ~in_equation unregister; JSON escaping) — all verified by a clean build.
-  2. LOW batch: exit code on config error, banner rename, debug defines off, cyclic ms,
-     thread-pool arg, ct003 fd check, circulac tcgetattr, fijnstof nr_samples, dead
-     declarations, dead code and helper deduplication.
+  1. Commit the WT rounds (port option + robustness + MEDIUM fixes + LOW batch) — all
+     verified by clean builds and runtime tests on a test port.
+  2. Optional leftovers: fijnstof nr_samples (needs device page format), callback.c locking,
+     S7 validbyte window guard, dead-code/helper deduplication.
