@@ -348,8 +348,9 @@ void interface_S7_from_json(const json_t *json)
 	const char *ip = JSTR(ip);
 	const char *conntypestr = JSTR(conntype);
 	S7_conntype conntype = S7_PG;
-	for( int j = S7_PG; j < S7_connnum; j++)
-		if (strcmp(conntypestr, S7_conntype_str[j]) == 0 ) conntype = (S7_conntype) j;
+	if (conntypestr)	// strcmp(NULL, ...) would segfault on a config without "conntype"; keep default S7_PG
+		for( int j = S7_PG; j < S7_connnum; j++)
+			if (strcmp(conntypestr, S7_conntype_str[j]) == 0 ) conntype = (S7_conntype) j;
 	const int rack = JNR(rack);
 	const int slot = JNR(slot);
 

@@ -73,6 +73,7 @@ class in{
 	
 	protected:
 		const unsigned int _decimals;
+		std::mutex _state_mutex;	// guards _value, _time, _isValid, _isKnown, valid_time. Never held while firing callbacks.
 		float _value;
 		double _time;			// JCE, 4-7-13
 		floatLog *_logger;

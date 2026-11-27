@@ -61,18 +61,31 @@ SCHEDULER / LIFECYCLE:
 
 STILL OPEN (verified against current main + WT)
 -----------------------------------------------
-MEDIUM:
-  in.cpp:76            in::setValue mutates _value/_time/_isValid/_isKnown and fires callbacks
-                       with no lock, while web threads read via getValue() — data race (torn
-                       reads possible on 32-bit; on x86 mostly benign but still UB).
-  in_equation.cpp:38   ~in_equation does not unregister its callbacks from the source ins
-                       (unregister API exists, in.cpp:240-243, but is not called) -> dangling
-                       callback if an in_equation is destroyed while source ins still fire.
-  interface_S7.cpp:352 strcmp(conntypestr, ...) without NULL check: a config without "conntype"
-                       segfaults at startup (regtypestr IS guarded at :388).
-  webserver.cpp:1224,1241+  JSON built by string interpolation without escaping
-                       (json_fromto / json_summary: descriptor, name, units) -> broken or
-                       injectable JSON if a config string contains quotes/backslashes.
+MEDIUM: none remaining.
+FIXED in the uncommitted WT rounds:
+  in.cpp / in.h        _state_mutex now guards _value/_time/_isValid/_isKnown/valid_time in
+                       setValue/getValue/getTime/isValid/turn_invalid/set_valid_time; callbacks,
+                       logger append and scheduler calls happen after unlocking (no deadlock).
+                       in_equation::updateValue uses the same mutex for its state write.
+  interface_S7.cpp:352 conntypestr NULL-guarded (config without "conntype" no longer segfaults;
+                       default S7_PG kept).
+  in_equation.cpp      ~in_equation now unregisterCallbacks() from all source ins (no more
+                       dangling callbacks / use-after-free) and erases itself from in_eq_map.
+  webserver.cpp        json_escape() applied to descriptor/name/units in json_fromto,
+                       json_summary and make_in_list_json; gnuplot_str() escapes quotes in
+                       ylabel/y2label/plot titles (a '"' in a configured name/unit used to
+                       break the gnuplot script); all snprintf(buf, 32, ...) -> sizeof(buf)
+                       (the interval field could be truncated, dropping a JSON comma).
+  main.cpp             virtual-in cleanup uses the self-erasing while-loop, because
+                       ~in_equation now erases itself from in_eq_map (the old iterator
+                       loop would dangle).
+RUNTIME TESTS (test instance on port 58715 via the new "port" option, production
+instance on 8092 untouched): root 200; POST bad/huge value 200 without crash
+(safe_stof); /in.json + /in/<id>/json/summary_*.json parse as strict JSON with
+quoted/backslash names correctly escaped; in_equation computes (wi1=7.25 ->
+eq1=9.25); negative/huge bins and reversed range rejected (no terminate);
+path traversal 403; graphs render valid PNGs; SIGTERM shutdown clean in ~0.02 s
+with an in_equation registered (cleanup loop OK).
 LOW:
   webserver.cpp:1412,1654  webinmap / logics iterated without their mutexes (only mutated at
                        startup/shutdown today, so dormant).
@@ -105,12 +118,8 @@ LOW:
 
 SUGGESTED PRIORITY ORDER for the remaining work
 -----------------------------------------------
-  1. in::setValue locking + ~in_equation unregistering its callbacks (runtime race / shutdown
-     use-after-free; the only remaining correctness issues on normal paths).
-  2. interface_S7 conntype NULL guard (startup crash on config error).
-  3. JSON escaping in json_fromto/json_summary (matters once names contain quotes).
-  4. LOW batch: exit code, banner rename, debug defines off, cyclic ms, thread-pool arg,
-     ct003 fd check, circulac tcgetattr, fijnstof nr_samples, dead declarations, dead code
-     and helper deduplication.
-  5. Commit the [WT] working-tree fixes (webserver stof/summary/fputs, main loop sleep,
-     directory_iterator) — they are verified by a clean build but not yet in git.
+  1. Commit the WT rounds (port option + robustness fixes; setValue locking; S7 conntype
+     guard; ~in_equation unregister; JSON escaping) — all verified by a clean build.
+  2. LOW batch: exit code on config error, banner rename, debug defines off, cyclic ms,
+     thread-pool arg, ct003 fd check, circulac tcgetattr, fijnstof nr_samples, dead
+     declarations, dead code and helper deduplication.

@@ -35,6 +35,7 @@ class in_equation: public in{
         std::vector<eqVarDescr> vardes;
         eqNode *eq;  
         void registerCallbacks();
+        void unregisterCallbacks();
     friend void buildInEquations(json_t *json);
 	};
 

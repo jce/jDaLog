@@ -385,11 +385,10 @@ int main()
 		i->second->join();
 
 
-    // Remove all virtual ins
-    for (auto i = in_eq_map.begin(); i != in_eq_map.end(); i++)
-    {
-        delete i->second;
-    }
+    // Remove all virtual ins. ~in_equation erases itself from in_eq_map,
+    // so use the self-erasing idiom (a plain iterator loop would dangle).
+	while (!in_eq_map.empty())
+		delete in_eq_map.begin()->second;
 
 	// Stops all jobs, including those from interfaces.
 	jos_delete_pool(pool);

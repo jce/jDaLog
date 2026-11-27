@@ -76,20 +76,25 @@ in::~in()
 void in::setValue(float v, double t)
 {
 	bool changed, tvalid;
-	changed = !(_value == v);
-	tvalid = ! _isValid;
+	{
+		lock_guard<mutex> lock(_state_mutex);
+		changed = !(_value == v);
+		tvalid = ! _isValid;
 
-	_value = v;
-	_isValid = true;
-	_isKnown = true;
-	if (t == 0) t = now();
+		_value = v;
+		_isValid = true;
+		_isKnown = true;
+		if (t == 0) t = now();
+		_time = t;
+	}
 
 	jos_remove(pool, cc_in_turn_invalid, this);
 	jos_run_in(pool, valid_time, cc_in_turn_invalid, this);
 
-	_time = t;
 	_logger->append(t, v);
 
+	// Fire callbacks without holding _state_mutex: callbacks call back into
+	// ins (getValue/setValue), which would deadlock on a non-recursive mutex.
 	cb_call(on_update);
 	if (changed)
 		cb_call(on_change);
@@ -102,6 +107,7 @@ void in::setVal(float v, double t){
 
 float in::getValue()
 {
+	lock_guard<mutex> lock(_state_mutex);
 	if (not _isKnown)
 	{
 		record r = _logger->getLast();
@@ -119,6 +125,7 @@ bool in::get_value_at(double time, float &value, double &value_time)	// When, re
 
 double in::getTime()
 {
+	lock_guard<mutex> lock(_state_mutex);
 	if (not _isKnown)
 	{
 		record r = _logger->getLast();
@@ -137,13 +144,18 @@ float in::getVal(){
 
 void in::turn_invalid()
 {
-	bool call_callbacks = _isValid;
-	_isValid = false;
+	bool call_callbacks;
+	{
+		lock_guard<mutex> lock(_state_mutex);
+		call_callbacks = _isValid;
+		_isValid = false;
+	}
 	if (call_callbacks)
 		cb_call(on_turn_invalid);
 }
 
 bool in::isValid(){
+	lock_guard<mutex> lock(_state_mutex);
 	return _isValid;}
 
 const string in::getDescriptor(){
@@ -182,7 +194,7 @@ void in::getRecords(map<double, float> &m, size_t s, size_t l)
 
 void in::getDataSummary(vector<flStat> &stats, unsigned length , double from, double to)
 {
-	_logger->summaryFromTo(stats, length, from, to, valid_time);
+	_logger->summaryFromTo(stats, length, from, to, get_valid_time());
 }
 
 // Function to start importing a preconfigured text file. JCE, 18-7-13
@@ -215,11 +227,13 @@ in* get_in(string name)
 
 void in::set_valid_time(float f)
 {
+	lock_guard<mutex> lock(_state_mutex);
 	valid_time = f;
 }
 
 float in::get_valid_time()
 {
+	lock_guard<mutex> lock(_state_mutex);
 	return valid_time;
 }
 

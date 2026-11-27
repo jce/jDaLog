@@ -101,6 +101,52 @@ static bool safe_stof(const string &s, float &out)
 	return true;
 }
 
+// Return s as a double-quoted gnuplot string literal (\ and " escaped).
+// Names/units come from config.json; a quote in them would otherwise break
+// the gnuplot script (or inject gnuplot commands).
+static string gnuplot_str(const string &s)
+{
+	string rv = "\"";
+	for (char c : s)
+	{
+		if (c == '"' or c == '\\')
+			rv += '\\';
+		rv += c;
+	}
+	rv += "\"";
+	return rv;
+}
+
+// Escape a string for use inside a JSON string literal. Names/units/descriptors
+// come from config.json and may contain quotes, backslashes or control chars;
+// without escaping they break (or inject into) the generated JSON.
+static string json_escape(const string &s)
+{
+	string rv;
+	rv.reserve(s.size() + 8);
+	for (unsigned char c : s)
+	{
+		switch (c)
+		{
+			case '"':  rv += "\\\""; break;
+			case '\\': rv += "\\\\"; break;
+			case '\n': rv += "\\n"; break;
+			case '\r': rv += "\\r"; break;
+			case '\t': rv += "\\t"; break;
+			default:
+				if (c < 0x20)
+				{
+					char buf[8];
+					snprintf(buf, sizeof(buf), "\\u%04x", c);
+					rv += buf;
+				}
+				else
+					rv += (char) c;
+		}
+	}
+	return rv;
+}
+
 webserver::webserver(string n, uint16_t t, uint16_t p): name(n), threads(t), port(p)
 {
 	daemon = NULL;
@@ -433,9 +479,9 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 		fprintf(fp, "\n");		
 
 		fprintf(fp, "set yrange [%.8f:%.8f]\n", y1.ymin, y1.ymax);
-		fprintf(fp, "set ylabel \"%s\"\n", y1.units.c_str());
+		fprintf(fp, "set ylabel %s\n", gnuplot_str(y1.units).c_str());
 		if (haveY2){ 	fprintf(fp, "set y2range [%.8f:%.8f]\n", y2.ymin, y2.ymax);
-				fprintf(fp, "set y2label \"%s\"\n", y2.units.c_str());
+				fprintf(fp, "set y2label %s\n", gnuplot_str(y2.units).c_str());
 				fprintf(fp, "set y2tics\n");}
 		if (haveKey)	fprintf(fp, "set key out vert right\n");
 		else		fprintf(fp, "set key off\n");
@@ -469,7 +515,7 @@ void plotLines(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 						plotline += "x1y2";
 				}
 				plotline += ", \\\n\t\"\" using 1:2";
-				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
+				if (haveKey) plotline += " t " + gnuplot_str(iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]");
 				plotline += " with lines lc rgb \""+linecolor[colornr]+"\"";
 				if (haveY2)
 				{
@@ -676,11 +722,11 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 		fprintf(fp, "%%S\"\n");
 		
 		fprintf(fp, "set yrange [%.8f:%.8f]\n", y1.ymin, y1.ymax);
-		fprintf(fp, "set ylabel \"%s\"\n", y1.units.c_str());
+		fprintf(fp, "set ylabel %s\n", gnuplot_str(y1.units).c_str());
 		if (haveY2)
 		{
 			fprintf(fp, "set y2range [%.8f:%.8f]\n", y2.ymin, y2.ymax);
-			fprintf(fp, "set y2label \"%s\"\n", y2.units.c_str());
+			fprintf(fp, "set y2label %s\n", gnuplot_str(y2.units).c_str());
 			fprintf(fp, "set y2tics\n");
 		}
 		if (haveKey)	
@@ -707,7 +753,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 				else			
 					plotline += ", \\\n\t";
 				plotline += "\"-\" using 1:2:3";
-				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
+				if (haveKey) plotline += " t " + gnuplot_str(iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]");
 				plotline += " with filledcu lc rgb \""+linecolor[colornr]+"\"";
 				if (haveY2)
 				{
@@ -718,7 +764,7 @@ void plotcycle(list<in*> ins, double tmin, double tmax, unsigned int x, unsigned
 						plotline += "x1y2";
 				}
 				plotline += ", \\\n\t\"\" using 1:2";
-				if (haveKey) plotline += " t '" + iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]'";
+				if (haveKey) plotline += " t " + gnuplot_str(iwdli->inp->getName() + " [" + iwdli->inp->getUnits() + "]");
 				plotline += " with lines lc rgb \""+linecolor[colornr]+"\"";
 				if (haveY2)
 				{
@@ -939,9 +985,9 @@ string webserver::make_in_page(in *i)
 	rv += "<h2>In page: " + i->getName() + "</h2>\n";
 	rv += "short name: " + i->getDescriptor() + "<br>\n";
 	char buf[32];
-	snprintf(buf, 32, "%.*f", i->getDecimals(), i->getValue());
+	snprintf(buf, sizeof(buf), "%.*f", i->getDecimals(), i->getValue());
 	rv += string("last measurement: ") + buf + " " + i->getUnits() + "<br>\n";
-	snprintf(buf, 32, "%.3f", i->getAge());
+	snprintf(buf, sizeof(buf), "%.3f", i->getAge());
 	rv += string("measurement age: ") + buf + " seconds<br>\n";
 	// The validity of this measurement
 	if (i->isValid())
@@ -1134,7 +1180,7 @@ string webserver::make_ineq_page(in_equation *i)
 	rv += "<h2>In page: " + i->getName() + "</h2>\n";
 	rv += "short name: " + i->getDescriptor() + "<br>\n";
 	char buf[32];
-	snprintf(buf, 32, "%.*f", i->getDecimals(), i->getValue());
+	snprintf(buf, sizeof(buf), "%.*f", i->getDecimals(), i->getValue());
 	rv += string("last value: ") + buf + " " + i->getUnits() + "<br>\n";
 	// The validity of this measurement
 	if (i->isValid())
@@ -1220,7 +1266,7 @@ std::string table_fromto_h(in *i, double from, double to)
 // Json fromto
 string json_fromto(in *i, double from, double to)
 {
-    string rv = "{\"" + i->getDescriptor() + "\":{\n";
+    string rv = "{\"" + json_escape(i->getDescriptor()) + "\":{\n";
     map<double, float> data;
     i->getData(data, from, to);
     char buf[16];
@@ -1237,30 +1283,30 @@ string json_fromto(in *i, double from, double to)
 
 string json_summary(in *i, unsigned bins, double from, double to)
 {
-    char buf[32];
+    char buf[64];	// %f of a huge from/to would not fit in 32 and snprintf would cut the trailing comma -> invalid JSON
     vector<flStat> stats(bins);
     i->getDataSummary(stats, bins, from, to);
     string rv = "{\n";
-    snprintf(buf, 32, "\"from\": %.0f,\n", from); rv += buf;
-    snprintf(buf, 32, "\"to\": %.0f,\n", to); rv += buf;
-    snprintf(buf, 32, "\"bins\": %i,\n", bins); rv += buf;
-    snprintf(buf, 32, "\"interval\": %f,\n", (to-from)/bins); rv += buf;
+    snprintf(buf, sizeof(buf), "\"from\": %.0f,\n", from); rv += buf;
+    snprintf(buf, sizeof(buf), "\"to\": %.0f,\n", to); rv += buf;
+    snprintf(buf, sizeof(buf), "\"bins\": %i,\n", bins); rv += buf;
+    snprintf(buf, sizeof(buf), "\"interval\": %f,\n", (to-from)/bins); rv += buf;
     rv += "\"signals\":{\n";
-    rv += "\"" + i->getDescriptor() + "\": {\n";
-    rv += "\"name\":\"" + i->getName() + "\",\n";
-    rv += "\"unit\":\"" + i->getUnits() + "\",\n";
-    snprintf(buf, 32, "\"decimals\": %d,\n", i->getDecimals()); rv += buf;
+    rv += "\"" + json_escape(i->getDescriptor()) + "\": {\n";
+    rv += "\"name\":\"" + json_escape(i->getName()) + "\",\n";
+    rv += "\"unit\":\"" + json_escape(i->getUnits()) + "\",\n";
+    snprintf(buf, sizeof(buf), "\"decimals\": %d,\n", i->getDecimals()); rv += buf;
     rv += "\"bins\":[\n";
     for (unsigned b = 0; b < bins; b++)
     {
         rv += "{\n";
-        snprintf(buf, 32, "\"t\": %.3f,\n", from + (to-from) / bins * b); rv += buf;
+        snprintf(buf, sizeof(buf), "\"t\": %.3f,\n", from + (to-from) / bins * b); rv += buf;
         float pvalid = stats[b].t / ((to-from)/bins);
         if (pvalid > 0)
         {
-            snprintf(buf, 32, "\"min\": %f,\n", stats[b].min); rv += buf;
-            snprintf(buf, 32, "\"avg\": %f,\n", stats[b].avg); rv += buf;
-            snprintf(buf, 32, "\"max\": %f,\n", stats[b].max); rv += buf;
+            snprintf(buf, sizeof(buf), "\"min\": %f,\n", stats[b].min); rv += buf;
+            snprintf(buf, sizeof(buf), "\"avg\": %f,\n", stats[b].avg); rv += buf;
+            snprintf(buf, sizeof(buf), "\"max\": %f,\n", stats[b].max); rv += buf;
         }
         else // pvalid == 0
         {
@@ -1268,10 +1314,10 @@ string json_summary(in *i, unsigned bins, double from, double to)
             rv += "\"avg\": null,\n";
             rv += "\"max\": null,\n";
         }
-        snprintf(buf, 32, "\"pvalid\": %f,\n", pvalid); rv += buf;
-        snprintf(buf, 32, "\"samples\": %d,\n", stats[b].nr); rv += buf;
-        snprintf(buf, 32, "\"pos_edge\": %d,\n", stats[b].pedge); rv += buf;
-        snprintf(buf, 32, "\"neg_edge\": %d\n", stats[b].nedge); rv += buf;
+        snprintf(buf, sizeof(buf), "\"pvalid\": %f,\n", pvalid); rv += buf;
+        snprintf(buf, sizeof(buf), "\"samples\": %d,\n", stats[b].nr); rv += buf;
+        snprintf(buf, sizeof(buf), "\"pos_edge\": %d,\n", stats[b].pedge); rv += buf;
+        snprintf(buf, sizeof(buf), "\"neg_edge\": %d\n", stats[b].nedge); rv += buf;
         rv += "}, \n";
     }
     rv.erase(rv.size() - 3);
@@ -1286,26 +1332,26 @@ string make_in_list_json()
     string rv = "{\n";
     for (auto i = inmap.begin(); i != inmap.end(); i++)
     {
-        rv += "\"" + i->second->getDescriptor() + "\":{\"name\":\"" + i->second->getName() + "\", \"value\":";
+        rv += "\"" + json_escape(i->second->getDescriptor()) + "\":{\"name\":\"" + json_escape(i->second->getName()) + "\", \"value\":";
         char buf[32];
         v = i->second->getValue();
         if (isnan(v))
             rv += "0";
         else
         {
-            snprintf(buf, 32, "%.*f", i->second->getDecimals(), v);
+            snprintf(buf, sizeof(buf), "%.*f", i->second->getDecimals(), v);
             rv += buf;
         }
         rv += ", \"time\":";
-        snprintf(buf, 32, "%.3f", i->second->getTime());
+        snprintf(buf, sizeof(buf), "%.3f", i->second->getTime());
         rv += buf;
         rv += ", \"decimals\":";
-        snprintf(buf, 32, "%d", i->second->getDecimals());
+        snprintf(buf, sizeof(buf), "%d", i->second->getDecimals());
         rv += buf;
         if (i->second->getUnits() != "")
-            rv += ", \"unit\":\"" + i->second->getUnits()+"\"";
+            rv += ", \"unit\":\"" + json_escape(i->second->getUnits()) + "\"";
         rv += ", \"age\":";
-        snprintf(buf, 32, "%.3f", i->second->getAge());
+        snprintf(buf, sizeof(buf), "%.3f", i->second->getAge());
         rv += buf;
         rv += ",\"valid\":";
         rv += i->second->isValid() ? "true" : "false";
@@ -1334,7 +1380,7 @@ string make_in_list_page()
 		if (not i->second->isValid()) 
 			rv += "<span style=\"background-color:red\">";
 		char buf[32];
-		snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+		snprintf(buf, sizeof(buf), "%.*f", i->second->getDecimals(), i->second->getValue());
 		rv += linkhtml + ": " + buf + " " + i->second->getUnits();
 		if (not i->second->isValid()) 
 			rv += "</span>";
@@ -1362,7 +1408,7 @@ string make_eqin_list_page()
 		if (not i->second->isValid()) 
 			rv += "<span style=\"background-color:red\">";
 		char buf[32];
-		snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+		snprintf(buf, sizeof(buf), "%.*f", i->second->getDecimals(), i->second->getValue());
 		rv += linkhtml + ": " + buf + " " + i->second->getUnits();
 		if (not i->second->isValid()) 
 			rv += "</span>";
@@ -1422,7 +1468,7 @@ string make_webin_list_page()
 		if (not i->second->isValid()) 
 		    rv += "<span style=\"background-color:red\">";
 		char buf[32];
-		snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+		snprintf(buf, sizeof(buf), "%.*f", i->second->getDecimals(), i->second->getValue());
 		rv += linkhtml + ": " + buf + " " + i->second->getUnits();
 		if (not i->second->isValid()) 
 			rv += "</span>";
@@ -1582,7 +1628,7 @@ string make_out_list_page()
 		if (not i->second->isValid()) 
             rv += "<span style=\"background-color:red\">";
         char buf[32];
-        snprintf(buf, 32, "%.*f", i->second->getDecimals(), i->second->getValue());
+        snprintf(buf, sizeof(buf), "%.*f", i->second->getDecimals(), i->second->getValue());
         rv += linkhtml + ": " + buf + " " + i->second->getUnits();
         if (not i->second->isValid())
             rv += "</span>";

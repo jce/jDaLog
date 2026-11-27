@@ -36,6 +36,12 @@ in_equation::in_equation(string d, string n, string u, const unsigned int de) : 
 
 in_equation::~in_equation()
 {
+	// Remove our callbacks from the source ins first: they would otherwise
+	// dangle and fire into this deleted object (use-after-free).
+	unregisterCallbacks();
+	ineqmap_mutex.lock();
+	in_eq_map.erase(_descr);
+	ineqmap_mutex.unlock();
 	delete eq;
 }
 
@@ -244,12 +250,17 @@ void in_equation::updateValue()
         else
             var.push_back( NAN );
     }
-    float prev = _value;
-    _value = eq->eval(var);
-    _isValid = not isnan(_value);
-    _time = now();
+    float prev;
+    {
+        lock_guard<mutex> lock(_state_mutex);
+        prev = _value;
+        _value = eq->eval(var);
+        _isValid = not isnan(_value);
+        _time = now();
+    }
     //DBG("%s: val %f, time %f", _descr.c_str(), _value, _time);
 
+	// Callbacks fired without holding _state_mutex (see in::setValue).
 	cb_call(on_update);
 	if (valueDifferent(prev, _value))
 		cb_call(on_change);
@@ -263,10 +274,23 @@ void in_equation::registerCallbacks()
 {
     for (auto v: vardes)
     {
+        if (!v.i) continue;
         v.i->register_callback_on_update(in_equation::cc_in_equation_updateValue, this);
         v.i->register_callback_on_change(in_equation::cc_in_equation_updateValue, this);
         v.i->register_callback_on_turn_invalid(in_equation::cc_in_equation_updateValue, this);
         v.i->register_callback_on_turn_valid(in_equation::cc_in_equation_updateValue, this);
+    }
+}
+
+void in_equation::unregisterCallbacks()
+{
+    for (auto v: vardes)
+    {
+        if (!v.i) continue;
+        v.i->unregister_callback_on_update(in_equation::cc_in_equation_updateValue, this);
+        v.i->unregister_callback_on_change(in_equation::cc_in_equation_updateValue, this);
+        v.i->unregister_callback_on_turn_invalid(in_equation::cc_in_equation_updateValue, this);
+        v.i->unregister_callback_on_turn_valid(in_equation::cc_in_equation_updateValue, this);
     }
 }
 
